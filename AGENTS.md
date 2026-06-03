@@ -25,6 +25,8 @@ Panduan ini berlaku untuk seluruh file di repository ini. Ikuti instruksi ini sa
 - Jangan commit, push, merge, atau membuat branch kecuali diminta eksplisit oleh user.
 - Jangan menjalankan command destruktif seperti `git reset --hard`, `git clean -fd`, atau menghapus perubahan user tanpa izin.
 - Jangan commit file rahasia seperti `.env`, credential, token, key, atau file lokal editor.
+- Simpan setiap dokumentasi plan, task, keputusan teknis, dan catatan perubahan terkait project di folder `.docs/`, bukan di `.omo/` atau folder sementara lain.
+- Jika membuat dokumen baru untuk rencana kerja atau perubahan scope, gunakan nama file yang jelas di `.docs/` dan referensikan dokumen sumber terkait jika ada.
 
 ## Dependency dan Lockfile
 
