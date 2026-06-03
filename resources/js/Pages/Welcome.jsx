@@ -39,7 +39,7 @@ export default function Welcome({ auth }) {
 
             await import('spritespin');
 
-            const frames = Array.from({ length: 8 }, (_, i) => `/360-frames/genqi-row1/${i + 1}.png`);
+            const frames = Array.from({ length: 7 }, (_, i) => `/360-frames/genqi/${i + 1}.png`);
 
             jQuery('#spritespin-container').spritespin({
                 source: frames,
@@ -190,73 +190,146 @@ export default function Welcome({ auth }) {
                                 </div>
                             </div>
 
-                            {/* Bottom Badges */}
-                            <div className="mt-8 flex flex-wrap gap-3">
-                                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-full px-4 py-2 text-sm text-gray-700 shadow-sm">
-                                    <span className="material-symbols-outlined text-red-500 text-lg">block</span>
-                                    <span><strong>Tanpa</strong> Jarum</span>
-                                </div>
-                                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-full px-4 py-2 text-sm text-gray-700 shadow-sm">
-                                    <span className="material-symbols-outlined text-blue-500 text-lg">back_hand</span>
-                                    <span><strong>Tanpa</strong> Luka</span>
-                                </div>
-                                <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-full px-4 py-2 text-sm text-gray-700 shadow-sm">
-                                    <span className="material-symbols-outlined text-green-500 text-lg">shield_person</span>
-                                    <span><strong>Non-Invasif</strong></span>
-                                </div>
-                            </div>
                         </div>
 
 
-                        {/* Right Content (3D Layout & 360 Product View) */}
-                        <div className="w-full lg:w-1/2 relative flex justify-center items-center min-h-[500px] rounded-[2rem] overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 p-8 shadow-inner border border-blue-100/50">
-                            {/* 3D Pedestal Background Effect */}
-                            <div className="absolute bottom-12 w-3/4 h-32 bg-white/60 rounded-[100%] blur-2xl"></div>
+                        {/* Right Content (3D Product Showcase) */}
+                        <div className="w-full lg:w-1/2 relative flex justify-center items-center min-h-[580px] p-4">
 
-                            {/* The 3D Layout Structure */}
-                            <div className="relative w-full max-w-md aspect-square flex flex-col items-center justify-end z-10">
+                            {/* === MAIN PRODUCT AREA === */}
+                            <div className="relative w-full max-w-lg z-20 flex flex-col items-center gap-6">
 
-                                {/* The Pedestal (Podium) */}
-                                <div className="absolute bottom-0 w-[90%] h-24 bg-gradient-to-b from-white to-gray-200 rounded-[50%] border-b-8 border-gray-300 shadow-2xl flex items-center justify-center">
-                                    <div className="w-[85%] h-[70%] bg-gradient-to-b from-white to-gray-50 rounded-[50%] border-b-2 border-gray-200 shadow-inner"></div>
-                                </div>
+                                {/* Product Image Frame — Besar, tanpa card */}
+                                <div
+                                    className="relative w-full aspect-square group cursor-pointer"
+                                    style={{ perspective: '1000px' }}
+                                >
+                                    {/* Soft shadow bawah produk */}
+                                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-3/4 h-8 rounded-full blur-2xl" style={{ background: 'rgba(1,54,37,0.15)' }}></div>
 
-                                {/* Product Area / Image Placeholder */}
-                                <div className="relative z-20 w-full h-full flex flex-col items-center justify-center pb-12 group">
+                                    {/* Product image — langsung besar */}
+                                    <img
+                                        src='/360-frames/1.png'
+                                        alt="GenQi Product"
+                                        className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-105 group-hover:-translate-y-3"
+                                        style={{ filter: 'drop-shadow(0 24px 48px rgba(1,54,37,0.25))' }}
+                                    />
 
-                                    {/* Placeholder content mimicking GenQi and 360 View */}
-                                    <div className="relative w-[90%] h-[90%] bg-white/80 backdrop-blur-md rounded-3xl shadow-2xl border-2 border-white/60 flex flex-col items-center justify-center overflow-hidden transition-transform duration-500 hover:scale-105 hover:-translate-y-2">
+                                    {/* 360° label
+                                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1.5 rounded-full" style={{ background: 'rgba(1,54,37,0.08)', border: '1px solid rgba(1,54,37,0.2)', backdropFilter: 'blur(8px)' }}>
+                                        <span className="material-symbols-outlined text-sm" style={{ color: '#013625' }}>360</span>
+                                        <span className="text-[10px] font-bold tracking-widest uppercase" style={{ color: '#013625' }}>360° View</span>
+                                    </div> */}
 
-                                        {/* SpriteSpin Container */}
-                                        <div id="spritespin-container" className="w-full h-full flex items-center justify-center cursor-ew-resize"></div>
-
-                                        {/* 360 Badge */}
-                                        <div className="absolute bottom-5 bg-blue-50 border border-blue-200 text-blue-900 px-5 py-2 rounded-full font-label-md flex items-center gap-2 shadow-md hover:bg-blue-600 hover:text-white transition-colors cursor-ew-resize">
-                                            <span className="material-symbols-outlined text-xl">360</span>
-                                            Drag untuk memutar 360°
+                                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-3 py-2 rounded-2xl flex items-center gap-1.5 z-30"
+                                        style={{
+                                            background: '#ffffff',
+                                            boxShadow: '0 8px 24px rgba(1,54,37,0.15)',
+                                            border: '1px solid rgba(1,54,37,0.1)',
+                                            animation: 'float 4s ease-in-out infinite 0.8s'
+                                        }}>
+                                        <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: '"FILL" 1', color: '#f59e0b' }}>star</span>
+                                        <div>
+                                            <p className="text-[11px] font-black leading-none" style={{ color: '#1b1c1c' }}>4.9</p>
+                                            <p className="text-[8px] leading-none mt-0.5" style={{ color: '#414944' }}>2,400+ ulasan</p>
                                         </div>
                                     </div>
 
-                                    {/* Floating Accessory 1 (Hydromi Bottle) */}
-                                    <div className="absolute bottom-20 left-4 w-12 h-32 bg-white/95 rounded-full shadow-xl border border-gray-100 flex items-center justify-center backdrop-blur-sm animate-[bounce_3s_ease-in-out_infinite]">
-                                        <span className="text-gray-400 font-bold text-[8px] rotate-[-90deg] tracking-widest">HYDROMI</span>
+                                    {/* === FLOATING BADGE: Sertifikasi BPOM === */}
+                                    <div className="absolute -top-3 -left-2 text-white px-3 py-2 rounded-2xl flex items-center gap-1.5 z-30"
+                                        style={{
+                                            background: 'linear-gradient(135deg, #32694e, #1e4d3a)',
+                                            boxShadow: '0 4px 20px rgba(50,105,78,0.35)',
+                                            animation: 'float 3s ease-in-out infinite'
+                                        }}>
+                                        <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: '"FILL" 1', color: '#bbeed3' }}>verified</span>
+                                        <div>
+                                            <p className="text-[9px] font-bold uppercase tracking-widest leading-none" style={{ color: '#bbeed3' }}>Bersertifikat</p>
+                                            <p className="text-[8px] leading-none mt-0.5" style={{ color: 'rgba(187,238,211,0.8)' }}>BPOM & ISO</p>
+                                        </div>
                                     </div>
 
-                                    {/* Floating Accessory 2 (Attachments) */}
-                                    <div className="absolute bottom-24 right-4 w-16 h-16 bg-gradient-to-b from-gray-800 to-black rounded-full shadow-2xl flex items-center justify-center text-white/90 animate-[bounce_4s_ease-in-out_infinite] border-2 border-gray-700">
-                                        <span className="material-symbols-outlined text-2xl">settings_input_svideo</span>
+
+
+                                    {/* === FLOATING BADGE: Bio-Elektrik === */}
+                                    <div className="absolute bottom-16 -left-4 text-white px-3 py-2 rounded-2xl flex items-center gap-1.5 z-30"
+                                        style={{
+                                            background: 'linear-gradient(135deg, #013625, #1e4d3a)',
+                                            boxShadow: '0 4px 20px rgba(1,54,37,0.3)',
+                                            border: '1px solid rgba(160,209,184,0.2)',
+                                            animation: 'float 3.5s ease-in-out infinite 1.2s'
+                                        }}>
+                                        <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: '"FILL" 1', color: '#fbbf24' }}>bolt</span>
+                                        <div>
+                                            <p className="text-[9px] font-bold uppercase tracking-widest leading-none" style={{ color: '#bbeed3' }}>Bio-Elektrik</p>
+                                            <p className="text-[8px] leading-none mt-0.5" style={{ color: 'rgba(187,238,211,0.8)' }}>Teknologi GenQi</p>
+                                        </div>
+                                    </div>
+
+                                    {/* === FLOATING BADGE: Hidrogen === */}
+                                    <div className="absolute bottom-16 -right-4 text-white px-3 py-2 rounded-2xl flex items-center gap-1.5 z-30"
+                                        style={{
+                                            background: 'linear-gradient(135deg, #32694e, #204f3c)',
+                                            boxShadow: '0 4px 20px rgba(50,105,78,0.3)',
+                                            animation: 'float 4.5s ease-in-out infinite 0.4s'
+                                        }}>
+                                        <span className="text-lg font-black leading-none" style={{ color: '#a0d1b8' }}>H₂</span>
+                                        <div>
+                                            <p className="text-[9px] font-bold uppercase tracking-widest leading-none" style={{ color: '#bbeed3' }}>Hidrogen</p>
+                                            <p className="text-[8px] leading-none mt-0.5" style={{ color: 'rgba(187,238,211,0.8)' }}>Aktif Molekuler</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* === BOTTOM INFO STRIP === */}
+                                <div className="w-full rounded-2xl px-5 py-3.5 flex items-center justify-between gap-4"
+                                    style={{
+                                        background: 'rgba(1,54,37,0.06)',
+                                        border: '1px solid rgba(1,54,37,0.12)',
+                                    }}>
+                                    {/* Tanpa Jarum */}
+                                    <div className="flex-1 flex items-center justify-center gap-2">
+                                        <span className="material-symbols-outlined text-xl" style={{ color: '#dc2626' }}>block</span>
+                                        <span className="text-sm" style={{ color: '#1b1c1c' }}><strong style={{ color: '#013625' }}>Tanpa</strong> Jarum</span>
+                                    </div>
+                                    <div className="w-px h-8 shrink-0" style={{ background: 'rgba(1,54,37,0.15)' }}></div>
+                                    {/* Tanpa Luka */}
+                                    <div className="flex-1 flex items-center justify-center gap-2">
+                                        <span className="material-symbols-outlined text-xl" style={{ color: '#32694e' }}>back_hand</span>
+                                        <span className="text-sm" style={{ color: '#1b1c1c' }}><strong style={{ color: '#013625' }}>Tanpa</strong> Luka</span>
+                                    </div>
+                                    <div className="w-px h-8 shrink-0" style={{ background: 'rgba(1,54,37,0.15)' }}></div>
+                                    {/* Non-Invasif */}
+                                    <div className="flex-1 flex items-center justify-center gap-2">
+                                        <span className="material-symbols-outlined text-xl" style={{ color: '#013625' }}>shield_person</span>
+                                        <span className="text-sm font-bold" style={{ color: '#013625' }}>Non-Invasif</span>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Tech Badge (Top Right) */}
-                            <div className="absolute top-8 right-8 bg-white/90 backdrop-blur-md px-4 py-3 rounded-xl shadow-xl border border-white/50 flex flex-col items-center text-center max-w-[130px] z-30 transform rotate-3 hover:rotate-0 transition-transform">
-                                <div className="w-8 h-8 bg-blue-700 rounded-lg flex items-center justify-center text-white mb-2 shadow-inner">
-                                    <span className="material-symbols-outlined text-lg font-bold">add</span>
+                            {/* === TOP-RIGHT TECH BADGE === */}
+                            <div className="absolute top-4 right-4 px-3.5 py-2.5 rounded-xl flex items-center gap-2 z-30"
+                                style={{
+                                    background: '#ffffff',
+                                    boxShadow: '0 4px 16px rgba(1,54,37,0.12)',
+                                    border: '1px solid rgba(1,54,37,0.1)',
+                                }}>
+                                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: '#013625' }}>
+                                    <span className="material-symbols-outlined text-base" style={{ color: '#bbeed3' }}>eco</span>
                                 </div>
-                                <span className="text-[11px] font-bold text-blue-900 leading-tight">TEKNOLOGI MODERN</span>
-                                <span className="text-[9px] text-blue-700 leading-tight mt-1">UNTUK PRAKTIK PROFESIONAL</span>
+                                <div>
+                                    <p className="text-[10px] font-bold uppercase tracking-wider leading-none" style={{ color: '#013625' }}>Herbal Tech</p>
+                                    <p className="text-[8px] leading-none mt-0.5" style={{ color: '#32694e' }}>100% Alami</p>
+                                </div>
                             </div>
+
+                            {/* CSS Keyframe for float animation */}
+                            <style>{`
+                                @keyframes float {
+                                    0%, 100% { transform: translateY(0px); }
+                                    50% { transform: translateY(-8px); }
+                                }
+                            `}</style>
                         </div>
                     </div>
                 </section>
