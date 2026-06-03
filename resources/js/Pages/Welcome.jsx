@@ -462,54 +462,94 @@ export default function Welcome({ auth }) {
                     </div>
                 </section>
                 {/* Testimonials */}
-                <section className="py-24 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto">
-                    <div className="bg-surface-container-high rounded-[32px] p-8 md:p-20 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 p-8 text-primary/10">
-                            <span className="material-symbols-outlined text-[160px]" style={{ fontVariationSettings: '"FILL" 1' }}>format_quote</span>
+                <section className="py-24 px-margin-mobile md:px-margin-desktop">
+                    <div className="max-w-container-max mx-auto">
+                        <div className="mb-12">
+                            <p className="font-label-md text-secondary uppercase tracking-widest mb-2">Testimoni Pengguna</p>
+                            <h2 className="font-headline-lg text-headline-lg text-primary">Kisah Sukses Mereka</h2>
                         </div>
-                        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-                            <div>
-                                <h2 className="font-headline-lg text-headline-lg text-primary mb-8">Kisah Sukses Mereka</h2>
-                                <div className="mb-8">
-                                    <div className="flex gap-1 text-tertiary mb-4">
-                                        <span className="material-symbols-outlined" style={{ fontVariationSettings: '"FILL" 1' }}>star</span>
-                                        <span className="material-symbols-outlined" style={{ fontVariationSettings: '"FILL" 1' }}>star</span>
-                                        <span className="material-symbols-outlined" style={{ fontVariationSettings: '"FILL" 1' }}>star</span>
-                                        <span className="material-symbols-outlined" style={{ fontVariationSettings: '"FILL" 1' }}>star</span>
-                                        <span className="material-symbols-outlined" style={{ fontVariationSettings: '"FILL" 1' }}>star</span>
+                        {/* Row 1 — slide on mobile */}
+                        <div className="flex gap-5 overflow-x-auto no-scrollbar snap-x pb-2 md:grid md:grid-cols-3 md:overflow-visible">
+                            {[
+                                { name: 'Andi, 38 Thn', role: 'Wirausaha', stars: 5, quote: '"Nyeri sendi saya yang sudah 5 tahun akhirnya membaik setelah rutin menggunakan alat terapi GenQi. Luar biasa!"', avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB-ESFipY7daENUXujkQUG3TsZUfTe8ihYNTUpk6UrKEYNDy_FTGJu_mLhAU1I_5seiXifTxc5DVJ0cT1pyLRonPH6c2qj5ytsrjP9hNaNXyahaT8etnINT_YusnCK0sf280kMMl4s5mC9iY8p1XJguSCQ-fhriOSDUdm9LkHUo77zoaaQ9wqcu2akvsiQYHuEsCV5i8SCtLX6ksD4Kg394CkYhZTaE5sx9dHG0LlQv8SsdLoVMcmr-RGtmgCKJ1aqZ__ODAvMCdpDE' },
+                                { name: 'Sari, 45 Thn', role: 'Ibu Rumah Tangga', stars: 5, quote: '"Produk herbal dari Phonix membantu tidur saya jauh lebih nyenyak. Tubuh terasa lebih ringan dan segar setiap pagi."', avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCnztmSll6Puk4hFZxZnQherEi-0cA_2SZzSQwDEUL9_YgZ1JZny43o8huaHu4rWG4f1dSuJeVITXZuFHuJonW8L0i5xDmdmvu3RO0KgqVezoarO_aRAgAJnrN3UJIGfAF-_rhth0GEE-pofxAlpk8xkH1yYHVmpty0sb13wsJ8CZY0DW32Ou2Eb41QDBcU1TzkHNwXtOALe0zt4Rii9KPdBSMvxYlEnOIbUgsRN7YnzoCRCQQ6EE-9kTHz8AdvbP3VAQd4K48dJWQ1' },
+                                { name: 'Budi, 52 Thn', role: 'Pegawai Negeri', stars: 5, quote: '"Konsultasi holistik di Phonix membuka mata saya soal pola hidup sehat. Tensi darah saya turun drastis dalam 3 bulan."', avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB-ESFipY7daENUXujkQUG3TsZUfTe8ihYNTUpk6UrKEYNDy_FTGJu_mLhAU1I_5seiXifTxc5DVJ0cT1pyLRonPH6c2qj5ytsrjP9hNaNXyahaT8etnINT_YusnCK0sf280kMMl4s5mC9iY8p1XJguSCQ-fhriOSDUdm9LkHUo77zoaaQ9wqcu2akvsiQYHuEsCV5i8SCtLX6ksD4Kg394CkYhZTaE5sx9dHG0LlQv8SsdLoVMcmr-RGtmgCKJ1aqZ__ODAvMCdpDE' },
+                            ].map((t, i) => (
+                                <div key={i} className="min-w-[280px] snap-start md:min-w-0 bg-white rounded-2xl p-6 border border-outline-variant shadow-sm flex flex-col gap-4 shrink-0">
+                                    <div className="flex gap-0.5">
+                                        {Array.from({ length: t.stars }).map((_, s) => (
+                                            <span key={s} className="material-symbols-outlined text-base text-tertiary" style={{ fontVariationSettings: '"FILL" 1' }}>star</span>
+                                        ))}
                                     </div>
-                                    <blockquote className="font-headline-md text-headline-md italic text-on-surface mb-8 leading-relaxed">
-                                        "Setelah rutin menggunakan alat terapi dan mengonsumsi herbal dari Phoenix, nyeri sendi yang saya alami selama 5 tahun akhirnya membaik secara signifikan. Pelayanannya sangat profesional dan informatif."
-                                    </blockquote>
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-primary">
-                                            <img alt="Andi's Portrait" className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB-ESFipY7daENUXujkQUG3TsZUfTe8ihYNTUpk6UrKEYNDy_FTGJu_mLhAU1I_5seiXifTxc5DVJ0cT1pyLRonPH6c2qj5ytsrjP9hNaNXyahaT8etnINT_YusnCK0sf280kMMl4s5mC9iY8p1XJguSCQ-fhriOSDUdm9LkHUo77zoaaQ9wqcu2akvsiQYHuEsCV5i8SCtLX6ksD4Kg394CkYhZTaE5sx9dHG0LlQv8SsdLoVMcmr-RGtmgCKJ1aqZ__ODAvMCdpDE" />
-                                        </div>
+                                    <p className="text-on-surface font-body-md leading-relaxed flex-1 italic">{t.quote}</p>
+                                    <div className="flex items-center gap-3 pt-2 border-t border-outline-variant">
+                                        <img src={t.avatar} alt={t.name} className="w-10 h-10 rounded-full object-cover border-2 border-primary-container shrink-0" />
                                         <div>
-                                            <h4 className="font-bold text-primary font-body-lg">Andi, 38 Tahun</h4>
-                                            <p className="text-on-surface-variant font-body-sm">Wirausaha</p>
+                                            <p className="font-bold text-primary text-sm">{t.name}</p>
+                                            <p className="text-on-surface-variant text-xs">{t.role}</p>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div className="hidden lg:block relative">
-                                <div className="aspect-square bg-primary-container rounded-3xl rotate-3 absolute inset-0 -z-10 opacity-10"></div>
-                                <img alt="Healthy Lifestyle Image" className="rounded-3xl shadow-2xl w-full aspect-square object-cover -rotate-3" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCnztmSll6Puk4hFZxZnQherEi-0cA_2SZzSQwDEUL9_YgZ1JZny43o8huaHu4rWG4f1dSuJeVITXZuFHuJonW8L0i5xDmdmvu3RO0KgqVezoarO_aRAgAJnrN3UJIGfAF-_rhth0GEE-pofxAlpk8xkH1yYHVmpty0sb13wsJ8CZY0DW32Ou2Eb41QDBcU1TzkHNwXtOALe0zt4Rii9KPdBSMvxYlEnOIbUgsRN7YnzoCRCQQ6EE-9kTHz8AdvbP3VAQd4K48dJWQ1" />
-                            </div>
+                            ))}
+                        </div>
+                        {/* Row 2 */}
+                        <div className="mt-5 flex gap-5 overflow-x-auto no-scrollbar snap-x pb-2 md:grid md:grid-cols-3 md:overflow-visible">
+                            {[
+                                { name: 'Rina, 33 Thn', role: 'Dokter Umum', stars: 5, quote: '"Sebagai tenaga medis saya terkesan dengan pendekatan bio-elektrik GenQi. Pasien yang saya rekomendasikan merasakan manfaat nyata."', avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCnztmSll6Puk4hFZxZnQherEi-0cA_2SZzSQwDEUL9_YgZ1JZny43o8huaHu4rWG4f1dSuJeVITXZuFHuJonW8L0i5xDmdmvu3RO0KgqVezoarO_aRAgAJnrN3UJIGfAF-_rhth0GEE-pofxAlpk8xkH1yYHVmpty0sb13wsJ8CZY0DW32Ou2Eb41QDBcU1TzkHNwXtOALe0zt4Rii9KPdBSMvxYlEnOIbUgsRN7YnzoCRCQQ6EE-9kTHz8AdvbP3VAQd4K48dJWQ1' },
+                                { name: 'Hendra, 41 Thn', role: 'Atlet', stars: 5, quote: '"Recovery otot setelah latihan berat jadi jauh lebih cepat. GenQi sudah jadi bagian rutinitas harian saya sekarang."', avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB-ESFipY7daENUXujkQUG3TsZUfTe8ihYNTUpk6UrKEYNDy_FTGJu_mLhAU1I_5seiXifTxc5DVJ0cT1pyLRonPH6c2qj5ytsrjP9hNaNXyahaT8etnINT_YusnCK0sf280kMMl4s5mC9iY8p1XJguSCQ-fhriOSDUdm9LkHUo77zoaaQ9wqcu2akvsiQYHuEsCV5i8SCtLX6ksD4Kg394CkYhZTaE5sx9dHG0LlQv8SsdLoVMcmr-RGtmgCKJ1aqZ__ODAvMCdpDE' },
+                                { name: 'Dewi, 29 Thn', role: 'Content Creator', stars: 5, quote: '"Herbal Phonix cocok banget untuk yang aktif seperti saya. Stamina meningkat, kulit lebih cerah, dan pikiran lebih fokus."', avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCnztmSll6Puk4hFZxZnQherEi-0cA_2SZzSQwDEUL9_YgZ1JZny43o8huaHu4rWG4f1dSuJeVITXZuFHuJonW8L0i5xDmdmvu3RO0KgqVezoarO_aRAgAJnrN3UJIGfAF-_rhth0GEE-pofxAlpk8xkH1yYHVmpty0sb13wsJ8CZY0DW32Ou2Eb41QDBcU1TzkHNwXtOALe0zt4Rii9KPdBSMvxYlEnOIbUgsRN7YnzoCRCQQ6EE-9kTHz8AdvbP3VAQd4K48dJWQ1' },
+                            ].map((t, i) => (
+                                <div key={i} className="min-w-[280px] snap-start md:min-w-0 bg-white rounded-2xl p-6 border border-outline-variant shadow-sm flex flex-col gap-4 shrink-0">
+                                    <div className="flex gap-0.5">
+                                        {Array.from({ length: t.stars }).map((_, s) => (
+                                            <span key={s} className="material-symbols-outlined text-base text-tertiary" style={{ fontVariationSettings: '"FILL" 1' }}>star</span>
+                                        ))}
+                                    </div>
+                                    <p className="text-on-surface font-body-md leading-relaxed flex-1 italic">{t.quote}</p>
+                                    <div className="flex items-center gap-3 pt-2 border-t border-outline-variant">
+                                        <img src={t.avatar} alt={t.name} className="w-10 h-10 rounded-full object-cover border-2 border-primary-container shrink-0" />
+                                        <div>
+                                            <p className="font-bold text-primary text-sm">{t.name}</p>
+                                            <p className="text-on-surface-variant text-xs">{t.role}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </section>
                 {/* Newsletter / CTA */}
-                <section className="py-24 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto text-center">
-                    <div className="max-w-3xl mx-auto">
-                        <h2 className="font-headline-lg text-headline-lg text-primary mb-6">Siap Untuk Hidup Lebih Sehat?</h2>
-                        <p className="font-body-md text-body-md text-on-surface-variant mb-10">Dapatkan tips kesehatan mingguan dan penawaran eksklusif langsung di email Anda.</p>
-                        <form className="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto" onSubmit={(event) => { event.preventDefault(); alert('Terima kasih telah berlangganan!'); }}>
-                            <input className="flex-1 px-6 py-4 rounded-lg bg-white border border-outline-variant focus:ring-2 focus:ring-primary focus:border-transparent transition-all font-body-md" placeholder="Alamat Email Anda" required="" type="email" />
-                            <button className="bg-primary text-white px-8 py-4 rounded-lg font-label-md hover:bg-primary-container transition-all active:scale-95 shadow-md" type="submit">
-                                Berlangganan
-                            </button>
-                        </form>
+                <section className="py-16 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto">
+                    <div className="rounded-3xl overflow-hidden flex flex-col md:flex-row items-center" style={{ background: '#fbf5f0' }}>
+                        {/* Kiri: Teks + Form */}
+                        <div className="flex-1 px-10 py-12 md:py-14">
+                            <p className="font-label-md text-secondary uppercase tracking-widest mb-3">Newsletter</p>
+                            <h2 className="font-headline-lg text-headline-lg text-primary mb-3">Siap Untuk Hidup Lebih Sehat?</h2>
+                            <p className="font-body-md text-body-md text-on-surface-variant mb-8">Dapatkan tips kesehatan mingguan dan penawaran eksklusif langsung di email Anda.</p>
+                            <form className="flex flex-col sm:flex-row gap-3" onSubmit={(event) => { event.preventDefault(); alert('Terima kasih telah berlangganan!'); }}>
+                                <input
+                                    className="flex-1 px-5 py-3.5 rounded-xl bg-white border border-outline-variant focus:ring-2 focus:ring-primary focus:border-transparent transition-all font-body-md text-on-surface"
+                                    placeholder="Alamat Email Anda"
+                                    required
+                                    type="email"
+                                />
+                                <button
+                                    className="flex items-center gap-2 bg-primary text-white px-7 py-3.5 rounded-xl font-label-md hover:opacity-90 transition-all active:scale-95 shadow-md whitespace-nowrap"
+                                    type="submit"
+                                >
+                                    <span className="material-symbols-outlined text-lg">send</span>
+                                    Berlangganan
+                                </button>
+                            </form>
+                        </div>
+                        {/* Kanan: Gambar */}
+                        <div className="w-full md:w-[42%] h-56 md:h-auto md:self-stretch shrink-0">
+                            <img
+                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCA0IZ7J3kEkY_0TDnJOZRm60R6F0hJFxIgdL7f2cm6xyryTepsaSopZ6ht1dsQKxyYIi5zTnnXwOyGhPIQgfpyllStfaBCdq73Dh6k3LTD3cJjYXnm222-KHmfVySgmstAxkwvlDj0RB94YMGMFFIaUXHOtOpugUynkfmudgoOqn9ON-0hUCMR7y-cJqfEPun5ITy64FvgWTJSaJe-hbKJhZ6-7uwZtq0JP5t5cJ_gblPk5gh9QTatDqEWo0SxWjYdfvvUcNOorwvV"
+                                alt="Hidup Sehat"
+                                className="w-full h-full object-cover"
+                            />
+                        </div>
                     </div>
                 </section>
             </main>
