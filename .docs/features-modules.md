@@ -127,14 +127,15 @@ Fitur cart:
 
 Fitur checkout manual:
 
-- Customer wajib login atau daftar akun sebelum checkout
+- Customer dapat checkout tanpa daftar akun terlebih dahulu
+- Customer yang belum login checkout sebagai guest/non-member
 - Form data customer
 - Form nomor WhatsApp
 - Form alamat pengiriman
 - Ringkasan pesanan
 - Tampilkan subtotal produk
-- Customer member dapat memilih voucher yang sudah diclaim jika voucher masih valid
-- Customer non-member tidak dapat claim atau menggunakan voucher member
+- Customer member dapat memilih voucher yang tersedia jika voucher masih valid
+- Customer non-member tidak dapat melihat atau menggunakan voucher member
 - Tampilkan informasi bahwa ongkir akan dikonfirmasi admin
 - Order otomatis masuk ke admin panel
 - Status awal order: menunggu konfirmasi ongkir
@@ -143,14 +144,17 @@ Fitur checkout manual:
 Flow checkout manual:
 
 - Customer memilih produk dan checkout
-- Jika customer belum login, sistem mengarahkan customer untuk login atau daftar akun terlebih dahulu
-- Customer yang baru daftar otomatis berstatus non-member
+- Jika customer sudah login, order terhubung ke akun customer
+- Jika customer belum login, customer dapat lanjut checkout sebagai guest/non-member
+- Customer guest wajib mengisi nama, nomor WhatsApp, dan alamat pengiriman
+- Customer yang baru daftar tetap otomatis berstatus non-member
 - Status member customer hanya dapat diubah oleh admin dari admin panel
 - Customer mengisi data penerima dan alamat pengiriman
 - Jika customer berstatus member dan memiliki voucher valid, customer dapat memilih voucher sebelum order dibuat
 - Sistem membuat order dengan subtotal produk
 - Sistem menyimpan diskon voucher jika digunakan
-- Order terhubung ke akun customer
+- Order customer login terhubung ke akun customer
+- Order guest tetap masuk ke admin panel tanpa wajib akun customer
 - Order masuk ke admin panel dengan status menunggu konfirmasi ongkir
 - Admin mengecek alamat dan menentukan ongkir manual
 - Admin mengisi kurir dan ongkir
@@ -172,25 +176,24 @@ Fitur voucher member:
 - Admin dapat mengatur minimal belanja jika diperlukan
 - Admin dapat mengatur tanggal mulai dan tanggal berakhir voucher
 - Admin dapat publish atau unpublish voucher
-- Voucher hanya dapat diclaim oleh customer dengan status member
-- Customer non-member tidak dapat melihat claim action untuk voucher member
+- Voucher hanya dapat digunakan oleh customer dengan status member
+- Customer non-member tidak dapat melihat atau menggunakan voucher member
 - Customer member dapat melihat voucher yang sedang dipublish
-- Customer member dapat claim voucher selama kuota masih tersedia
-- Admin dapat membatasi jumlah customer yang boleh claim voucher, misalnya 50 customer
-- Satu customer hanya dapat claim voucher yang sama satu kali
-- Voucher yang sudah diclaim dapat digunakan saat checkout jika masih valid
+- Customer member dapat menggunakan voucher saat checkout selama kuota masih tersedia
+- Admin dapat membatasi jumlah customer yang boleh menggunakan voucher, misalnya 50 customer
+- Satu customer hanya dapat menggunakan voucher yang sama satu kali
+- Voucher yang tersedia dapat digunakan saat checkout jika masih valid
 - Voucher yang sudah digunakan pada order tidak dapat digunakan ulang oleh customer yang sama
-- Admin dapat melihat daftar customer yang sudah claim voucher
-- Admin dapat melihat jumlah voucher yang sudah diclaim dan sisa kuota voucher
+- Admin dapat melihat daftar customer yang sudah menggunakan voucher
+- Admin dapat melihat jumlah voucher yang sudah digunakan dan sisa kuota voucher
 
 Flow voucher member:
 
-- Admin membuat voucher dan mengatur limit claim customer
+- Admin membuat voucher dan mengatur limit penggunaan customer
 - Admin publish voucher
 - Customer dengan status member melihat voucher di dashboard customer
-- Customer member claim voucher jika kuota masih tersedia
-- Sistem mencatat voucher yang diclaim ke akun customer
-- Saat checkout, customer member dapat memilih voucher yang sudah diclaim dan masih valid
+- Saat checkout, customer member memilih voucher yang masih valid dan kuotanya tersedia
+- Sistem mencatat penggunaan voucher pada order customer
 - Sistem menghitung diskon voucher pada subtotal produk
 - Ongkir tetap dikonfirmasi manual oleh admin sebelum pembayaran final
 - Setelah order berhasil memakai voucher, voucher customer ditandai sudah digunakan
@@ -306,10 +309,11 @@ Fitur customer signup/signin:
 - Customer dapat mengelola profil dasar
 - Customer dapat menyimpan nomor WhatsApp
 - Customer dapat menyimpan alamat utama
-- Customer wajib login atau daftar akun sebelum checkout produk
+- Customer tidak wajib login atau daftar akun sebelum checkout produk
+- Customer yang checkout tanpa login diproses sebagai guest/non-member
 - Status member tidak otomatis dari signup
 - Admin dapat mengubah status customer dari non-member menjadi member
-- Order dan booking terhubung ke akun customer
+- Order dan booking customer login terhubung ke akun customer
 
 Fitur customer dashboard:
 
@@ -322,8 +326,8 @@ Fitur customer dashboard:
 - Customer dapat melihat status booking
 - Customer dapat melihat hasil pemeriksaan miliknya
 - Customer dapat melihat rekomendasi produk dari admin
-- Customer member dapat melihat voucher yang tersedia untuk diclaim
-- Customer member dapat melihat voucher yang sudah diclaim
+- Customer member dapat melihat voucher yang tersedia untuk digunakan
+- Customer member dapat melihat voucher yang sudah digunakan
 - Customer member dapat melihat status voucher: tersedia, sudah digunakan, atau expired
 - Customer dapat mengubah data profil dasar
 
