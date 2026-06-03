@@ -121,10 +121,10 @@ export default function Welcome({ auth }) {
                         <div className="w-full lg:w-1/2">
                             {/* Tag line */}
                             <div className="flex flex-wrap gap-2 mb-4">
-                                <span className="bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full tracking-widest uppercase">Teknologi Modern</span>
-                                <span className="bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full tracking-widest uppercase">Aman</span>
-                                <span className="bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full tracking-widest uppercase">Efektif</span>
-                                <span className="bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full tracking-widest uppercase">Terbukti</span>
+                                <span className="bg-primary/10 text-primary border border-primary/20 text-xs font-bold px-3 py-1 rounded-full tracking-widest uppercase">Teknologi Modern</span>
+                                <span className="bg-primary/10 text-primary border border-primary/20 text-xs font-bold px-3 py-1 rounded-full tracking-widest uppercase">Aman</span>
+                                <span className="bg-primary/10 text-primary border border-primary/20 text-xs font-bold px-3 py-1 rounded-full tracking-widest uppercase">Efektif</span>
+                                <span className="bg-primary/10 text-primary border border-primary/20 text-xs font-bold px-3 py-1 rounded-full tracking-widest uppercase">Terbukti</span>
                             </div>
 
                             <h2 className="font-headline-lg text-headline-lg text-primary mb-2">Filosofi Keunggulan Kami</h2>
@@ -132,37 +132,37 @@ export default function Welcome({ auth }) {
 
                             <div className="relative space-y-8 ml-2">
                                 {/* Vertical Line */}
-                                <div className="absolute left-7 top-4 bottom-4 w-0.5 bg-gradient-to-b from-blue-400 via-blue-200 to-transparent z-0"></div>
+                                <div className="absolute left-7 top-4 bottom-4 w-0.5 bg-gradient-to-b from-primary/40 via-primary/15 to-transparent z-0"></div>
 
                                 {/* Item 1 — Salon Kecantikan */}
                                 <div className="relative z-10 flex gap-6 group">
-                                    <div className="w-14 h-14 shrink-0 rounded-full bg-white border-2 border-blue-400 flex items-center justify-center text-blue-600 shadow-md group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 transition-all duration-300">
+                                    <div className="w-14 h-14 shrink-0 rounded-full bg-white border-2 border-primary/30 flex items-center justify-center text-primary shadow-md group-hover:bg-primary group-hover:text-white group-hover:border-primary transition-all duration-300">
                                         <span className="material-symbols-outlined text-2xl">face</span>
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-blue-900 text-lg mb-1 uppercase tracking-wide">Salon Kecantikan</h3>
+                                        <h3 className="font-bold text-primary text-lg mb-1 uppercase tracking-wide">Salon Kecantikan</h3>
                                         <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">Tingkatkan layanan kecantikan dengan teknologi modern untuk hasil maksimal.</p>
                                     </div>
                                 </div>
 
                                 {/* Item 2 — Pusat Wellness */}
                                 <div className="relative z-10 flex gap-6 group">
-                                    <div className="w-14 h-14 shrink-0 rounded-full bg-white border-2 border-blue-400 flex items-center justify-center text-blue-600 shadow-md group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 transition-all duration-300">
+                                    <div className="w-14 h-14 shrink-0 rounded-full bg-white border-2 border-primary/30 flex items-center justify-center text-primary shadow-md group-hover:bg-primary group-hover:text-white group-hover:border-primary transition-all duration-300">
                                         <span className="material-symbols-outlined text-2xl">spa</span>
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-blue-900 text-lg mb-1 uppercase tracking-wide">Pusat Wellness</h3>
+                                        <h3 className="font-bold text-primary text-lg mb-1 uppercase tracking-wide">Pusat Wellness</h3>
                                         <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">Dukungan terapi menyeluruh untuk kesehatan &amp; keseimbangan tubuh.</p>
                                     </div>
                                 </div>
 
                                 {/* Item 3 — Praktisi TCM */}
                                 <div className="relative z-10 flex gap-6 group">
-                                    <div className="w-14 h-14 shrink-0 rounded-full bg-white border-2 border-blue-400 flex items-center justify-center text-blue-600 shadow-md group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 transition-all duration-300">
+                                    <div className="w-14 h-14 shrink-0 rounded-full bg-white border-2 border-primary/30 flex items-center justify-center text-primary shadow-md group-hover:bg-primary group-hover:text-white group-hover:border-primary transition-all duration-300">
                                         <span className="material-symbols-outlined text-2xl">self_improvement</span>
                                     </div>
                                     <div>
-                                        <h3 className="font-bold text-blue-900 text-lg mb-1 uppercase tracking-wide">Praktisi TCM</h3>
+                                        <h3 className="font-bold text-primary text-lg mb-1 uppercase tracking-wide">Praktisi TCM</h3>
                                         <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">Terapi berbasis meridian TCM dengan teknologi modern yang lebih efektif.</p>
                                     </div>
                                 </div>
@@ -170,21 +170,21 @@ export default function Welcome({ auth }) {
 
                             {/* GenQi Duo Technology */}
                             <div className="mt-10 space-y-4">
-                                <div className="flex items-start gap-4 bg-blue-50 border border-blue-200 rounded-xl p-4">
-                                    <div className="w-10 h-10 shrink-0 bg-yellow-400 rounded-full flex items-center justify-center shadow">
+                                <div className="flex items-start gap-4 rounded-xl p-4" style={{ background: 'rgba(1,54,37,0.05)', border: '1px solid rgba(1,54,37,0.12)' }}>
+                                    <div className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center shadow" style={{ background: '#fbbf24' }}>
                                         <span className="material-symbols-outlined text-white text-xl">bolt</span>
                                     </div>
                                     <div>
-                                        <p className="font-bold text-blue-900 text-sm uppercase tracking-wide">GenQi Bio Elektrik</p>
+                                        <p className="font-bold text-primary text-sm uppercase tracking-wide">GenQi Bio Elektrik</p>
                                         <p className="text-xs text-on-surface-variant mt-1 leading-relaxed">Menggabungkan teknologi <strong>bioelektrik</strong> dengan konsep jalur meridian saraf untuk membantu stimulasi tubuh secara alami.</p>
                                     </div>
                                 </div>
-                                <div className="flex items-start gap-4 bg-green-50 border border-green-200 rounded-xl p-4">
-                                    <div className="w-10 h-10 shrink-0 bg-green-500 rounded-full flex items-center justify-center shadow">
+                                <div className="flex items-start gap-4 rounded-xl p-4" style={{ background: 'rgba(1,54,37,0.05)', border: '1px solid rgba(1,54,37,0.12)' }}>
+                                    <div className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center shadow" style={{ background: '#013625' }}>
                                         <span className="font-black text-white text-sm">H₂</span>
                                     </div>
                                     <div>
-                                        <p className="font-bold text-green-900 text-sm uppercase tracking-wide">GenQi Hidrogen</p>
+                                        <p className="font-bold text-primary text-sm uppercase tracking-wide">GenQi Hidrogen</p>
                                         <p className="text-xs text-on-surface-variant mt-1 leading-relaxed">Menggunakan <strong>molekul hidrogen aktif</strong> yang membantu menetralkan stres oksidatif hingga ke tingkat sel.</p>
                                     </div>
                                 </div>
