@@ -4,6 +4,7 @@ Sumber acuan:
 
 - `.docs/features-modules.md`
 - `.docs/data-structure-plan.md`
+- `.docs/system-flow.md`
 - `.docs/DESIGN.md`
 
 Dokumen ini mencatat progres implementasi yang sudah dikerjakan agar batch berikutnya bisa dilanjutkan tanpa kehilangan konteks.
