@@ -1,24 +1,119 @@
 <?php
 
+use App\Http\Controllers\Customer\CustomerDashboardController;
+use App\Http\Controllers\Customer\CustomerProfileController;
+use App\Http\Controllers\Admin\ProductCategoryController as AdminProductCategoryController;
+use App\Http\Controllers\Admin\ProductController as AdminProductController;
+use App\Http\Controllers\Admin\OrderController as AdminOrderController;
+use App\Http\Controllers\Admin\CustomerController as AdminCustomerController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\BookingController as AdminBookingController;
+use App\Http\Controllers\Admin\EventController as AdminEventController;
+use App\Http\Controllers\Admin\ExaminationController as AdminExaminationController;
+use App\Http\Controllers\Admin\PaymentMethodController as AdminPaymentMethodController;
+use App\Http\Controllers\Admin\LeadController as AdminLeadController;
+use App\Http\Controllers\Admin\LeadSourceController as AdminLeadSourceController;
+use App\Http\Controllers\Admin\OfflineSaleController as AdminOfflineSaleController;
+use App\Http\Controllers\Admin\ReportController as AdminReportController;
+use App\Http\Controllers\Admin\ServiceController as AdminServiceController;
+use App\Http\Controllers\Admin\VoucherController as AdminVoucherController;
+use App\Http\Controllers\Public\BookingController;
+use App\Http\Controllers\Public\CartController;
+use App\Http\Controllers\Public\CheckoutController;
+use App\Http\Controllers\Field\FieldDashboardController;
+use App\Http\Controllers\Field\FieldLeadController;
+use App\Http\Controllers\Public\HomeController;
+use App\Http\Controllers\Public\ProductController;
+use App\Http\Controllers\Public\ServiceController;
 use App\Http\Controllers\ProfileController;
-use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
-});
+Route::get('/', HomeController::class)->name('home');
+Route::get('/products', [ProductController::class, 'index'])->name('products.index');
+Route::get('/products/{product:slug}', [ProductController::class, 'show'])->name('products.show');
+Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
+Route::get('/services/{service:slug}', [ServiceController::class, 'show'])->name('services.show');
+Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
+Route::post('/cart/items', [CartController::class, 'store'])->name('cart.items.store');
+Route::patch('/cart/items/{cartItem}', [CartController::class, 'update'])->name('cart.items.update');
+Route::delete('/cart/items/{cartItem}', [CartController::class, 'destroy'])->name('cart.items.destroy');
+Route::get('/checkout', [CheckoutController::class, 'show'])->name('checkout.show');
+Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
 
 Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
+    Route::prefix('admin')->name('admin.')->group(function () {
+        Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard.index');
+        Route::get('/reports', [AdminReportController::class, 'index'])->name('reports.index');
+
+        Route::resource('product-categories', AdminProductCategoryController::class);
+        Route::resource('products', AdminProductController::class);
+        Route::resource('services', AdminServiceController::class);
+        Route::resource('events', AdminEventController::class);
+        Route::resource('payment-methods', AdminPaymentMethodController::class);
+        Route::resource('lead-sources', AdminLeadSourceController::class);
+        Route::get('/leads', [AdminLeadController::class, 'index'])->name('leads.index');
+        Route::get('/leads/create', [AdminLeadController::class, 'create'])->name('leads.create');
+        Route::post('/leads', [AdminLeadController::class, 'store'])->name('leads.store');
+        Route::get('/leads/{lead}', [AdminLeadController::class, 'show'])->name('leads.show');
+        Route::patch('/leads/{lead}', [AdminLeadController::class, 'update'])->name('leads.update');
+        Route::patch('/leads/{lead}/status', [AdminLeadController::class, 'updateStatus'])->name('leads.status.update');
+        Route::post('/leads/{lead}/follow-ups', [AdminLeadController::class, 'storeFollowUp'])->name('leads.follow-ups.store');
+        Route::get('/vouchers/{voucher}/redemptions', [AdminVoucherController::class, 'redemptions'])->name('vouchers.redemptions.index');
+        Route::resource('vouchers', AdminVoucherController::class);
+
+        Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
+        Route::get('/orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
+        Route::patch('/orders/{order}/shipping', [AdminOrderController::class, 'updateShipping'])->name('orders.shipping.update');
+        Route::patch('/orders/{order}/payment', [AdminOrderController::class, 'updatePayment'])->name('orders.payment.update');
+        Route::patch('/orders/{order}/status', [AdminOrderController::class, 'updateStatus'])->name('orders.status.update');
+
+        Route::get('/offline-sales', [AdminOfflineSaleController::class, 'index'])->name('offline-sales.index');
+        Route::get('/offline-sales/create', [AdminOfflineSaleController::class, 'create'])->name('offline-sales.create');
+        Route::post('/offline-sales', [AdminOfflineSaleController::class, 'store'])->name('offline-sales.store');
+        Route::get('/offline-sales/{offlineSale}', [AdminOfflineSaleController::class, 'show'])->name('offline-sales.show');
+
+        Route::get('/examinations', [AdminExaminationController::class, 'index'])->name('examinations.index');
+        Route::get('/examinations/create', [AdminExaminationController::class, 'create'])->name('examinations.create');
+        Route::post('/examinations', [AdminExaminationController::class, 'store'])->name('examinations.store');
+        Route::get('/examinations/{examination}', [AdminExaminationController::class, 'show'])->name('examinations.show');
+
+        Route::get('/customers', [AdminCustomerController::class, 'index'])->name('customers.index');
+        Route::get('/customers/{customerProfile}', [AdminCustomerController::class, 'show'])->name('customers.show');
+        Route::patch('/customers/{customerProfile}', [AdminCustomerController::class, 'update'])->name('customers.update');
+
+        Route::get('/bookings', [AdminBookingController::class, 'index'])->name('bookings.index');
+        Route::get('/bookings/{booking}', [AdminBookingController::class, 'show'])->name('bookings.show');
+        Route::patch('/bookings/{booking}/status', [AdminBookingController::class, 'updateStatus'])->name('bookings.status.update');
+        Route::patch('/bookings/{booking}/schedule', [AdminBookingController::class, 'updateSchedule'])->name('bookings.schedule.update');
+    });
+
+    Route::get('/customer/dashboard', [CustomerDashboardController::class, 'index'])->name('customer.dashboard.index');
+    Route::get('/customer/dashboard/orders/{order}', [CustomerDashboardController::class, 'showOrder'])->name('customer.dashboard.orders.show');
+    Route::get('/customer/dashboard/bookings/{booking}', [CustomerDashboardController::class, 'showBooking'])->name('customer.dashboard.bookings.show');
+    Route::get('/customer/profile', [CustomerProfileController::class, 'show'])->name('customer.profile.show');
+    Route::get('/customer/profile/create', [CustomerProfileController::class, 'create'])->name('customer.profile.create');
+    Route::post('/customer/profile', [CustomerProfileController::class, 'store'])->name('customer.profile.store');
+    Route::get('/customer/profile/edit', [CustomerProfileController::class, 'edit'])->name('customer.profile.edit');
+    Route::patch('/customer/profile', [CustomerProfileController::class, 'update'])->name('customer.profile.update');
+
+    Route::prefix('field')->name('field.')->group(function () {
+        Route::get('/dashboard', [FieldDashboardController::class, 'index'])->name('dashboard.index');
+        Route::get('/leads', [FieldLeadController::class, 'index'])->name('leads.index');
+        Route::get('/leads/{lead}', [FieldLeadController::class, 'show'])->name('leads.show');
+        Route::patch('/leads/{lead}/status', [FieldLeadController::class, 'updateStatus'])->name('leads.status.update');
+        Route::post('/leads/{lead}/activities', [FieldLeadController::class, 'storeActivity'])->name('leads.activities.store');
+    });
+
+    Route::get('/bookings', [BookingController::class, 'index'])->name('bookings.index');
+    Route::get('/bookings/create', [BookingController::class, 'create'])->name('bookings.create');
+    Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
+    Route::get('/bookings/{booking}', [BookingController::class, 'show'])->name('bookings.show');
+
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');

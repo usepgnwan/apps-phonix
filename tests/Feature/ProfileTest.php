@@ -16,6 +16,7 @@ class ProfileTest extends TestCase
 
         $response = $this
             ->actingAs($user)
+            ->withHeader('X-Inertia', 'true')
             ->get('/profile');
 
         $response->assertOk();
