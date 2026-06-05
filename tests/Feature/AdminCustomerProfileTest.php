@@ -35,30 +35,30 @@ class AdminCustomerProfileTest extends TestCase
         $this->actingAs($admin)->get(route('admin.customers.index'))->assertForbidden();
     }
 
-    public function test_active_admin_can_view_index_placeholder_with_counts(): void
+    public function test_active_admin_can_view_customers_index_with_counts(): void
     {
         $admin = $this->createAdmin();
         $profile = $this->createCustomerProfile();
         $this->createRelatedData($profile);
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.customers.index'))
+        $this->inertiaGet($admin, route('admin.customers.index'))
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
+            ->assertJsonPath('component', 'Admin/Customers/Index')
             ->assertJsonPath('props.page', 'admin.customers.index')
             ->assertJsonPath('props.customerProfiles.0.orders_count', 1)
             ->assertJsonPath('props.customerProfiles.0.bookings_count', 1)
             ->assertJsonPath('props.customerProfiles.0.voucher_redemptions_count', 1);
     }
 
-    public function test_active_admin_can_view_show_placeholder_with_relations(): void
+    public function test_active_admin_can_view_customer_show_with_relations(): void
     {
         $admin = $this->createAdmin();
         $profile = $this->createCustomerProfile();
         $this->createRelatedData($profile);
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.customers.show', $profile))
+        $this->inertiaGet($admin, route('admin.customers.show', $profile))
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
+            ->assertJsonPath('component', 'Admin/Customers/Show')
             ->assertJsonPath('props.page', 'admin.customers.show')
             ->assertJsonStructure([
                 'props' => [
@@ -149,6 +149,17 @@ class AdminCustomerProfileTest extends TestCase
     private function createAdmin(): User
     {
         return User::factory()->create(['role' => 'admin', 'is_active' => true]);
+    }
+
+    private function inertiaGet(User $admin, string $url)
+    {
+        $headers = ['X-Inertia' => 'true'];
+
+        if (file_exists(public_path('build/manifest.json'))) {
+            $headers['X-Inertia-Version'] = hash_file('xxh128', public_path('build/manifest.json'));
+        }
+
+        return $this->actingAs($admin)->withHeaders($headers)->get($url);
     }
 
     private function createCustomerProfile(?User $user = null): CustomerProfile

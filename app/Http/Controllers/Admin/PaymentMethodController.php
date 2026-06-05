@@ -23,7 +23,7 @@ class PaymentMethodController extends Controller
     {
         $this->authorizeAdmin();
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/PaymentMethods/Index', [
             'page' => 'admin.payment-methods.index',
             'paymentMethods' => PaymentMethod::query()
                 ->withCount('orders')
@@ -36,7 +36,7 @@ class PaymentMethodController extends Controller
     {
         $this->authorizeAdmin();
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/PaymentMethods/Create', [
             'page' => 'admin.payment-methods.create',
         ]);
     }
@@ -54,7 +54,7 @@ class PaymentMethodController extends Controller
 
         $paymentMethod->loadCount('orders');
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/PaymentMethods/Show', [
             'page' => 'admin.payment-methods.show',
             'paymentMethod' => $paymentMethod,
         ]);
@@ -64,7 +64,7 @@ class PaymentMethodController extends Controller
     {
         $this->authorizeAdmin();
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/PaymentMethods/Edit', [
             'page' => 'admin.payment-methods.edit',
             'paymentMethod' => $paymentMethod,
         ]);

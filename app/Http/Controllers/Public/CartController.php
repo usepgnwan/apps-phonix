@@ -24,8 +24,7 @@ class CartController extends Controller
     {
         $cart = $this->cartResolver->resolve($request)->load('cartItems.product.productCategory');
 
-        return Inertia::render('Welcome', [
-            'page' => 'cart.index',
+        return Inertia::render('Public/Cart/Index', [
             'cart' => $cart,
         ]);
     }

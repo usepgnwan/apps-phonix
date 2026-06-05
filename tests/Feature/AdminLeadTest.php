@@ -34,26 +34,26 @@ class AdminLeadTest extends TestCase
         $this->actingAs($admin)->get(route('admin.leads.index'))->assertForbidden();
     }
 
-    public function test_active_admin_can_view_create_placeholder(): void
+    public function test_active_admin_can_view_create_page(): void
     {
         $admin = $this->createAdmin();
         $this->seedLeadRelations();
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.leads.create'))
+        $this->inertiaGet($admin, route('admin.leads.create'))
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
+            ->assertJsonPath('component', 'Admin/Leads/Create')
             ->assertJsonPath('props.page', 'admin.leads.create')
             ->assertJsonPath('props.leadStatuses.0', 'new');
     }
 
-    public function test_active_admin_can_view_index_placeholder_with_relations(): void
+    public function test_active_admin_can_view_index_with_relations(): void
     {
         $admin = $this->createAdmin();
         $this->createLead();
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.leads.index'))
+        $this->inertiaGet($admin, route('admin.leads.index'))
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
+            ->assertJsonPath('component', 'Admin/Leads/Index')
             ->assertJsonPath('props.page', 'admin.leads.index')
             ->assertJsonPath('props.leads.0.lead_source.name', 'Instagram')
             ->assertJsonPath('props.leads.0.assigned_staff.id', $this->lastAssignedStaffId())
@@ -102,7 +102,7 @@ class AdminLeadTest extends TestCase
         }
     }
 
-    public function test_active_admin_can_update_lead_and_show_placeholder(): void
+    public function test_active_admin_can_update_lead_and_view_show_page(): void
     {
         $admin = $this->createAdmin();
         $lead = $this->createLead();
@@ -111,9 +111,9 @@ class AdminLeadTest extends TestCase
         $this->actingAs($admin)->patch(route('admin.leads.update', $lead), array_merge($this->leadPayload(), ['name' => 'Prospek B']))
             ->assertRedirect(route('admin.leads.show', $lead));
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.leads.show', $lead))
+        $this->inertiaGet($admin, route('admin.leads.show', $lead))
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
+            ->assertJsonPath('component', 'Admin/Leads/Show')
             ->assertJsonPath('props.page', 'admin.leads.show')
             ->assertJsonStructure(['props' => ['lead' => ['lead_source', 'assigned_staff', 'customer_profile', 'event', 'lead_follow_ups']]]);
 
@@ -217,6 +217,17 @@ class AdminLeadTest extends TestCase
     private function createAdmin(): User
     {
         return User::factory()->create(['role' => 'admin', 'is_active' => true]);
+    }
+
+    private function inertiaGet(User $admin, string $url)
+    {
+        $headers = ['X-Inertia' => 'true'];
+
+        if (file_exists(public_path('build/manifest.json'))) {
+            $headers['X-Inertia-Version'] = hash_file('xxh128', public_path('build/manifest.json'));
+        }
+
+        return $this->actingAs($admin)->withHeaders($headers)->get($url);
     }
 
     private function seedLeadRelations(): array

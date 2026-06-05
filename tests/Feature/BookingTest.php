@@ -13,6 +13,51 @@ class BookingTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_guest_is_redirected_from_booking_create(): void
+    {
+        $response = $this->withHeaders($this->inertiaHeaders())->get(route('bookings.create'));
+
+        $response->assertRedirect(route('login'));
+    }
+
+    public function test_booking_create_renders_component_with_customer_profile_and_active_services(): void
+    {
+        [$user, $profile] = $this->createCustomer();
+        $activeService = $this->createService(visitType: 'both');
+        $inactiveService = $this->createService(isActive: false);
+
+        $response = $this
+            ->actingAs($user)
+            ->withHeaders($this->inertiaHeaders())
+            ->get(route('bookings.create'));
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('component', 'Public/Bookings/Create')
+            ->assertJsonPath('props.customerProfile.id', $profile->id)
+            ->assertJsonPath('props.services.0.id', $activeService->id)
+            ->assertJsonMissingPath('props.page');
+
+        $this->assertFalse(collect($response->json('props.services'))->contains('id', $inactiveService->id));
+    }
+
+    public function test_authenticated_user_without_profile_sees_null_customer_profile_on_booking_create(): void
+    {
+        $user = User::factory()->create();
+        $service = $this->createService();
+
+        $response = $this
+            ->actingAs($user)
+            ->withHeaders($this->inertiaHeaders())
+            ->get(route('bookings.create'));
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('component', 'Public/Bookings/Create')
+            ->assertJsonPath('props.customerProfile', null)
+            ->assertJsonPath('props.services.0.id', $service->id);
+    }
+
     public function test_guest_cannot_create_booking(): void
     {
         $service = $this->createService();
@@ -162,17 +207,44 @@ class BookingTest extends TestCase
         ]);
     }
 
-    public function test_customer_can_view_own_booking_placeholder(): void
+    public function test_customer_can_view_own_bookings_index(): void
+    {
+        [$user] = $this->createCustomer();
+        [$otherUser] = $this->createCustomer(email: 'other@example.com');
+        $booking = $this->createBookingFor($user);
+        $otherBooking = $this->createBookingFor($otherUser);
+
+        $response = $this
+            ->actingAs($user)
+            ->withHeaders($this->inertiaHeaders())
+            ->get(route('bookings.index'));
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('component', 'Public/Bookings/Index')
+            ->assertJsonPath('props.bookings.data.0.id', $booking->id)
+            ->assertJsonPath('props.bookings.data.0.service.id', $booking->service_id)
+            ->assertJsonMissingPath('props.page');
+
+        $this->assertFalse(collect($response->json('props.bookings.data'))->contains('id', $otherBooking->id));
+    }
+
+    public function test_customer_can_view_own_booking_detail(): void
     {
         [$user] = $this->createCustomer();
         $booking = $this->createBookingFor($user);
 
         $response = $this
             ->actingAs($user)
-            ->withHeader('X-Inertia', 'true')
+            ->withHeaders($this->inertiaHeaders())
             ->get(route('bookings.show', $booking));
 
-        $response->assertOk();
+        $response
+            ->assertOk()
+            ->assertJsonPath('component', 'Public/Bookings/Show')
+            ->assertJsonPath('props.booking.id', $booking->id)
+            ->assertJsonPath('props.booking.service.id', $booking->service_id)
+            ->assertJsonMissingPath('props.page');
     }
 
     public function test_customer_cannot_view_another_customers_booking(): void
@@ -230,5 +302,16 @@ class BookingTest extends TestCase
             'complaint_notes' => 'Ingin konsultasi herbal.',
             'status' => 'waiting_confirmation',
         ]);
+    }
+
+    private function inertiaHeaders(): array
+    {
+        $headers = ['X-Inertia' => 'true'];
+
+        if (file_exists(public_path('build/manifest.json'))) {
+            $headers['X-Inertia-Version'] = hash_file('xxh128', public_path('build/manifest.json'));
+        }
+
+        return $headers;
     }
 }

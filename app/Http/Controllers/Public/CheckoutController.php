@@ -23,8 +23,7 @@ class CheckoutController extends Controller
     {
         $cart = $this->cartResolver->resolve($request)->load('cartItems.product.productCategory');
 
-        return Inertia::render('Welcome', [
-            'page' => 'checkout.show',
+        return Inertia::render('Public/Checkout/Show', [
             'cart' => $cart,
             'customerProfile' => $cart->customerProfile,
         ]);

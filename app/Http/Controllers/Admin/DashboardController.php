@@ -28,7 +28,7 @@ class DashboardController extends Controller
     {
         $this->authorizeAdmin();
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/Dashboard/Index', [
             'page' => 'admin.dashboard.index',
             'summary' => [
                 'products' => Product::query()->count(),

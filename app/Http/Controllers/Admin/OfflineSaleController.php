@@ -28,8 +28,7 @@ class OfflineSaleController extends Controller
     {
         $this->authorizeAdmin();
 
-        return Inertia::render('Welcome', [
-            'page' => 'admin.offline-sales.index',
+        return Inertia::render('Admin/OfflineSales/Index', [
             'offlineSales' => OfflineSale::query()
                 ->with(['customerProfile', 'lead', 'fieldStaff', 'event'])
                 ->latest()
@@ -41,8 +40,7 @@ class OfflineSaleController extends Controller
     {
         $this->authorizeAdmin();
 
-        return Inertia::render('Welcome', [
-            'page' => 'admin.offline-sales.create',
+        return Inertia::render('Admin/OfflineSales/Create', [
             'products' => Product::query()->where('is_active', true)->orderBy('name')->get(),
             'customerProfiles' => CustomerProfile::query()->orderBy('name')->get(),
             'leads' => Lead::query()->with(['leadSource', 'assignedStaff', 'customerProfile', 'event'])->latest()->get(),
@@ -65,8 +63,7 @@ class OfflineSaleController extends Controller
 
         $offlineSale->load(['offlineSaleItems.product', 'customerProfile', 'lead', 'fieldStaff', 'event']);
 
-        return Inertia::render('Welcome', [
-            'page' => 'admin.offline-sales.show',
+        return Inertia::render('Admin/OfflineSales/Show', [
             'offlineSale' => $offlineSale,
         ]);
     }

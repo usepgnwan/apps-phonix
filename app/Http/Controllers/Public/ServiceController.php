@@ -11,8 +11,7 @@ class ServiceController extends Controller
 {
     public function index(): Response
     {
-        return Inertia::render('Welcome', [
-            'page' => 'services.index',
+        return Inertia::render('Public/Services/Index', [
             'services' => Service::query()
                 ->where('is_active', true)
                 ->latest()
@@ -25,8 +24,7 @@ class ServiceController extends Controller
     {
         abort_unless($service->is_active, 404);
 
-        return Inertia::render('Welcome', [
-            'page' => 'services.show',
+        return Inertia::render('Public/Services/Show', [
             'service' => $service,
             'relatedServices' => Service::query()
                 ->where('is_active', true)

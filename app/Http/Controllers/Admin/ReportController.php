@@ -25,7 +25,7 @@ class ReportController extends Controller
     {
         $this->authorizeAdmin();
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/Reports/Index', [
             'page' => 'admin.reports.index',
             'reports' => [
                 'leadsBySource' => $this->leadsBySource(),

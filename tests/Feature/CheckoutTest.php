@@ -14,6 +14,28 @@ class CheckoutTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_checkout_show_renders_public_checkout_inertia_component(): void
+    {
+        [$user, $profile] = $this->createCustomer(memberStatus: 'member');
+        $product = $this->createProduct(price: 125000, stockQuantity: 5);
+
+        $this->actingAs($user)->post(route('cart.items.store'), [
+            'product_id' => $product->id,
+            'quantity' => 2,
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->withHeaders($this->inertiaHeaders())
+            ->get(route('checkout.show'));
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('component', 'Public/Checkout/Show')
+            ->assertJsonPath('props.cart.cart_items.0.product_id', $product->id)
+            ->assertJsonPath('props.customerProfile.id', $profile->id);
+    }
+
     public function test_guest_checkout_creates_order_items_and_clears_cart(): void
     {
         $product = $this->createProduct(price: 125000, stockQuantity: 5);
@@ -201,5 +223,16 @@ class CheckoutTest extends TestCase
             'usage_limit' => 10,
             'is_published' => true,
         ], $attributes));
+    }
+
+    private function inertiaHeaders(): array
+    {
+        $headers = ['X-Inertia' => 'true'];
+
+        if (file_exists(public_path('build/manifest.json'))) {
+            $headers['X-Inertia-Version'] = hash_file('xxh128', public_path('build/manifest.json'));
+        }
+
+        return $headers;
     }
 }

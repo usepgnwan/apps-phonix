@@ -20,7 +20,7 @@ class CustomerProfileController extends Controller
             return redirect()->route('customer.profile.create');
         }
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Customer/Profile/Show', [
             'page' => 'customer.profile.show',
             'customerProfile' => $customerProfile,
         ]);
@@ -32,7 +32,7 @@ class CustomerProfileController extends Controller
             return redirect()->route('customer.profile.edit');
         }
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Customer/Profile/Create', [
             'page' => 'customer.profile.create',
         ]);
     }
@@ -63,7 +63,7 @@ class CustomerProfileController extends Controller
             return redirect()->route('customer.profile.create');
         }
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Customer/Profile/Edit', [
             'page' => 'customer.profile.edit',
             'customerProfile' => $customerProfile,
         ]);

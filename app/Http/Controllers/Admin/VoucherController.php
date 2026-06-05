@@ -23,7 +23,7 @@ class VoucherController extends Controller
     {
         $this->authorizeAdmin();
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/Vouchers/Index', [
             'page' => 'admin.vouchers.index',
             'vouchers' => Voucher::query()
                 ->withCount(['orders', 'voucherRedemptions'])
@@ -36,7 +36,7 @@ class VoucherController extends Controller
     {
         $this->authorizeAdmin();
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/Vouchers/Create', [
             'page' => 'admin.vouchers.create',
         ]);
     }
@@ -57,7 +57,7 @@ class VoucherController extends Controller
 
         $voucher->loadCount(['orders', 'voucherRedemptions']);
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/Vouchers/Show', [
             'page' => 'admin.vouchers.show',
             'voucher' => $voucher,
         ]);
@@ -67,7 +67,7 @@ class VoucherController extends Controller
     {
         $this->authorizeAdmin();
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/Vouchers/Edit', [
             'page' => 'admin.vouchers.edit',
             'voucher' => $voucher,
         ]);
@@ -103,7 +103,7 @@ class VoucherController extends Controller
         $voucher->loadCount(['orders', 'voucherRedemptions']);
         $redemptions = $voucher->voucherRedemptions()->with(['customerProfile', 'order'])->latest()->get();
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/Vouchers/Redemptions/Index', [
             'page' => 'admin.vouchers.redemptions.index',
             'voucher' => $voucher,
             'redemptions' => $redemptions,

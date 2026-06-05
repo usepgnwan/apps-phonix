@@ -5,13 +5,14 @@ Sumber acuan:
 - `.docs/features-modules.md`
 - `.docs/data-structure-plan.md`
 - `.docs/system-flow.md`
+- `.docs/admin-ui-style-guide.md`
 - `.docs/DESIGN.md`
 
 Dokumen ini mencatat progres implementasi yang sudah dikerjakan agar batch berikutnya bisa dilanjutkan tanpa kehilangan konteks.
 
 ## Status Terakhir
 
-Progress saat ini sudah mencakup fondasi data, model domain, controller publik awal, flow backend cart dan checkout manual, booking, customer dashboard, customer profile backend, admin catalog backend untuk kategori produk, produk, dan layanan, Batch 8 Admin Commerce backend yang terdiri dari admin order, admin voucher, dan admin payment method, Batch 9 Admin Booking backend, Batch 10 Admin Customer backend, Batch 11 Admin Lead/CRM backend, Batch 12 Field Staff backend, Batch 13 Admin Event backend, Batch 14 Admin Offline Sales backend read/create-only, Batch 15 Admin Examination & Product Recommendation backend read/create-only, Batch 16 Admin Dashboard & Basic Reports backend read-only, serta Batch 17 Admin Order Fulfillment & Stock Movement backend. UI untuk halaman produk, layanan, cart, checkout, booking, customer dashboard, customer profile, admin catalog, admin order, admin voucher, admin payment method, admin booking, admin customer, admin lead/CRM, field staff, admin event, admin offline sales, admin examination, admin dashboard, dan admin reports belum dibuat; route/controller sementara masih memakai placeholder Inertia `Welcome` sesuai arahan bahwa UI selain home belum tersedia.
+Progress saat ini sudah mencakup fondasi data, model domain, controller publik awal, flow backend cart dan checkout manual, booking, customer dashboard, customer profile backend, admin catalog backend untuk kategori produk, produk, dan layanan, Batch 8 Admin Commerce backend yang terdiri dari admin order, admin voucher, dan admin payment method, Batch 9 Admin Booking backend, Batch 10 Admin Customer backend, Batch 11 Admin Lead/CRM backend, Batch 12 Field Staff backend, Batch 13 Admin Event backend, Batch 14 Admin Offline Sales backend read/create-only, Batch 15 Admin Examination & Product Recommendation backend read/create-only, Batch 16 Admin Dashboard & Basic Reports backend read-only, Batch 17 Admin Order Fulfillment & Stock Movement backend, Batch 18 Admin Layout Shell & Dashboard UI, Batch 19 Admin Reports UI read-only, Batch 20 Admin Orders UI, Batch 21 Admin Catalog UI, Batch 22 Admin Voucher UI, Batch 23 Admin Payment Method UI, Batch 24 Admin Booking UI, Batch 25 Admin Customer UI, Batch 26 Admin Lead/CRM UI, Batch 27 Admin Event UI, Batch 28 Admin Offline Sales UI, Batch 29 Admin Examination & Product Recommendation UI, Batch 30 Field Staff UI, Batch 31 Admin UX Polish, auth redirect, dan seed dummy lokal, Batch 32 Customer Dashboard & Profile UI, Batch 33 Public Commerce UI untuk produk, cart, dan checkout, Batch 34 Public Service & Booking Create UI, Batch 35 Public Booking List & Detail UI, Batch 36 Customer Payment Instruction UI, Batch 37 Homepage CTA Integration Polish, serta Batch 38 Homepage Dynamic Content Polish. Flow publik utama customer untuk homepage, produk/cart/checkout, instruksi pembayaran customer, dan layanan/booking sudah tersambung ke route Inertia nyata dan homepage sudah memakai data unggulan dari backend.
 
 ## Struktur Data dan Model
 
@@ -1403,6 +1404,230 @@ Hasil targeted test setelah Batch 17:
 - `php artisan test tests/Feature/AdminOrderTest.php`: pass, 13 tests, 59 assertions.
 - `php artisan test tests/Feature/CheckoutTest.php tests/Feature/AdminOrderTest.php`: pass, 18 tests, 81 assertions.
 
+## Batch 18: Admin Layout Shell & Dashboard UI
+
+Komponen frontend admin yang sudah dibuat:
+
+- `resources/js/Layouts/AdminLayout.jsx`
+- `resources/js/Components/Admin/AdminCard.jsx`
+- `resources/js/Components/Admin/AdminPageHeader.jsx`
+- `resources/js/Components/Admin/MetricCard.jsx`
+- `resources/js/Components/Admin/StatusBadge.jsx`
+- `resources/js/Components/Admin/EmptyState.jsx`
+- `resources/js/Pages/Admin/Dashboard/Index.jsx`
+
+File backend/test yang diperbarui:
+
+- `App\Http\Controllers\Admin\DashboardController`
+- `tests/Feature/AdminDashboardReportTest.php`
+
+Implementasi admin shell saat ini:
+
+- Admin memakai layout terpisah `AdminLayout`, sehingga layout Breeze/customer tidak diubah.
+- Layout menyediakan fixed desktop sidebar, mobile overlay drawer, sticky topbar, user dropdown, dan grouped navigation.
+- Navigation memakai `route().has(routeName)` agar item route yang belum tersedia tidak dirender.
+- Group navigasi mengikuti area kerja admin: Utama, Commerce, Booking & Customer, Catalog, serta CRM & Field.
+- Visual mengikuti admin style guide Phoenix: Forest Green sebagai primary, botanical/earth tone, card surface terang, rounded corners, dan typography token yang sudah ada.
+
+Implementasi dashboard UI saat ini:
+
+- `DashboardController@index` sekarang render Inertia component `Admin/Dashboard/Index`.
+- Dashboard menampilkan metric cards dari prop `summary` untuk produk, layanan, order, booking, lead, customer, aktivitas lapangan, offline sales, dan examination.
+- Dashboard menampilkan recent list untuk order, booking, lead, dan offline sales dari prop `recent`.
+- Dashboard menampilkan low-stock products dari prop `lowStockProducts`.
+- Empty state tersedia untuk daftar yang belum memiliki data.
+- Status badge sudah memetakan status order, payment, booking, lead/follow-up, dan status umum.
+
+Coverage/test terkait Batch 18:
+
+- `AdminDashboardReportTest` dashboard assertion diubah dari placeholder component `Welcome` menjadi `Admin/Dashboard/Index`.
+- Reports masih tetap placeholder `Welcome`; UI reports belum masuk scope Batch 18.
+
+Hasil targeted test setelah Batch 18:
+
+- `php artisan test --filter=AdminDashboardReportTest`: pass, 5 tests, 42 assertions.
+
+Catatan verifikasi Batch 18:
+
+- LSP diagnostics untuk file PHP controller/test dan komponen admin baru tidak menemukan error.
+- `npm run build` dan dev server tidak dijalankan karena instruksi project melarang build/server tanpa izin eksplisit.
+
+## Batch 19: Admin Reports UI Read-only
+
+Frontend reports admin yang sudah dibuat:
+
+- `resources/js/Pages/Admin/Reports/Index.jsx`
+
+File backend/test yang diperbarui:
+
+- `App\Http\Controllers\Admin\ReportController`
+- `tests/Feature/AdminDashboardReportTest.php`
+
+Implementasi reports UI saat ini:
+
+- `ReportController@index` sekarang render Inertia component `Admin/Reports/Index`.
+- Backend report query dan bentuk prop `reports` tidak diubah dari Batch 16.
+- Reports UI memakai `AdminLayout` dan komponen admin Batch 18.
+- Halaman reports bersifat read-only, tanpa CRUD action, filter, date range, atau form.
+- Revenue summary ditampilkan untuk `websiteOrderRevenue` dan `offlineSalesRevenue`.
+- Grouped report card ditampilkan untuk:
+  - leads by source,
+  - leads by assigned staff,
+  - bookings by service,
+  - bookings by status,
+  - orders by status,
+  - field activities by type,
+  - product recommendations by product.
+- Empty state tersedia untuk setiap grup report yang belum memiliki data.
+
+Coverage/test terkait Batch 19:
+
+- `AdminDashboardReportTest` reports assertion diubah dari placeholder component `Welcome` menjadi `Admin/Reports/Index`.
+- Assertion grouped metrics dan revenue lama tetap dipertahankan.
+
+Catatan verifikasi Batch 19:
+
+- LSP diagnostics untuk `resources/js/Pages/Admin/Reports/Index.jsx` tidak menemukan error.
+- `npm run build` dan dev server tidak dijalankan karena instruksi project melarang build/server tanpa izin eksplisit.
+
+## Batch 20: Admin Orders UI
+
+Frontend orders admin yang sudah dibuat:
+
+- `resources/js/Pages/Admin/Orders/Index.jsx`
+- `resources/js/Pages/Admin/Orders/Show.jsx`
+
+File backend/test yang diperbarui:
+
+- `App\Http\Controllers\Admin\OrderController`
+- `tests/Feature/AdminOrderTest.php`
+
+Implementasi orders index saat ini:
+
+- `OrderController@index` sekarang render Inertia component `Admin/Orders/Index`.
+- Backend query dan eager load index tetap memakai data existing: user, customer profile, voucher, dan payment method.
+- Index memakai `AdminLayout` dan komponen admin Batch 18.
+- Index menampilkan local metrics dari collection order yang dikirim backend: total orders, waiting payment, payment received, processing, dan completed.
+- Index menampilkan table orders responsif dengan kolom order number, customer, order status, shipping status, payment status, payment method, total, created date, dan link detail.
+- Tidak ada backend filter, pagination, date range, atau search query baru pada Batch ini.
+
+Implementasi orders show saat ini:
+
+- `OrderController@show` sekarang render Inertia component `Admin/Orders/Show`.
+- Backend query dan eager load show tetap memakai data existing: user, customer profile, voucher, payment method, order items product, voucher redemption voucher, dan active payment methods.
+- Detail page menampilkan panel order summary, customer, order items, voucher/redemption, shipping current info, dan payment current info.
+- Detail page menyediakan tiga form `useForm` terpisah untuk endpoint existing:
+  - shipping update: `admin.orders.shipping.update`,
+  - payment update: `admin.orders.payment.update`,
+  - order status update: `admin.orders.status.update`.
+- Status option mengikuti validation backend yang sudah ada.
+- Status form menampilkan callout bahwa transisi ke `processing` mengurangi stok satu kali dan akan ditolak jika stok tidak cukup.
+- Tidak ada frontend inventory mutation; stock decrement tetap dikelola backend `OrderFulfillmentService`.
+
+Coverage/test terkait Batch 20:
+
+- `AdminOrderTest` index assertion diubah dari placeholder component `Welcome` menjadi `Admin/Orders/Index`.
+- `AdminOrderTest` show assertion diubah dari placeholder component `Welcome` menjadi `Admin/Orders/Show`.
+- Test update shipping, payment, status, idempotent stock decrement, insufficient stock, dan validation tetap dipertahankan.
+
+Catatan verifikasi Batch 20:
+
+- LSP diagnostics untuk `resources/js/Pages/Admin/Orders/Index.jsx` dan `resources/js/Pages/Admin/Orders/Show.jsx` tidak menemukan error pada saat implementasi UI.
+- `npm run build` dan dev server tidak dijalankan karena instruksi project melarang build/server tanpa izin eksplisit.
+
+## Batch 21: Admin Catalog UI
+
+Frontend catalog admin yang sudah dibuat:
+
+- `resources/js/Pages/Admin/ProductCategories/Index.jsx`
+- `resources/js/Pages/Admin/ProductCategories/Create.jsx`
+- `resources/js/Pages/Admin/ProductCategories/Edit.jsx`
+- `resources/js/Pages/Admin/ProductCategories/Show.jsx`
+- `resources/js/Pages/Admin/Products/Index.jsx`
+- `resources/js/Pages/Admin/Products/Create.jsx`
+- `resources/js/Pages/Admin/Products/Edit.jsx`
+- `resources/js/Pages/Admin/Products/Show.jsx`
+- `resources/js/Pages/Admin/Services/Index.jsx`
+- `resources/js/Pages/Admin/Services/Create.jsx`
+- `resources/js/Pages/Admin/Services/Edit.jsx`
+- `resources/js/Pages/Admin/Services/Show.jsx`
+
+File backend/test yang diperbarui:
+
+- `App\Http\Controllers\Admin\ProductCategoryController`
+- `App\Http\Controllers\Admin\ProductController`
+- `App\Http\Controllers\Admin\ServiceController`
+- `tests/Feature/AdminCatalogTest.php`
+
+Implementasi catalog UI saat ini:
+
+- Product category, product, dan service controller sekarang render Inertia component nyata, bukan placeholder `Welcome`.
+- Query, validation, redirect, route name, dan CRUD semantics backend tidak diubah.
+- Product categories memiliki halaman index, create, edit, dan show dengan form `name`, `slug`, `description`, dan `is_active`.
+- Products memiliki halaman index, create, edit, dan show dengan field existing: category, name, slug, price, descriptions, benefits, usage rules, notes, image path text, stock, low-stock threshold, active, dan featured.
+- Services memiliki halaman index, create, edit, dan show dengan field existing: name, slug, description, nullable price, visit type, image path text, active, dan featured.
+- Delete action memakai existing destroy route dengan `window.confirm` sebelum request dikirim.
+- `image_path` tetap berupa text field; Batch ini tidak menambahkan upload/image processing.
+- Tidak ada backend filter, search, pagination, atau query behavior baru.
+- Tidak ada perubahan public/customer UI.
+
+Coverage/test terkait Batch 21:
+
+- `AdminCatalogTest` 12 placeholder component assertion diubah menjadi component nyata:
+  - `Admin/ProductCategories/*`,
+  - `Admin/Products/*`,
+  - `Admin/Services/*`.
+- Test CRUD dan slug validation catalog tetap dipertahankan.
+
+Catatan verifikasi Batch 21:
+
+- LSP diagnostics untuk folder `resources/js/Pages/Admin/ProductCategories`, `resources/js/Pages/Admin/Products`, dan `resources/js/Pages/Admin/Services` tidak menemukan error pada saat implementasi UI.
+- `npm run build` dan dev server tidak dijalankan karena instruksi project melarang build/server tanpa izin eksplisit.
+
+## Batch 22: Admin Voucher UI
+
+Frontend voucher admin yang sudah dibuat:
+
+- `resources/js/Pages/Admin/Vouchers/Index.jsx`
+- `resources/js/Pages/Admin/Vouchers/Create.jsx`
+- `resources/js/Pages/Admin/Vouchers/Edit.jsx`
+- `resources/js/Pages/Admin/Vouchers/Show.jsx`
+- `resources/js/Pages/Admin/Vouchers/Redemptions/Index.jsx`
+
+File backend/test yang diperbarui:
+
+- `App\Http\Controllers\Admin\VoucherController`
+- `tests/Feature/AdminVoucherTest.php`
+
+Implementasi voucher UI saat ini:
+
+- `VoucherController` sekarang render Inertia component nyata untuk index, create, show, edit, dan redemptions:
+  - `Admin/Vouchers/Index`,
+  - `Admin/Vouchers/Create`,
+  - `Admin/Vouchers/Show`,
+  - `Admin/Vouchers/Edit`,
+  - `Admin/Vouchers/Redemptions/Index`.
+- Query, auth check, validation, store/update/destroy behavior, dan redemptions query backend tidak diubah.
+- Index menampilkan voucher dari prop existing, local metrics, publish status, discount display, validity dates, usage limit, orders count, redemptions count, dan action detail/edit/redemptions/delete.
+- Create dan edit memakai field backend voucher existing: `code`, `name`, `description`, `discount_type`, `discount_value`, `minimum_purchase`, `starts_at`, `ends_at`, `usage_limit`, dan `is_published`.
+- Create submit memakai `form.post(route('admin.vouchers.store'))`.
+- Edit submit memakai `form.put(route('admin.vouchers.update', voucher.id))`.
+- Show menampilkan seluruh field voucher, counts, status, discount, validity window, dan action back/edit/redemptions/delete.
+- Redemptions menampilkan konteks voucher dan daftar redemption dari prop existing: `customer_profile`, `order`, `discount_amount`, dan `redeemed_at`.
+- Batch ini tidak menambahkan backend filter, search, pagination, date range, dependency, atau perubahan public/customer UI.
+- Batch ini tidak mengubah validation/business logic voucher maupun semantics checkout voucher.
+
+Coverage/test terkait Batch 22:
+
+- `AdminVoucherTest` placeholder component assertion untuk index/create/show/edit/redemptions diubah menjadi component nyata `Admin/Vouchers/*`.
+- Prop assertions existing dan test business/validation voucher tetap dipertahankan.
+- `php artisan test tests/Feature/AdminVoucherTest.php`: pass, 11 tests, 66 assertions.
+
+Catatan verifikasi Batch 22:
+
+- LSP diagnostics untuk folder `resources/js/Pages/Admin/Vouchers` dijalankan setelah formatting UI dan tidak menemukan error.
+- `npm run build`, `npm run dev`, dan dev server tidak dijalankan karena instruksi project melarang build/server tanpa izin eksplisit.
+
 ### Voucher Flow
 
 Voucher saat checkout hanya dapat digunakan jika:
@@ -1430,6 +1655,686 @@ Jika voucher valid, sistem membuat record `voucher_redemptions` dengan:
 - `discount_amount`
 - `redeemed_at`
 
+## Batch 23: Admin Payment Method UI
+
+Frontend payment method admin yang sudah dibuat:
+
+- `resources/js/Pages/Admin/PaymentMethods/Index.jsx`
+- `resources/js/Pages/Admin/PaymentMethods/Create.jsx`
+- `resources/js/Pages/Admin/PaymentMethods/Edit.jsx`
+- `resources/js/Pages/Admin/PaymentMethods/Show.jsx`
+
+File backend/test yang diperbarui:
+
+- `App\Http\Controllers\Admin\PaymentMethodController`
+- `tests/Feature/AdminPaymentMethodTest.php`
+
+Implementasi payment method UI saat ini:
+
+- `PaymentMethodController` sekarang render Inertia component nyata untuk index, create, show, dan edit:
+  - `Admin/PaymentMethods/Index`,
+  - `Admin/PaymentMethods/Create`,
+  - `Admin/PaymentMethods/Show`,
+  - `Admin/PaymentMethods/Edit`.
+- Query, auth check, validation, store/update/destroy behavior, dan delete guard payment method yang masih memiliki order tidak diubah.
+- Index menampilkan metode pembayaran dari prop existing, local metrics, type/status, detail bank atau QRIS, instructions, `orders_count`, dan action detail/edit/delete.
+- Create dan edit memakai field backend payment method existing:
+  - `type`,
+  - `bank_name`,
+  - `account_number`,
+  - `account_holder_name`,
+  - `qris_image_path`,
+  - `instructions`,
+  - `is_active`.
+- Type option yang didukung di UI mengikuti validation backend:
+  - `bank_transfer` dengan label `Bank Transfer`,
+  - `qris` dengan label `QRIS`.
+- Create submit memakai `form.post(route('admin.payment-methods.store'))`.
+- Edit submit memakai `form.put(route('admin.payment-methods.update', paymentMethod.id))`.
+- Field bank transfer ditampilkan kondisional untuk `bank_transfer`, sedangkan `qris_image_path` ditampilkan kondisional untuk `qris`.
+- `qris_image_path` tetap berupa text field; tidak ada upload, image processing, storage handling, atau dependency baru.
+- Show menampilkan seluruh field payment method, status, `orders_count`, dan action back/edit/delete.
+- Batch ini tidak menambahkan backend filter, search, pagination, date range, dependency, atau perubahan public/customer UI.
+- Batch ini tidak mengubah validation/business logic payment method maupun semantics checkout/payment.
+
+Coverage/test terkait Batch 23:
+
+- `AdminPaymentMethodTest` component assertion untuk index/create/show/edit diubah menjadi component nyata `Admin/PaymentMethods/*`.
+- Nama test GET admin payment method sudah tidak memakai istilah placeholder.
+- Prop assertions existing dan test business/validation/delete/authorization payment method tetap dipertahankan.
+- `php artisan test tests/Feature/AdminPaymentMethodTest.php`: pass, 10 tests, 48 assertions.
+
+Catatan verifikasi Batch 23:
+
+- LSP diagnostics untuk folder `resources/js/Pages/Admin/PaymentMethods`, `tests/Feature/AdminPaymentMethodTest.php`, dan `app/Http/Controllers/Admin/PaymentMethodController.php` dijalankan setelah cleanup formatting dan tidak menemukan error.
+- Test GET Inertia payment method memakai helper `X-Inertia-Version` agar tidak terkena 409 asset version mismatch saat `public/build/manifest.json` tersedia.
+- `npm run build`, `npm run dev`, dan dev server tidak dijalankan karena instruksi project melarang build/server tanpa izin eksplisit.
+
+## Batch 24: Admin Booking UI
+
+Frontend booking admin yang sudah dibuat:
+
+- `resources/js/Pages/Admin/Bookings/Index.jsx`
+- `resources/js/Pages/Admin/Bookings/Show.jsx`
+
+File backend/test yang diperbarui:
+
+- `App\Http\Controllers\Admin\BookingController`
+- `tests/Feature/AdminBookingTest.php`
+
+Implementasi booking admin UI saat ini:
+
+- `BookingController` sekarang render Inertia component nyata untuk index dan show:
+  - `Admin/Bookings/Index`,
+  - `Admin/Bookings/Show`.
+- Query relasi booking untuk `user`, `customerProfile`, dan `service` tetap memakai data existing dari backend.
+- Index menampilkan booking dari prop existing, local metrics berdasarkan status, customer, service, visit type, jadwal, status, service price, dan action detail.
+- Show menampilkan ringkasan booking, customer, service, complaint notes, admin notes, serta form update schedule dan status.
+- Form status memakai route existing `admin.bookings.status.update` dan option validasi backend: `waiting_confirmation`, `confirmed`, `completed`, dan `cancelled`.
+- Form schedule memakai route existing `admin.bookings.schedule.update` dengan field `desired_schedule_at` dan `admin_notes`.
+- Batch ini tidak menambahkan backend filter, search, pagination, dependency, endpoint baru, atau perubahan public/customer UI.
+- Batch ini tidak mengubah validation/business logic booking maupun semantics status/schedule update.
+
+Coverage/test terkait Batch 24:
+
+- `AdminBookingTest` placeholder component assertion untuk index/show diubah menjadi component nyata `Admin/Bookings/*`.
+- Nama test GET admin booking sudah tidak memakai istilah placeholder.
+- Prop assertions existing untuk `bookings`, `booking.user`, `booking.customer_profile`, dan `booking.service` tetap dipertahankan.
+
+Catatan verifikasi Batch 24:
+
+- Test GET Inertia booking memakai helper `X-Inertia-Version` agar tidak terkena 409 asset version mismatch saat `public/build/manifest.json` tersedia.
+- `npm run build`, `npm run dev`, dan dev server tidak dijalankan karena instruksi project melarang build/server tanpa izin eksplisit.
+
+## Batch 25: Admin Customer UI
+
+Frontend customer admin yang sudah dibuat:
+
+- `resources/js/Pages/Admin/Customers/Index.jsx`
+- `resources/js/Pages/Admin/Customers/Show.jsx`
+
+File backend/test yang diperbarui:
+
+- `App\Http\Controllers\Admin\CustomerController`
+- `tests/Feature/AdminCustomerProfileTest.php`
+
+Implementasi customer admin UI saat ini:
+
+- `CustomerController` sekarang render Inertia component nyata untuk index dan show:
+  - `Admin/Customers/Index`,
+  - `Admin/Customers/Show`.
+- Query relasi dan count customer profile tetap memakai data existing dari backend: `user`, `orders`, `bookings.service`, `voucherRedemptions.voucher`, `orders_count`, `bookings_count`, dan `voucher_redemptions_count`.
+- Index menampilkan profil customer dari prop existing, local metrics, status member, counts order/booking/voucher redemption, dan action detail.
+- Show menampilkan ringkasan customer, user terkait, orders, bookings, voucher redemptions, serta form update customer profile.
+- Form update memakai route existing `admin.customers.update` dan field validasi backend: `name`, `whatsapp_number`, `primary_address`, `member_status`, dan `internal_notes`.
+- Status member di UI mengikuti validasi backend: `non_member` dan `member`.
+- Batch ini tidak menambahkan backend filter, search, pagination, dependency, endpoint baru, atau perubahan public/customer UI.
+- Batch ini tidak mengubah validation/business logic customer profile maupun ownership user profile.
+
+Coverage/test terkait Batch 25:
+
+- `AdminCustomerProfileTest` placeholder component assertion untuk index/show diubah menjadi component nyata `Admin/Customers/*`.
+- Nama test GET admin customer sudah tidak memakai istilah placeholder.
+- Prop assertions existing untuk counts dan relasi `user`, `orders`, `bookings`, serta `voucher_redemptions` tetap dipertahankan.
+
+Catatan verifikasi Batch 25:
+
+- Test GET Inertia customer memakai helper `X-Inertia-Version` agar tidak terkena 409 asset version mismatch saat `public/build/manifest.json` tersedia.
+- `npm run build`, `npm run dev`, dan dev server tidak dijalankan karena instruksi project melarang build/server tanpa izin eksplisit.
+
+## Batch 26: Admin Lead/CRM UI
+
+Frontend lead/CRM admin yang sudah dibuat:
+
+- `resources/js/Pages/Admin/Leads/Index.jsx`
+- `resources/js/Pages/Admin/Leads/Create.jsx`
+- `resources/js/Pages/Admin/Leads/Show.jsx`
+- `resources/js/Pages/Admin/LeadSources/Index.jsx`
+- `resources/js/Pages/Admin/LeadSources/Create.jsx`
+- `resources/js/Pages/Admin/LeadSources/Edit.jsx`
+- `resources/js/Pages/Admin/LeadSources/Show.jsx`
+
+File backend/test yang diperbarui:
+
+- `App\Http\Controllers\Admin\LeadController`
+- `App\Http\Controllers\Admin\LeadSourceController`
+- `tests/Feature/AdminLeadTest.php`
+- `tests/Feature/AdminLeadSourceTest.php`
+
+Implementasi lead/CRM admin UI saat ini:
+
+- `LeadController` sekarang render Inertia component nyata untuk index, create, dan show:
+  - `Admin/Leads/Index`,
+  - `Admin/Leads/Create`,
+  - `Admin/Leads/Show`.
+- `LeadSourceController` sekarang render Inertia component nyata untuk index, create, show, dan edit:
+  - `Admin/LeadSources/Index`,
+  - `Admin/LeadSources/Create`,
+  - `Admin/LeadSources/Show`,
+  - `Admin/LeadSources/Edit`.
+- Lead index menampilkan metrics, source, assigned staff, customer profile, event, status, dan action detail dari prop existing.
+- Lead create memakai route existing `admin.leads.store` dan field validasi backend lead.
+- Lead show menampilkan detail CRM, form update lead, form update status, form tambah follow-up, serta histori follow-up.
+- Lead source pages memakai route resource existing untuk create/update/delete; delete guard tetap dikendalikan backend saat source masih memiliki lead.
+- Batch ini tidak menambahkan backend filter, search, pagination, dependency, endpoint baru, atau perubahan public/customer/field UI.
+- Batch ini tidak mengubah validation/business logic lead, follow-up, maupun lead source.
+
+Coverage/test terkait Batch 26:
+
+- `AdminLeadTest` placeholder component assertion untuk create/index/show diubah menjadi component nyata `Admin/Leads/*`.
+- `AdminLeadSourceTest` placeholder component assertion untuk index/create/show/edit diubah menjadi component nyata `Admin/LeadSources/*`.
+- Prop assertions existing untuk relasi lead dan `leads_count` tetap dipertahankan.
+
+Catatan verifikasi Batch 26:
+
+- Test GET Inertia lead dan lead source memakai helper `X-Inertia-Version` agar tidak terkena 409 asset version mismatch saat `public/build/manifest.json` tersedia.
+- `npm run build`, `npm run dev`, dan dev server tidak dijalankan karena instruksi project melarang build/server tanpa izin eksplisit.
+
+## Batch 27: Admin Event UI
+
+Frontend event admin yang sudah dibuat:
+
+- `resources/js/Pages/Admin/Events/Index.jsx`
+- `resources/js/Pages/Admin/Events/Create.jsx`
+- `resources/js/Pages/Admin/Events/Edit.jsx`
+- `resources/js/Pages/Admin/Events/Show.jsx`
+
+File backend/test yang diperbarui:
+
+- `App\Http\Controllers\Admin\EventController`
+- `tests/Feature/AdminEventTest.php`
+
+Implementasi event admin UI saat ini:
+
+- `EventController` sekarang render Inertia component nyata untuk index, create, show, dan edit:
+  - `Admin/Events/Index`,
+  - `Admin/Events/Create`,
+  - `Admin/Events/Show`,
+  - `Admin/Events/Edit`.
+- Event index menampilkan metrics lokal untuk total event, upcoming event, total lead, dan total offline sales dari prop existing `events` dengan `leads_count` dan `offline_sales_count`.
+- Event create dan edit memakai route resource existing `admin.events.store` dan `admin.events.update` dengan field validasi backend: `name`, `event_date`, `location`, `organizer`, dan `notes`.
+- Event show menampilkan detail event, tanggal, lokasi, organizer, notes, jumlah lead, jumlah offline sales, serta action edit/delete.
+- Delete action memakai route resource existing `admin.events.destroy`; guard event yang masih memiliki lead/offline sale tetap dikendalikan backend.
+- Batch ini tidak menambahkan backend filter, search, pagination, dependency, endpoint baru, atau perubahan public/customer/field UI.
+- Batch ini tidak mengubah validation/business logic event maupun delete guard.
+
+Coverage/test terkait Batch 27:
+
+- `AdminEventTest` placeholder component assertion untuk index/create/show/edit diubah menjadi component nyata `Admin/Events/*`.
+- Nama test GET admin event sudah tidak memakai istilah placeholder.
+- Prop assertions existing untuk `leads_count`, `offline_sales_count`, dan event id tetap dipertahankan.
+
+Catatan verifikasi Batch 27:
+
+- Test GET Inertia event memakai helper `X-Inertia-Version` agar tidak terkena 409 asset version mismatch saat `public/build/manifest.json` tersedia.
+- `npm run build`, `npm run dev`, dan dev server tidak dijalankan karena instruksi project melarang build/server tanpa izin eksplisit.
+
+## Batch 28: Admin Offline Sales UI
+
+Frontend offline sales admin yang sudah dibuat:
+
+- `resources/js/Pages/Admin/OfflineSales/Index.jsx`
+- `resources/js/Pages/Admin/OfflineSales/Create.jsx`
+- `resources/js/Pages/Admin/OfflineSales/Show.jsx`
+
+File backend/test yang diperbarui:
+
+- `App\Http\Controllers\Admin\OfflineSaleController`
+- `tests/Feature/AdminOfflineSaleTest.php`
+
+Implementasi offline sales admin UI saat ini:
+
+- `OfflineSaleController` sekarang render Inertia component nyata untuk index, create, dan show:
+  - `Admin/OfflineSales/Index`,
+  - `Admin/OfflineSales/Create`,
+  - `Admin/OfflineSales/Show`.
+- Offline sales index menampilkan metrics lokal untuk total transaksi, revenue, event sales, dan door-to-door sales dari prop existing `offlineSales`.
+- Offline sales create memakai route existing `admin.offline-sales.store` dengan field validasi backend: `customer_profile_id`, `lead_id`, `field_staff_id`, `event_id`, `source`, `customer_name`, `customer_whatsapp_number`, `notes`, `sold_at`, dan `items` berisi `product_id` serta `quantity`.
+- Form item hanya mengirim product dan quantity; harga, line total, dan total final tetap dihitung ulang oleh `OfflineSaleService` di server.
+- Offline sales show menampilkan detail transaksi, relasi customer profile, lead, field staff, event, notes, dan daftar item penjualan.
+- Batch ini tidak menambahkan backend filter, search, pagination, dependency, endpoint baru, update/edit/delete action, stock decrement, atau perubahan public/customer/field UI.
+- Batch ini tidak mengubah validation/business logic offline sales maupun kalkulasi total server-side.
+
+Coverage/test terkait Batch 28:
+
+- `AdminOfflineSaleTest` placeholder component assertion untuk index/create/show diubah menjadi component nyata `Admin/OfflineSales/*`.
+- Nama test GET admin offline sales sudah tidak memakai istilah placeholder.
+- Prop assertions existing untuk relasi index, opsi create, dan item show tetap dipertahankan.
+
+Catatan verifikasi Batch 28:
+
+- Test GET Inertia offline sales memakai helper `X-Inertia-Version` agar tidak terkena 409 asset version mismatch saat `public/build/manifest.json` tersedia.
+- `npm run build`, `npm run dev`, dan dev server tidak dijalankan karena instruksi project melarang build/server tanpa izin eksplisit.
+
+## Batch 29: Admin Examination & Product Recommendation UI
+
+Frontend examination admin yang sudah dibuat:
+
+- `resources/js/Pages/Admin/Examinations/Index.jsx`
+- `resources/js/Pages/Admin/Examinations/Create.jsx`
+- `resources/js/Pages/Admin/Examinations/Show.jsx`
+
+File backend/test yang diperbarui:
+
+- `App\Http\Controllers\Admin\ExaminationController`
+- `tests/Feature/AdminExaminationTest.php`
+
+Implementasi examination admin UI saat ini:
+
+- `ExaminationController` sekarang render Inertia component nyata untuk index, create, dan show:
+  - `Admin/Examinations/Index`,
+  - `Admin/Examinations/Create`,
+  - `Admin/Examinations/Show`.
+- Examination index menampilkan metrics lokal untuk total pemeriksaan, total rekomendasi produk, pemeriksaan dengan booking, dan pemeriksaan manual dari prop existing `examinations`.
+- Examination create memakai route existing `admin.examinations.store` dengan field validasi backend: `customer_profile_id`, `booking_id`, `complaint`, `result`, `summary`, `internal_recommendation`, dan `product_recommendations` berisi `product_id` serta `notes`.
+- Form create tidak mengirim `created_by`; creator pemeriksaan dan rekomendasi produk tetap diisi server-side oleh `ExaminationService`.
+- Product recommendation dibuat bersama pemeriksaan dari form create; tidak ada endpoint rekomendasi produk terpisah.
+- Examination show menampilkan detail customer, booking/service, creator, complaint, result, summary, internal recommendation, dan daftar rekomendasi produk.
+- Batch ini tidak menambahkan backend filter, search, pagination, dependency, endpoint baru, edit/delete/update action, order/offline-sale creation, stock changes, atau perubahan public/customer/field UI.
+- Batch ini tidak mengubah validation/business logic examination maupun product recommendation.
+
+Coverage/test terkait Batch 29:
+
+- `AdminExaminationTest` placeholder component assertion untuk index/create/show diubah menjadi component nyata `Admin/Examinations/*`.
+- Nama test GET admin examination sudah tidak memakai istilah placeholder.
+- Prop assertions existing untuk relasi index, opsi create, dan product recommendation show tetap dipertahankan.
+
+Catatan verifikasi Batch 29:
+
+- Test GET Inertia examination memakai helper `X-Inertia-Version` agar tidak terkena 409 asset version mismatch saat `public/build/manifest.json` tersedia.
+- `npm run build`, `npm run dev`, dan dev server tidak dijalankan karena instruksi project melarang build/server tanpa izin eksplisit.
+
+## Batch 30: Field Staff UI
+
+Frontend field staff yang sudah dibuat:
+
+- `resources/js/Layouts/FieldLayout.jsx`
+- `resources/js/Pages/Field/Dashboard.jsx`
+- `resources/js/Pages/Field/Leads/Index.jsx`
+- `resources/js/Pages/Field/Leads/Show.jsx`
+
+File backend/test yang diperbarui:
+
+- `App\Http\Controllers\Field\FieldDashboardController`
+- `App\Http\Controllers\Field\FieldLeadController`
+- `tests/Feature/FieldStaffLeadTest.php`
+
+Implementasi field staff UI saat ini:
+
+- `FieldDashboardController` sekarang render Inertia component nyata `Field/Dashboard`.
+- `FieldLeadController` sekarang render Inertia component nyata untuk index dan show:
+  - `Field/Leads/Index`,
+  - `Field/Leads/Show`.
+- `FieldLayout` menyediakan shell khusus field staff dengan navigasi hanya ke dashboard dan leads, tanpa label atau menu admin.
+- Dashboard menampilkan summary assigned leads, open leads, activity count, dan recent leads assigned ke field staff aktif.
+- Leads index menampilkan paginated leads assigned ke field staff aktif, status, source, customer profile, event, created date, detail link, dan pagination existing.
+- Lead show menampilkan detail lead, customer/source/event, notes, update status, form tambah field activity, dan timeline aktivitas.
+- Form update status hanya mengirim `follow_up_status` ke route existing `field.leads.status.update`.
+- Form tambah aktivitas hanya mengirim `activity_type`, `activity_at`, `notes`, dan nullable `follow_up_status` ke route existing `field.leads.activities.store`; `field_staff_id` dan `lead_id` tetap diisi/dijaga backend.
+- Batch ini tidak menambahkan backend filter, search, dependency, endpoint baru, create/edit/delete/assign lead, booking/order/offline-sale creation, atau perubahan public/customer/admin UI.
+- Batch ini tidak mengubah validation/business logic field lead maupun field activity.
+
+Coverage/test terkait Batch 30:
+
+- `FieldStaffLeadTest` placeholder component assertion untuk dashboard/leads index/leads show diubah menjadi component nyata `Field/*`.
+- Nama test GET field staff sudah tidak memakai istilah placeholder.
+- Prop assertions existing untuk summary, assigned leads, activity types, dan lead statuses tetap dipertahankan.
+
+Catatan verifikasi Batch 30:
+
+- Test GET Inertia field staff memakai helper `X-Inertia-Version` agar tidak terkena 409 asset version mismatch saat `public/build/manifest.json` tersedia.
+- `npm run build`, `npm run dev`, dan dev server tidak dijalankan karena instruksi project melarang build/server tanpa izin eksplisit.
+
+## Batch 31: Admin UX Polish, Auth Redirect, dan Seeder Dummy
+
+File backend/auth/seeder yang diperbarui:
+
+- `database/seeders/DatabaseSeeder.php`
+- `app/Http/Controllers/Auth/AuthenticatedSessionController.php`
+- `tests/Feature/Auth/AuthenticationTest.php`
+- `resources/views/app.blade.php`
+
+File frontend/admin yang diperbarui:
+
+- `resources/js/Layouts/AdminLayout.jsx`
+- `resources/js/Components/Admin/AdminPageHeader.jsx`
+- `resources/js/Components/Admin/EmptyState.jsx`
+- `resources/js/Components/Admin/MetricCard.jsx`
+- `resources/js/Pages/Admin/**/*.jsx`
+- `package.json`
+- `package-lock.json`
+
+Implementasi Batch 31 saat ini:
+
+- `DatabaseSeeder` sekarang menyediakan data dummy lokal yang idempotent memakai `updateOrCreate()` untuk akun dan data minimum dashboard:
+  - admin: `admin@phoenix.test` / `password`
+  - field staff: `field@phoenix.test` / `password`
+  - customer: `customer@phoenix.test` / `password`
+- Seeder juga membuat sample `CustomerProfile`, `ProductCategory`, `Product`, `Service`, `Event`, `LeadSource`, `Lead`, `Booking`, dan `FieldActivity` agar dashboard/admin/field tidak kosong setelah seed.
+- Redirect login Breeze sudah dibuat role-aware:
+  - `admin` diarahkan ke `/admin/dashboard`.
+  - `field_staff` diarahkan ke `/field/dashboard`.
+  - `customer` diarahkan ke `/customer/dashboard`.
+  - role lain fallback ke `/dashboard`.
+- Konten/copy statis admin panel sudah dilokalkan ke Bahasa Indonesia untuk heading, deskripsi, tombol, table header, form label, empty state, dan label detail.
+- Dependency `lucide-react` ditambahkan untuk icon system admin panel.
+- Sidebar admin memakai icon Lucide yang bermakna untuk setiap menu, menggantikan placeholder huruf.
+- Metric card admin memakai icon Lucide sebagai elemen background/watermark dekoratif, bukan lagi kotak icon di samping title/value.
+- Tombol/link create/add di admin panel, terutama tombol berlabel `Tambah`, sudah memakai icon `Plus` yang konsisten.
+- Page header admin distandarkan tanpa icon di samping judul agar konsisten dan tidak terlalu ramai; icon tetap digunakan di sidebar, metric card, empty state, dan action button.
+- Semua page admin di `resources/js/Pages/Admin/**` sudah direfactor memakai persistent layout Inertia:
+  - page tidak lagi return wrapper `<AdminLayout>...</AdminLayout>`.
+  - setiap page memakai assignment `PageName.layout = (page) => <AdminLayout>{page}</AdminLayout>;`.
+  - tujuan utama: `AdminLayout` tidak remount saat navigasi admin, sehingga scroll sidebar tidak reset ketika klik menu bawah.
+- Favicon/tab browser sekarang memakai logo brand dari `public/images/logo-transparent.png` melalui `resources/views/app.blade.php`.
+
+Coverage/test terkait Batch 31:
+
+- `AuthenticationTest` menambahkan coverage redirect login untuk role customer, admin, dan field staff.
+- Test auth targeted sudah dijalankan:
+  - `php artisan test tests/Feature/Auth/AuthenticationTest.php`: pass, 6 tests, 14 assertions.
+
+Catatan verifikasi Batch 31:
+
+- `php -l database/seeders/DatabaseSeeder.php`: no syntax errors.
+- LSP diagnostics untuk `database/seeders/DatabaseSeeder.php`: bersih.
+- LSP diagnostics untuk `AuthenticatedSessionController.php` dan `AuthenticationTest.php`: bersih.
+- `php -l resources/views/app.blade.php`: no syntax errors.
+- Persistent layout admin diverifikasi secara statis:
+  - 46 admin JSX page ditemukan.
+  - `export default function` tersisa: 0.
+  - persistent layout assignment ditemukan: 46.
+  - default export component ditemukan: 46.
+- Diagnostics frontend admin dijalankan pada file penting dan file yang berubah selama polish; hasilnya bersih.
+- `npm run build`, `npm run dev`, dan dev server tidak dijalankan karena instruksi project melarang build/server tanpa izin eksplisit.
+- `npm install lucide-react` melaporkan 6 vulnerability dari dependency tree existing; `npm audit fix` tidak dijalankan karena dapat mengubah dependency besar/breaking.
+
+## Batch 32: Customer Dashboard & Profile UI
+
+Frontend customer yang sudah dibuat:
+
+- `resources/js/Layouts/CustomerLayout.jsx`
+- `resources/js/Components/Customer/CustomerCard.jsx`
+- `resources/js/Components/Customer/CustomerDetailRow.jsx`
+- `resources/js/Components/Customer/CustomerEmptyState.jsx`
+- `resources/js/Components/Customer/CustomerPageHeader.jsx`
+- `resources/js/Components/Customer/CustomerSectionHeader.jsx`
+- `resources/js/Components/Customer/CustomerStatusBadge.jsx`
+- `resources/js/Pages/Customer/Dashboard/Index.jsx`
+- `resources/js/Pages/Customer/Dashboard/Orders/Show.jsx`
+- `resources/js/Pages/Customer/Dashboard/Bookings/Show.jsx`
+- `resources/js/Pages/Customer/Profile/Show.jsx`
+- `resources/js/Pages/Customer/Profile/Create.jsx`
+- `resources/js/Pages/Customer/Profile/Edit.jsx`
+- `resources/js/Pages/Customer/Profile/Partials/CustomerProfileForm.jsx`
+
+File backend/test yang diperbarui:
+
+- `App\Http\Controllers\Customer\CustomerDashboardController`
+- `App\Http\Controllers\Customer\CustomerProfileController`
+- `tests/Feature/CustomerDashboardTest.php`
+- `tests/Feature/CustomerProfileTest.php`
+
+Implementasi customer UI saat ini:
+
+- `CustomerDashboardController` sekarang render component nyata:
+  - `Customer/Dashboard/Index`
+  - `Customer/Dashboard/Orders/Show`
+  - `Customer/Dashboard/Bookings/Show`
+- `CustomerProfileController` sekarang render component nyata:
+  - `Customer/Profile/Show`
+  - `Customer/Profile/Create`
+  - `Customer/Profile/Edit`
+- `CustomerLayout` menyediakan shell customer-facing dengan navigasi dashboard/profil, account dropdown, dan logout tanpa menu admin.
+- Customer dashboard menampilkan summary orders, bookings, voucher redemptions, examinations, product recommendations, recent orders, recent bookings, recent examinations, dan recent product recommendations dari prop existing.
+- Order detail customer menampilkan nomor order, status, total, voucher redemption, dan item order dari prop existing, tanpa mutation/update UI.
+- Booking detail customer menampilkan nomor booking, service, visit type, jadwal, status, complaint notes, examinations, dan rekomendasi produk dari prop existing, tanpa mutation/update UI.
+- Profile show menampilkan nama, WhatsApp, alamat utama, dan member status customer.
+- Profile create/edit memakai route existing `customer.profile.store` dan `customer.profile.update` dengan field validasi backend: `name`, `whatsapp_number`, dan `primary_address`.
+- Form profile tidak mengekspos atau mengirim `member_status` dan `internal_notes`; field internal tetap dikendalikan backend.
+- Batch ini tidak menambahkan UI public products/services/cart/checkout, tidak mengubah route definition, validation, ownership check, redirect, query, atau business logic customer.
+
+Coverage/test terkait Batch 32:
+
+- `CustomerDashboardTest` component assertion untuk dashboard/order detail/booking detail diubah dari `Welcome` ke component nyata `Customer/Dashboard/*`.
+- `CustomerProfileTest` component assertion untuk profile create/show/edit dan dashboard setelah profile dibuat diubah dari `Welcome` ke component nyata `Customer/*`.
+- Nama test yang sebelumnya menyebut placeholder diperbarui agar sesuai halaman nyata.
+- Existing assertions untuk redirect, scoped summary counts, ownership 404, store/update profile, dan proteksi internal fields tetap dipertahankan.
+
+Catatan verifikasi Batch 32:
+
+- LSP diagnostics untuk controller customer, tests customer, `CustomerLayout`, komponen customer, dan 6 page customer: bersih.
+- Targeted test sudah dijalankan:
+  - `php artisan test tests/Feature/CustomerDashboardTest.php tests/Feature/CustomerProfileTest.php`: pass, 15 tests, 62 assertions.
+- `npm run build`, `npm run dev`, dan dev server tidak dijalankan karena instruksi project melarang build/server tanpa izin eksplisit.
+
+## Batch 33: Public Commerce UI
+
+Frontend commerce publik yang sudah dibuat:
+
+- `resources/js/Components/Public/commerce.js`
+- `resources/js/Pages/Public/Products/Index.jsx`
+- `resources/js/Pages/Public/Products/Show.jsx`
+- `resources/js/Pages/Public/Cart/Index.jsx`
+- `resources/js/Pages/Public/Checkout/Show.jsx`
+
+File backend/test yang diperbarui:
+
+- `App\Http\Controllers\Public\ProductController`
+- `App\Http\Controllers\Public\CartController`
+- `App\Http\Controllers\Public\CheckoutController`
+- `tests/Feature/ProductCatalogTest.php`
+- `tests/Feature/CartTest.php`
+- `tests/Feature/CheckoutTest.php`
+
+Implementasi commerce UI saat ini:
+
+- `ProductController@index` sekarang render `Public/Products/Index`, bukan placeholder `Welcome`.
+- `ProductController@show` sekarang render `Public/Products/Show`, bukan placeholder `Welcome`.
+- `CartController@index` sekarang render `Public/Cart/Index`, bukan placeholder `Welcome`.
+- `CheckoutController@show` sekarang render `Public/Checkout/Show`, bukan placeholder `Welcome`.
+- Shared public shell dan helper commerce menyediakan header publik, card, empty state, placeholder botanical untuk produk tanpa gambar, formatter Rupiah, helper subtotal cart, dan helper relasi kategori/cart item.
+- Product index menampilkan hero katalog, kategori aktif, grid produk, empty state, dan pagination.
+- Product detail menampilkan gambar/fallback, kategori, nama, deskripsi, harga, stok, form jumlah, tombol tambah ke cart, detail produk, dan produk terkait.
+- Cart page menampilkan item cart, update quantity via `PATCH cart.items.update`, delete item via `DELETE cart.items.destroy`, subtotal, total item, CTA checkout, dan empty state.
+- Checkout page menampilkan form sesuai `StoreCheckoutRequest`: `customer_name`, `customer_whatsapp_number`, `shipping_address`, dan `voucher_code`.
+- Checkout page melakukan prefill dari `customerProfile` jika user login memiliki profil customer.
+- Business logic cart/checkout tidak diubah: validasi stok, ownership cart item, voucher, pembuatan order, dan redirect tetap memakai flow backend existing.
+
+Coverage/test terkait Batch 33:
+
+- `ProductCatalogTest` ditambahkan untuk memastikan `products.index` render `Public/Products/Index` dan `products.show` render `Public/Products/Show`.
+- `CartTest` ditambah coverage GET cart agar memastikan `cart.index` render `Public/Cart/Index` dengan item cart.
+- `CheckoutTest` ditambah coverage GET checkout agar memastikan `checkout.show` render `Public/Checkout/Show` dan mengirim `customerProfile` untuk user login.
+- Test Inertia GET memakai header `X-Inertia` dan `X-Inertia-Version` dari `public/build/manifest.json` jika manifest ada, agar tidak terkena asset version mismatch `409`.
+
+Catatan verifikasi Batch 33:
+
+- LSP diagnostics untuk controller public dan test PHP yang berubah: bersih.
+- LSP diagnostics untuk `resources/js/Components/Public/commerce.js`: bersih.
+- LSP diagnostics untuk `resources/js/Pages/Public`: tidak ada error; tersisa 2 informasi Biome `organizeImports` pada page produk yang tidak memblokir.
+- Targeted test sudah dijalankan:
+  - `php artisan test tests/Feature/ProductCatalogTest.php tests/Feature/CartTest.php tests/Feature/CheckoutTest.php`: pass, 16 tests, 56 assertions.
+- `npm run build`, `npm run dev`, dan dev server tidak dijalankan karena instruksi project melarang build/server tanpa izin eksplisit.
+
+## Batch 34: Public Service & Booking Create UI
+
+Frontend service dan booking create publik yang sudah dibuat:
+
+- `resources/js/Pages/Public/Services/Index.jsx`
+- `resources/js/Pages/Public/Services/Show.jsx`
+- `resources/js/Pages/Public/Bookings/Create.jsx`
+
+File backend/test/shared component yang diperbarui:
+
+- `App\Http\Controllers\Public\ServiceController`
+- `App\Http\Controllers\Public\BookingController`
+- `resources/js/Components/Public/commerce.js`
+- `tests/Feature/ServiceCatalogTest.php`
+- `tests/Feature/BookingTest.php`
+
+Implementasi service dan booking create saat ini:
+
+- `ServiceController@index` sekarang render `Public/Services/Index`, bukan placeholder `Welcome`.
+- `ServiceController@show` sekarang render `Public/Services/Show`, bukan placeholder `Welcome`.
+- `BookingController@create` sekarang render `Public/Bookings/Create`, bukan placeholder `Welcome`.
+- Query layanan tetap mempertahankan filter `is_active`, pagination, related services, dan inactive service tetap 404.
+- `BookingController@index`, `BookingController@show`, `BookingController@store`, dan `StoreBookingRequest` tidak diubah.
+- `commerce.js` ditambah helper kecil `visitTypeLabel()` dan `serviceVisitOptions()` untuk menyamakan label dan pilihan `visit_type` dengan validasi server.
+- Service index menampilkan hero layanan, card layanan, badge tipe kunjungan, harga, CTA detail, CTA booking, empty state, dan pagination.
+- Service detail menampilkan gambar/fallback, deskripsi, harga, tipe kunjungan, info konfirmasi jadwal, CTA booking, dan layanan terkait.
+- Booking create menampilkan form pemilihan layanan, pilihan visit type sesuai layanan, input `datetime-local`, textarea `complaint_notes`, error validasi server, summary profil customer, dan summary layanan terpilih.
+- Jika user login belum punya `customerProfile`, booking create menampilkan state terkunci dan link ke `customer.profile.create`; profile tetap tidak dibuat otomatis.
+- Booking create tetap submit ke route existing `bookings.store`; validasi profil, layanan aktif, jadwal masa depan, dan visit type tetap server-authoritative.
+
+Coverage/test terkait Batch 34:
+
+- `ServiceCatalogTest` ditambahkan untuk memastikan `services.index` render `Public/Services/Index`, `services.show` render `Public/Services/Show`, dan layanan nonaktif menghasilkan 404.
+- `BookingTest` ditambah coverage GET `bookings.create` untuk guest redirect, component `Public/Bookings/Create`, `customerProfile`, active services payload, dan user tanpa profile dengan `customerProfile = null`.
+- Test Inertia GET memakai header `X-Inertia` dan `X-Inertia-Version` dari `public/build/manifest.json` jika manifest ada, agar tidak terkena asset version mismatch `409`.
+
+Catatan verifikasi Batch 34:
+
+- LSP diagnostics untuk `ServiceController`, `BookingController`, `commerce.js`, page services, dan page booking create: bersih.
+- Targeted test sudah dijalankan:
+  - `php artisan test tests/Feature/ServiceCatalogTest.php tests/Feature/BookingTest.php`: pass, 16 tests, 47 assertions.
+- `npm run build`, `npm run dev`, dan dev server tidak dijalankan karena instruksi project melarang build/server tanpa izin eksplisit.
+
+## Batch 35: Public Booking List & Detail UI
+
+Frontend booking publik yang sudah dibuat:
+
+- `resources/js/Pages/Public/Bookings/Index.jsx`
+- `resources/js/Pages/Public/Bookings/Show.jsx`
+
+File backend/test yang diperbarui:
+
+- `App\Http\Controllers\Public\BookingController`
+- `tests/Feature/BookingTest.php`
+
+Implementasi booking list/detail saat ini:
+
+- `BookingController@index` sekarang render `Public/Bookings/Index`, bukan placeholder `Welcome`.
+- `BookingController@show` sekarang render `Public/Bookings/Show`, bukan placeholder `Welcome`.
+- `BookingController@index` tetap hanya mengambil booking milik user login dengan relasi `service:id,name,slug,visit_type`, pagination 10 item, dan `withQueryString()`.
+- `BookingController@show` tetap owner-only dengan 404 untuk booking milik customer lain dan tetap load service detail yang dibutuhkan UI.
+- `BookingController@create`, `BookingController@store`, dan `StoreBookingRequest` tidak diubah.
+- Booking index menampilkan hero, CTA booking baru, CTA lihat layanan, empty state, kartu booking, status, tipe kunjungan, jadwal diminta, tanggal dibuat, link detail, pagination, dan callout konfirmasi WhatsApp.
+- Booking detail menampilkan back link, nomor booking, status, next-step callout berdasarkan status, ringkasan booking, data customer snapshot, tipe kunjungan, jadwal diminta, catatan keluhan, catatan admin jika ada, service card, dan aksi terkait.
+- Booking detail bersifat read-only; tidak ada action cancel/reschedule.
+- Redirect setelah booking create tetap ke `bookings.show`, yang sekarang sudah punya page detail nyata.
+
+Coverage/test terkait Batch 35:
+
+- `BookingTest` ditambah coverage GET `bookings.index` untuk component `Public/Bookings/Index`, prop booking milik user saat ini, service prop, dan memastikan booking user lain tidak ikut tampil.
+- Test placeholder detail diganti menjadi coverage GET `bookings.show` untuk component `Public/Bookings/Show`, prop booking, service prop, dan tanpa `props.page`.
+- Test ownership 404 dan redirect setelah create ke `bookings.show` tetap dipertahankan.
+
+Catatan verifikasi Batch 35:
+
+- LSP diagnostics untuk `BookingController`, `tests/Feature/BookingTest.php`, dan `resources/js/Pages/Public/Bookings`: bersih.
+- Targeted test sudah dijalankan:
+  - `php artisan test tests/Feature/BookingTest.php`: pass, 14 tests, 50 assertions.
+- `npm run build`, `npm run dev`, dan dev server tidak dijalankan karena instruksi project melarang build/server tanpa izin eksplisit.
+
+## Batch 36: Customer Payment Instruction UI
+
+File customer dashboard/order yang diperbarui:
+
+- `App\Http\Controllers\Customer\CustomerDashboardController`
+- `resources/js/Pages/Customer/Dashboard/Orders/Show.jsx`
+- `resources/js/Pages/Customer/Dashboard/Index.jsx`
+- `tests/Feature/CustomerDashboardTest.php`
+
+Implementasi instruksi pembayaran customer saat ini:
+
+- Detail order customer sekarang eager-load relasi `paymentMethod` dengan field terbatas yang dibutuhkan UI: `id`, `type`, `bank_name`, `account_number`, `account_holder_name`, `qris_image_path`, `instructions`, dan `is_active`.
+- Guard detail order tetap owner-only berdasarkan `customer_profile_id` dan `user_id`; behavior 404 untuk order customer lain tidak diubah.
+- Page `Customer/Dashboard/Orders/Show` sekarang memiliki section `Pembayaran & Pengiriman` yang menampilkan status pengiriman, ongkir, kurir, nomor resi, catatan pengiriman, metode pembayaran, nomor rekening, nama pemilik rekening, status pembayaran, waktu pembayaran diterima, instruksi pembayaran, catatan pembayaran, catatan admin, dan total akhir yang harus dibayar.
+- Page `Customer/Dashboard/Index` sekarang menampilkan hint next-action pada order terbaru:
+  - Menunggu ongkir dari admin Phoenix.
+  - Lihat instruksi pembayaran di detail order.
+  - Cek status order dan pengiriman terbaru.
+- Tidak ada perubahan pada business logic checkout, admin order fulfillment, payment gateway, shipping confirmation, atau mutasi status order.
+
+Coverage/test terkait Batch 36:
+
+- `CustomerDashboardTest` memperkuat test detail order customer dengan `PaymentMethod` dan assertion payload Inertia `props.order.payment_method.*`.
+- Coverage owner-only order detail dan booking dashboard tetap dipertahankan.
+
+Catatan verifikasi Batch 36:
+
+- LSP diagnostics untuk `CustomerDashboardController`, `Customer/Dashboard/Orders/Show.jsx`, `Customer/Dashboard/Index.jsx`, dan `CustomerDashboardTest`: bersih.
+- Targeted test sudah dijalankan:
+  - `php artisan test tests/Feature/CustomerDashboardTest.php`: pass, 7 tests, 29 assertions.
+- `npm run build`, `npm run dev`, dan dev server tidak dijalankan karena instruksi project melarang build/server tanpa izin eksplisit.
+
+## Batch 37: Homepage CTA Integration Polish
+
+File homepage yang diperbarui:
+
+- `resources/js/Pages/Welcome.jsx`
+
+Implementasi integrasi CTA homepage saat ini:
+
+- Homepage `Welcome.jsx` tetap memakai desain landing page existing; tidak ada redesign besar.
+- Import `Link` dari `@inertiajs/react` ditambahkan agar CTA route internal memakai navigasi Inertia.
+- Top nav cart sekarang mengarah ke `cart.index`.
+- Top nav akun sekarang mengarah ke:
+  - `login` untuk guest.
+  - `admin.dashboard.index` untuk user admin.
+  - `field.dashboard.index` untuk user field staff.
+  - `customer.dashboard.index` untuk customer/default user.
+- Hero `Konsultasi Sekarang` sekarang mengarah ke `bookings.create` jika user sudah login, atau `login` jika guest karena route booking dilindungi auth.
+- Hero `Lihat Produk Herbal`, CTA produk herbal, CTA alat terapi, serta tombol `Beli`/icon pada card produk/alat hardcoded sekarang mengarah ke `products.index`.
+- CTA layanan dan tombol layanan hardcoded sekarang mengarah ke `services.index` untuk lihat layanan atau `bookings.create`/`login` untuk aksi konsultasi.
+- Tidak ada POST add-to-cart dari card hardcoded homepage; perubahan hanya menyambungkan navigasi.
+
+Catatan verifikasi Batch 37:
+
+- LSP diagnostics untuk `resources/js/Pages/Welcome.jsx`: bersih.
+- `npm run build`, `npm run dev`, dan dev server tidak dijalankan karena instruksi project melarang build/server tanpa izin eksplisit.
+
+## Batch 38: Homepage Dynamic Content Polish
+
+File homepage yang diperbarui:
+
+- `resources/js/Pages/Welcome.jsx`
+
+Implementasi konten dinamis homepage saat ini:
+
+- `Welcome.jsx` sekarang menerima prop `featuredProducts`, `featuredServices`, dan `testimonials` dari `HomeController`.
+- Section produk unggulan sekarang render dari `featuredProducts` dengan card produk dinamis, format Rupiah, label kategori dari relasi `productCategory`/`product_category`, gambar storage, fallback botanical, dan link detail produk jika slug tersedia.
+- Tombol utama `Lihat Produk` pada card produk homepage sekarang memakai link detail produk langsung (`products.show`) saat slug tersedia, dengan fallback ke katalog produk jika slug kosong.
+- Homepage sekarang memakai animasi scroll reveal berbasis `IntersectionObserver` pada container utama seperti hero, brand essence, produk/layanan, testimoni, dan newsletter, dengan dukungan `prefers-reduced-motion`.
+- Anchor menu homepage seperti `Beranda`, `Produk`, `Layanan`, dan `Tentang Kami` sekarang memakai smooth scroll dengan offset fixed header agar perpindahan section terasa animatif dan target tidak tertutup navbar.
+- Public product detail sekarang menampilkan animasi produk bergerak ke icon keranjang setelah add-to-cart sukses, dan header public menampilkan badge jumlah item keranjang dari shared prop `cartSummary.count`.
+- Icon keranjang pada card produk homepage sekarang menambahkan produk ke keranjang dengan quantity 1 tanpa masuk ke detail produk, sementara tombol `Lihat Produk` tetap menuju detail produk.
+- Klik icon keranjang pada card produk homepage sekarang juga memunculkan animasi thumbnail produk bergerak ke icon keranjang header seperti di detail produk.
+- Animasi fly-to-cart homepage sekarang disamakan dengan pola halaman detail produk: target memakai `[data-cart-link]`, ukuran thumbnail `h-16 w-16`, offset 32px, dan lintasan midpoint `startY - 90`.
+- Fallback icon pada animasi fly-to-cart homepage sekarang memakai `ShoppingBag` dari `lucide-react`, sama seperti halaman detail produk saat produk tidak memiliki gambar.
+- Section alat terapi hardcoded dihapus agar homepage tidak membuat kategori yang tidak berasal dari data backend.
+- Section layanan sekarang render dari `featuredServices` dengan label tipe kunjungan, gambar storage, fallback botanical, CTA booking/login, dan link detail layanan jika slug tersedia.
+- Section testimoni sekarang render dari `testimonials` dengan foto storage atau avatar inisial fallback.
+- Jika data produk, layanan, atau testimoni kosong, homepage menampilkan empty state halus berbahasa Indonesia tanpa merusak layout.
+- Anchor `#produk` dipertahankan pada section produk agar nav homepage tetap bekerja.
+- Tidak ada perubahan pada `HomeController`, route, business logic, atau behavior add-to-cart.
+
+Catatan verifikasi Batch 38:
+
+- LSP diagnostics untuk `resources/js/Pages/Welcome.jsx`: bersih.
+- LSP diagnostics ulang setelah bugfix tombol `Lihat Produk`: bersih.
+- LSP diagnostics ulang setelah penambahan animasi scroll reveal: bersih.
+- LSP diagnostics ulang setelah penambahan smooth scroll anchor menu: bersih.
+- LSP diagnostics untuk cart badge/add-to-cart animation bersih pada backend dan shared component; `ProductShow.jsx` hanya menyisakan info Biome non-blocking `organizeImports`.
+- LSP diagnostics untuk perubahan icon keranjang homepage: bersih.
+- LSP diagnostics untuk animasi fly-to-cart homepage: bersih.
+- LSP diagnostics ulang setelah tuning presisi endpoint animasi fly-to-cart homepage: bersih.
+- LSP diagnostics ulang setelah menyamakan animasi fly-to-cart homepage dengan halaman detail produk: bersih.
+- LSP diagnostics ulang setelah menyamakan fallback icon animasi homepage dengan detail produk: bersih.
+- `php artisan test tests/Feature/CartTest.php`: pass, 9 tests, 26 assertions.
+- `npm run build`, `npm run dev`, dan dev server tidak dijalankan karena instruksi project melarang build/server tanpa izin eksplisit.
+
 ## Verifikasi yang Sudah Dilakukan
 
 LSP PHP:
@@ -1455,39 +2360,19 @@ Hasil route produk, layanan, cart, dan checkout sudah terdaftar.
 
 Item berikut belum diimplementasikan:
 
-- UI Inertia untuk:
-  - produk list/detail,
-  - layanan list/detail,
-  - cart,
-  - checkout.
-- UI Inertia untuk booking list/create/detail.
-- UI Inertia untuk customer dashboard.
-- UI Inertia untuk customer profile show/create/edit.
-- UI Inertia untuk admin catalog produk, kategori produk, dan layanan.
-- UI Inertia untuk admin order.
-- UI Inertia untuk admin voucher.
-- UI Inertia untuk admin payment method.
-- UI Inertia untuk admin booking.
-- UI Inertia untuk admin customer.
-- UI Inertia untuk admin lead/CRM.
-- UI Inertia untuk admin event.
-- UI Inertia untuk admin offline sales.
-- UI Inertia untuk admin examination dan product recommendation.
-- UI Inertia untuk admin dashboard dan reports.
-- UI Inertia untuk field staff dashboard dan lead lapangan.
-- Payment method display dan instruksi pembayaran setelah ongkir dikonfirmasi admin.
-- Order detail route untuk customer setelah checkout berhasil.
+- Payment gateway otomatis belum dibuat; flow pembayaran saat ini tetap manual berdasarkan instruksi/admin confirmation.
+- Newsletter homepage masih berupa alert lokal dan belum terhubung ke backend subscription/CRM.
 
 ## Rekomendasi Batch Berikutnya
 
 Batch berikutnya yang paling aman adalah salah satu dari dua opsi berikut:
 
-1. **Customer-facing UI Inertia**
-   - Mulai dari customer profile create/edit atau customer dashboard agar flow customer yang sudah ada bisa dipakai lewat UI.
-   - Cocok jika prioritasnya menyelesaikan alur customer sebelum admin panel.
+1. **Homepage newsletter/lead capture**
+   - Sambungkan form newsletter homepage ke backend lead/CRM atau endpoint subscription sederhana.
+   - Cocok jika prioritasnya menangkap prospek dari landing page.
 
-2. **Admin Controller tahap awal**
-   - Mulai dari CRUD produk/kategori/layanan/testimoni atau order/booking management dasar.
+2. **Admin UI modul berikutnya**
+   - Mulai dari admin event atau admin offline sales agar panel admin semakin lengkap setelah lead/CRM selesai.
    - Scope lebih besar, jadi sebaiknya dibagi per modul kecil.
 
-Jika ingin menjaga alur customer, rekomendasi utama adalah membuat UI customer profile terlebih dahulu karena customer dashboard sekarang mengarahkan user tanpa profile ke `/customer/profile/create`.
+Jika ingin menjaga alur customer-facing publik, rekomendasi utama berikutnya adalah menyambungkan newsletter/lead capture karena homepage, produk/cart/checkout, instruksi pembayaran, layanan/booking, CTA homepage, serta customer dashboard/profile sudah memiliki page Inertia nyata.

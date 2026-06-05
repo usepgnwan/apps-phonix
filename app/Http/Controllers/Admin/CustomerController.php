@@ -22,7 +22,7 @@ class CustomerController extends Controller
     {
         $this->authorizeAdmin();
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/Customers/Index', [
             'page' => 'admin.customers.index',
             'customerProfiles' => CustomerProfile::query()
                 ->with(['user:id,name,email'])
@@ -44,7 +44,7 @@ class CustomerController extends Controller
         ]);
         $customerProfile->loadCount(['orders', 'bookings', 'voucherRedemptions']);
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/Customers/Show', [
             'page' => 'admin.customers.show',
             'customerProfile' => $customerProfile,
         ]);

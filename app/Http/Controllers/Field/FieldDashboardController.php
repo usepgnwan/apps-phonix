@@ -18,8 +18,7 @@ class FieldDashboardController extends Controller
         $user = $request->user();
         $leadQuery = Lead::query()->where('assigned_staff_id', $user->id);
 
-        return Inertia::render('Welcome', [
-            'page' => 'field.dashboard.index',
+        return Inertia::render('Field/Dashboard', [
             'summary' => [
                 'assignedLeadsCount' => (clone $leadQuery)->count(),
                 'openLeadsCount' => (clone $leadQuery)->whereNotIn('follow_up_status', ['purchased', 'not_interested'])->count(),

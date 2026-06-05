@@ -32,27 +32,25 @@ class AdminBookingTest extends TestCase
         $this->actingAs($admin)->get(route('admin.bookings.index'))->assertForbidden();
     }
 
-    public function test_active_admin_can_view_index_placeholder(): void
+    public function test_active_admin_can_view_bookings_index(): void
     {
         $admin = $this->createAdmin();
         $this->createBooking();
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.bookings.index'))
+        $this->inertiaGet($admin, route('admin.bookings.index'))
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
-            ->assertJsonPath('props.page', 'admin.bookings.index')
+            ->assertJsonPath('component', 'Admin/Bookings/Index')
             ->assertJsonStructure(['props' => ['bookings']]);
     }
 
-    public function test_active_admin_can_view_show_placeholder_with_relations(): void
+    public function test_active_admin_can_view_booking_show_with_relations(): void
     {
         $admin = $this->createAdmin();
         $booking = $this->createBooking();
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.bookings.show', $booking))
+        $this->inertiaGet($admin, route('admin.bookings.show', $booking))
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
-            ->assertJsonPath('props.page', 'admin.bookings.show')
+            ->assertJsonPath('component', 'Admin/Bookings/Show')
             ->assertJsonStructure([
                 'props' => [
                     'booking' => [
@@ -156,6 +154,17 @@ class AdminBookingTest extends TestCase
     private function createAdmin(): User
     {
         return User::factory()->create(['role' => 'admin', 'is_active' => true]);
+    }
+
+    private function inertiaGet(User $admin, string $url)
+    {
+        $headers = ['X-Inertia' => 'true'];
+
+        if (file_exists(public_path('build/manifest.json'))) {
+            $headers['X-Inertia-Version'] = hash_file('xxh128', public_path('build/manifest.json'));
+        }
+
+        return $this->actingAs($admin)->withHeaders($headers)->get($url);
     }
 
     private function createBooking(): Booking

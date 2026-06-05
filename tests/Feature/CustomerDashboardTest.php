@@ -6,6 +6,7 @@ use App\Models\Booking;
 use App\Models\CustomerProfile;
 use App\Models\Examination;
 use App\Models\Order;
+use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\ProductRecommendation;
@@ -61,14 +62,11 @@ class CustomerDashboardTest extends TestCase
         $this->createBookingFor($otherUser, $otherProfile);
         $this->createExaminationFor($otherProfile);
 
-        $response = $this
-            ->actingAs($user)
-            ->withHeader('X-Inertia', 'true')
-            ->get(route('customer.dashboard.index'));
+        $response = $this->inertiaGet($user, route('customer.dashboard.index'));
 
         $response
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
+            ->assertJsonPath('component', 'Customer/Dashboard/Index')
             ->assertJsonPath('props.page', 'customer.dashboard.index')
             ->assertJsonPath('props.summary.ordersCount', 1)
             ->assertJsonPath('props.summary.bookingsCount', 1)
@@ -77,21 +75,32 @@ class CustomerDashboardTest extends TestCase
             ->assertJsonPath('props.summary.productRecommendationsCount', 1);
     }
 
-    public function test_customer_can_view_own_order_detail_placeholder(): void
+    public function test_customer_can_view_own_order_detail_page(): void
     {
         [$user, $profile] = $this->createCustomer('customer@example.com');
         $order = $this->createOrderFor($user, $profile);
+        $paymentMethod = $this->createPaymentMethod();
+        $order->update([
+            'payment_method_id' => $paymentMethod->id,
+            'shipping_cost' => 15000,
+            'total' => 115000,
+            'shipping_status' => 'shipping_cost_confirmed',
+            'status' => 'waiting_payment',
+        ]);
 
-        $response = $this
-            ->actingAs($user)
-            ->withHeader('X-Inertia', 'true')
-            ->get(route('customer.dashboard.orders.show', $order));
+        $response = $this->inertiaGet($user, route('customer.dashboard.orders.show', $order));
 
         $response
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
+            ->assertJsonPath('component', 'Customer/Dashboard/Orders/Show')
             ->assertJsonPath('props.page', 'customer.dashboard.orders.show')
-            ->assertJsonPath('props.order.id', $order->id);
+            ->assertJsonPath('props.order.id', $order->id)
+            ->assertJsonPath('props.order.payment_method.id', $paymentMethod->id)
+            ->assertJsonPath('props.order.payment_method.type', 'bank_transfer')
+            ->assertJsonPath('props.order.payment_method.bank_name', 'BCA')
+            ->assertJsonPath('props.order.payment_method.account_number', '1234567890')
+            ->assertJsonPath('props.order.payment_method.account_holder_name', 'PT Phoenix')
+            ->assertJsonPath('props.order.payment_method.instructions', 'Transfer ke rekening Phoenix.');
     }
 
     public function test_customer_cannot_view_another_customers_order(): void
@@ -100,27 +109,21 @@ class CustomerDashboardTest extends TestCase
         [$otherUser] = $this->createCustomer('other@example.com');
         $order = $this->createOrderFor($owner, $ownerProfile);
 
-        $response = $this
-            ->actingAs($otherUser)
-            ->withHeader('X-Inertia', 'true')
-            ->get(route('customer.dashboard.orders.show', $order));
+        $response = $this->inertiaGet($otherUser, route('customer.dashboard.orders.show', $order));
 
         $response->assertNotFound();
     }
 
-    public function test_customer_can_view_own_booking_detail_placeholder(): void
+    public function test_customer_can_view_own_booking_detail_page(): void
     {
         [$user, $profile] = $this->createCustomer('customer@example.com');
         $booking = $this->createBookingFor($user, $profile);
 
-        $response = $this
-            ->actingAs($user)
-            ->withHeader('X-Inertia', 'true')
-            ->get(route('customer.dashboard.bookings.show', $booking));
+        $response = $this->inertiaGet($user, route('customer.dashboard.bookings.show', $booking));
 
         $response
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
+            ->assertJsonPath('component', 'Customer/Dashboard/Bookings/Show')
             ->assertJsonPath('props.page', 'customer.dashboard.bookings.show')
             ->assertJsonPath('props.booking.id', $booking->id);
     }
@@ -131,10 +134,7 @@ class CustomerDashboardTest extends TestCase
         [$otherUser] = $this->createCustomer('other@example.com');
         $booking = $this->createBookingFor($owner, $ownerProfile);
 
-        $response = $this
-            ->actingAs($otherUser)
-            ->withHeader('X-Inertia', 'true')
-            ->get(route('customer.dashboard.bookings.show', $booking));
+        $response = $this->inertiaGet($otherUser, route('customer.dashboard.bookings.show', $booking));
 
         $response->assertNotFound();
     }
@@ -151,6 +151,17 @@ class CustomerDashboardTest extends TestCase
         ]);
 
         return [$user, $profile];
+    }
+
+    private function inertiaGet(User $user, string $url)
+    {
+        $headers = ['X-Inertia' => 'true'];
+
+        if (file_exists(public_path('build/manifest.json'))) {
+            $headers['X-Inertia-Version'] = hash_file('xxh128', public_path('build/manifest.json'));
+        }
+
+        return $this->actingAs($user)->withHeaders($headers)->get($url);
     }
 
     private function createOrderFor(User $user, CustomerProfile $profile): Order
@@ -206,6 +217,19 @@ class CustomerDashboardTest extends TestCase
             'desired_schedule_at' => now()->addDay(),
             'complaint_notes' => 'Ingin konsultasi herbal.',
             'status' => 'waiting_confirmation',
+        ]);
+    }
+
+    private function createPaymentMethod(): PaymentMethod
+    {
+        return PaymentMethod::query()->create([
+            'type' => 'bank_transfer',
+            'bank_name' => 'BCA',
+            'account_number' => '1234567890',
+            'account_holder_name' => 'PT Phoenix',
+            'qris_image_path' => null,
+            'instructions' => 'Transfer ke rekening Phoenix.',
+            'is_active' => true,
         ]);
     }
 

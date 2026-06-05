@@ -44,7 +44,7 @@ class AdminDashboardReportTest extends TestCase
         $this->actingAs($admin)->get(route('admin.reports.index'))->assertForbidden();
     }
 
-    public function test_active_admin_can_view_dashboard_placeholder_with_summary_and_recent_data(): void
+    public function test_active_admin_can_view_dashboard_with_summary_and_recent_data(): void
     {
         $admin = $this->createAdmin();
         $data = $this->seedReportData();
@@ -53,7 +53,7 @@ class AdminDashboardReportTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
+            ->assertJsonPath('component', 'Admin/Dashboard/Index')
             ->assertJsonPath('props.page', 'admin.dashboard.index')
             ->assertJsonPath('props.summary.products', 2)
             ->assertJsonPath('props.summary.services', 1)
@@ -72,7 +72,7 @@ class AdminDashboardReportTest extends TestCase
         $response->assertJsonFragment(['sale_number' => 'OFF-002']);
     }
 
-    public function test_active_admin_can_view_reports_placeholder_with_grouped_metrics(): void
+    public function test_active_admin_can_view_reports_page_with_grouped_metrics(): void
     {
         $admin = $this->createAdmin();
         $data = $this->seedReportData();
@@ -81,7 +81,7 @@ class AdminDashboardReportTest extends TestCase
 
         $response
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
+            ->assertJsonPath('component', 'Admin/Reports/Index')
             ->assertJsonPath('props.page', 'admin.reports.index')
             ->assertJsonPath('props.reports.leadsBySource.0.name', $data['leadSource']->name)
             ->assertJsonPath('props.reports.leadsBySource.0.total', 2)

@@ -24,7 +24,7 @@ class ProductController extends Controller
     {
         $this->authorizeAdmin();
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/Products/Index', [
             'page' => 'admin.products.index',
             'products' => Product::query()->with('productCategory:id,name,slug')->latest()->get(),
         ]);
@@ -34,7 +34,7 @@ class ProductController extends Controller
     {
         $this->authorizeAdmin();
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/Products/Create', [
             'page' => 'admin.products.create',
             'productCategories' => ProductCategory::query()->orderBy('name')->get(['id', 'name', 'slug']),
         ]);
@@ -55,7 +55,7 @@ class ProductController extends Controller
 
         $product->load('productCategory:id,name,slug');
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/Products/Show', [
             'page' => 'admin.products.show',
             'product' => $product,
         ]);
@@ -67,7 +67,7 @@ class ProductController extends Controller
 
         $product->load('productCategory:id,name,slug');
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/Products/Edit', [
             'page' => 'admin.products.edit',
             'product' => $product,
             'productCategories' => ProductCategory::query()->orderBy('name')->get(['id', 'name', 'slug']),

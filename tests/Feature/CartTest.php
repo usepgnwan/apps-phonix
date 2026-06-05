@@ -15,6 +15,38 @@ class CartTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_cart_index_renders_public_cart_inertia_component(): void
+    {
+        $product = $this->createProduct();
+        $this->post(route('cart.items.store'), [
+            'product_id' => $product->id,
+            'quantity' => 1,
+        ]);
+
+        $response = $this->withHeaders($this->inertiaHeaders())->get(route('cart.index'));
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('component', 'Public/Cart/Index')
+            ->assertJsonPath('props.cart.cart_items.0.product_id', $product->id);
+    }
+
+    public function test_cart_index_shares_cart_item_quantity_count(): void
+    {
+        $product = $this->createProduct(stockQuantity: 5);
+
+        $this->post(route('cart.items.store'), [
+            'product_id' => $product->id,
+            'quantity' => 3,
+        ]);
+
+        $response = $this->withHeaders($this->inertiaHeaders())->get(route('cart.index'));
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('props.cartSummary.count', 3);
+    }
+
     public function test_guest_can_add_active_product_to_session_cart(): void
     {
         $product = $this->createProduct(stockQuantity: 5);
@@ -174,5 +206,16 @@ class CartTest extends TestCase
             'is_active' => $isActive,
             'is_featured' => false,
         ]);
+    }
+
+    private function inertiaHeaders(): array
+    {
+        $headers = ['X-Inertia' => 'true'];
+
+        if (file_exists(public_path('build/manifest.json'))) {
+            $headers['X-Inertia-Version'] = hash_file('xxh128', public_path('build/manifest.json'));
+        }
+
+        return $headers;
     }
 }

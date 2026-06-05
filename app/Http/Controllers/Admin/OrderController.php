@@ -26,7 +26,7 @@ class OrderController extends Controller
     {
         $this->authorizeAdmin();
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/Orders/Index', [
             'page' => 'admin.orders.index',
             'orders' => Order::query()
                 ->with(['user:id,name,email', 'customerProfile:id,user_id,name,whatsapp_number,primary_address', 'voucher:id,code,name', 'paymentMethod:id,type,bank_name,account_holder_name,is_active'])
@@ -48,7 +48,7 @@ class OrderController extends Controller
             'voucherRedemption.voucher:id,code,name',
         ]);
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/Orders/Show', [
             'page' => 'admin.orders.show',
             'order' => $order,
             'paymentMethods' => PaymentMethod::query()->where('is_active', true)->orderBy('type')->get(['id', 'type', 'bank_name', 'account_holder_name', 'is_active']),

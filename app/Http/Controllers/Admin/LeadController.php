@@ -31,7 +31,7 @@ class LeadController extends Controller
     {
         $this->authorizeAdmin();
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/Leads/Index', [
             'page' => 'admin.leads.index',
             'leads' => Lead::query()
                 ->with(['leadSource:id,name,slug,is_active', 'assignedStaff:id,name,email', 'customerProfile:id,name,whatsapp_number', 'event:id,name,event_date'])
@@ -44,7 +44,7 @@ class LeadController extends Controller
     {
         $this->authorizeAdmin();
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/Leads/Create', [
             'page' => 'admin.leads.create',
             'leadSources' => LeadSource::query()->where('is_active', true)->latest()->get(),
             'users' => User::query()->latest()->get(),
@@ -73,10 +73,14 @@ class LeadController extends Controller
             'leadFollowUps.user:id,name,email',
         ]);
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/Leads/Show', [
             'page' => 'admin.leads.show',
             'lead' => $lead,
             'leadStatuses' => self::LEAD_STATUSES,
+            'leadSources' => LeadSource::query()->where('is_active', true)->latest()->get(),
+            'users' => User::query()->latest()->get(),
+            'customerProfiles' => CustomerProfile::query()->latest()->get(),
+            'events' => Event::query()->latest()->get(),
         ]);
     }
 

@@ -23,7 +23,7 @@ class LeadSourceController extends Controller
     {
         $this->authorizeAdmin();
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/LeadSources/Index', [
             'page' => 'admin.lead-sources.index',
             'leadSources' => LeadSource::query()
                 ->withCount('leads')
@@ -36,7 +36,7 @@ class LeadSourceController extends Controller
     {
         $this->authorizeAdmin();
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/LeadSources/Create', [
             'page' => 'admin.lead-sources.create',
         ]);
     }
@@ -54,7 +54,7 @@ class LeadSourceController extends Controller
 
         $leadSource->loadCount('leads');
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/LeadSources/Show', [
             'page' => 'admin.lead-sources.show',
             'leadSource' => $leadSource,
         ]);
@@ -64,7 +64,7 @@ class LeadSourceController extends Controller
     {
         $this->authorizeAdmin();
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/LeadSources/Edit', [
             'page' => 'admin.lead-sources.edit',
             'leadSource' => $leadSource,
         ]);

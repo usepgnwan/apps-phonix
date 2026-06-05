@@ -36,7 +36,7 @@ class AdminOfflineSaleTest extends TestCase
         $this->actingAs($admin)->get(route('admin.offline-sales.index'))->assertForbidden();
     }
 
-    public function test_active_admin_can_view_index_create_and_show_placeholders(): void
+    public function test_active_admin_can_view_index_create_and_show_pages(): void
     {
         $admin = $this->createAdmin();
         $product = $this->createProduct(['name' => 'Herbal A']);
@@ -46,28 +46,25 @@ class AdminOfflineSaleTest extends TestCase
         $lead = $this->createLead($event, $fieldStaff, $customerProfile);
         $offlineSale = $this->createOfflineSale($product, $customerProfile, $lead, $fieldStaff, $event);
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.offline-sales.index'))
+        $this->inertiaGet($admin, route('admin.offline-sales.index'))
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
-            ->assertJsonPath('props.page', 'admin.offline-sales.index')
+            ->assertJsonPath('component', 'Admin/OfflineSales/Index')
             ->assertJsonPath('props.offlineSales.0.sale_number', $offlineSale->sale_number)
             ->assertJsonPath('props.offlineSales.0.customer_profile.name', $customerProfile->name)
             ->assertJsonPath('props.offlineSales.0.field_staff.id', $fieldStaff->id);
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.offline-sales.create'))
+        $this->inertiaGet($admin, route('admin.offline-sales.create'))
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
-            ->assertJsonPath('props.page', 'admin.offline-sales.create')
+            ->assertJsonPath('component', 'Admin/OfflineSales/Create')
             ->assertJsonPath('props.products.0.name', 'Herbal A')
             ->assertJsonPath('props.customerProfiles.0.name', $customerProfile->name)
             ->assertJsonPath('props.leads.0.id', $lead->id)
             ->assertJsonPath('props.fieldStaff.0.id', $fieldStaff->id)
             ->assertJsonPath('props.events.0.id', $event->id);
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.offline-sales.show', $offlineSale))
+        $this->inertiaGet($admin, route('admin.offline-sales.show', $offlineSale))
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
-            ->assertJsonPath('props.page', 'admin.offline-sales.show')
+            ->assertJsonPath('component', 'Admin/OfflineSales/Show')
             ->assertJsonPath('props.offlineSale.offline_sale_items.0.product_name', $product->name)
             ->assertJsonPath('props.offlineSale.customer_profile.name', $customerProfile->name)
             ->assertJsonPath('props.offlineSale.lead.id', $lead->id)
@@ -232,6 +229,17 @@ class AdminOfflineSaleTest extends TestCase
     private function createAdmin(): User
     {
         return User::factory()->create(['role' => 'admin', 'is_active' => true]);
+    }
+
+    private function inertiaGet(User $admin, string $url): \Illuminate\Testing\TestResponse
+    {
+        $request = $this->actingAs($admin)->withHeader('X-Inertia', 'true');
+
+        if (file_exists(public_path('build/manifest.json'))) {
+            $request->withHeader('X-Inertia-Version', hash_file('xxh128', public_path('build/manifest.json')));
+        }
+
+        return $request->get($url);
     }
 
     private function createFieldStaff(array $attributes = []): User

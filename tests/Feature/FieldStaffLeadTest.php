@@ -34,7 +34,7 @@ class FieldStaffLeadTest extends TestCase
         $this->actingAs($fieldStaff)->get(route('field.dashboard.index'))->assertForbidden();
     }
 
-    public function test_active_field_staff_can_view_dashboard_summary_placeholder(): void
+    public function test_active_field_staff_can_view_dashboard_summary_page(): void
     {
         $fieldStaff = $this->createFieldStaff();
         $lead = $this->createLead($fieldStaff, ['follow_up_status' => 'needs_follow_up']);
@@ -49,39 +49,36 @@ class FieldStaffLeadTest extends TestCase
             'follow_up_status' => 'needs_follow_up',
         ]);
 
-        $this->actingAs($fieldStaff)->withHeader('X-Inertia', 'true')->get(route('field.dashboard.index'))
+        $this->inertiaGet($fieldStaff, route('field.dashboard.index'))
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
-            ->assertJsonPath('props.page', 'field.dashboard.index')
+            ->assertJsonPath('component', 'Field/Dashboard')
             ->assertJsonPath('props.summary.assignedLeadsCount', 2)
             ->assertJsonPath('props.summary.openLeadsCount', 1)
             ->assertJsonPath('props.summary.activitiesCount', 1);
     }
 
-    public function test_active_field_staff_can_view_only_assigned_leads_index_placeholder(): void
+    public function test_active_field_staff_can_view_only_assigned_leads_index_page(): void
     {
         $fieldStaff = $this->createFieldStaff();
         $this->createLead($fieldStaff, ['name' => 'Lead Milik Staff']);
         $this->createLead($this->createFieldStaff(), ['name' => 'Lead Staff Lain']);
 
-        $response = $this->actingAs($fieldStaff)->withHeader('X-Inertia', 'true')->get(route('field.leads.index'));
+        $response = $this->inertiaGet($fieldStaff, route('field.leads.index'));
 
         $response->assertOk()
-            ->assertJsonPath('component', 'Welcome')
-            ->assertJsonPath('props.page', 'field.leads.index')
+            ->assertJsonPath('component', 'Field/Leads/Index')
             ->assertJsonPath('props.leads.data.0.name', 'Lead Milik Staff')
             ->assertJsonMissingPath('props.leads.data.1');
     }
 
-    public function test_active_field_staff_can_view_assigned_lead_detail_placeholder(): void
+    public function test_active_field_staff_can_view_assigned_lead_detail_page(): void
     {
         $fieldStaff = $this->createFieldStaff();
         $lead = $this->createLead($fieldStaff);
 
-        $this->actingAs($fieldStaff)->withHeader('X-Inertia', 'true')->get(route('field.leads.show', $lead))
+        $this->inertiaGet($fieldStaff, route('field.leads.show', $lead))
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
-            ->assertJsonPath('props.page', 'field.leads.show')
+            ->assertJsonPath('component', 'Field/Leads/Show')
             ->assertJsonPath('props.lead.id', $lead->id)
             ->assertJsonPath('props.activityTypes.0', 'visit')
             ->assertJsonPath('props.leadStatuses.0', 'new');
@@ -218,6 +215,17 @@ class FieldStaffLeadTest extends TestCase
     private function createFieldStaff(array $attributes = []): User
     {
         return User::factory()->create(array_merge(['role' => 'field_staff', 'is_active' => true], $attributes));
+    }
+
+    private function inertiaGet(User $fieldStaff, string $url): \Illuminate\Testing\TestResponse
+    {
+        $request = $this->actingAs($fieldStaff)->withHeader('X-Inertia', 'true');
+
+        if (file_exists(public_path('build/manifest.json'))) {
+            $request->withHeader('X-Inertia-Version', hash_file('xxh128', public_path('build/manifest.json')));
+        }
+
+        return $request->get($url);
     }
 
     private function createLead(User $fieldStaff, array $attributes = []): Lead

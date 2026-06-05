@@ -1,8 +1,291 @@
-import { Head } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import { ShoppingBag } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
-export default function Welcome({ auth }) {
+const formatRupiah = (value) => new Intl.NumberFormat('id-ID', {
+    currency: 'IDR',
+    maximumFractionDigits: 0,
+    style: 'currency',
+}).format(Number(value ?? 0));
+
+const storageImage = (path) => (path ? `/storage/${path}` : null);
+
+function BotanicalFallback({ label = 'Phoenix Herbal' }) {
+    return (
+        <div className="flex h-full w-full items-center justify-center bg-primary-fixed/25 text-primary">
+            <div className="text-center">
+                <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-3xl bg-white shadow-sm shadow-primary-container/10">
+                    <span className="material-symbols-outlined text-3xl">eco</span>
+                </span>
+                <span className="mt-3 block font-label-sm text-xs font-bold uppercase tracking-[0.18em]">
+                    {label}
+                </span>
+            </div>
+        </div>
+    );
+}
+
+const productCategoryLabel = (product) => {
+    return product?.productCategory?.name ?? product?.product_category?.name ?? 'Produk Herbal';
+};
+
+const visitTypeLabel = (visitType) => ({
+    both: 'Home visit & klinik',
+    home_visit: 'Home visit',
+    office_visit: 'Kunjungan klinik',
+}[visitType] ?? 'Layanan Phoenix');
+
+const productHref = (product) => product?.slug ? route('products.show', product.slug) : route('products.index');
+const serviceHref = (service) => service?.slug ? route('services.show', service.slug) : route('services.index');
+
+function Reveal({ children, className = '', delay = 0, as: Component = 'div' }) {
+    const ref = useRef(null);
+
+    useEffect(() => {
+        const element = ref.current;
+
+        if (!element) {
+            return undefined;
+        }
+
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        if (prefersReducedMotion || !('IntersectionObserver' in window)) {
+            element.style.opacity = '1';
+            element.style.transform = 'translate3d(0, 0, 0)';
+            return undefined;
+        }
+
+        const observer = new IntersectionObserver(([entry]) => {
+            if (entry.isIntersecting) {
+                element.classList.add('is-visible');
+                observer.unobserve(element);
+            }
+        }, {
+            rootMargin: '0px 0px -12% 0px',
+            threshold: 0.18,
+        });
+
+        observer.observe(element);
+
+        return () => observer.disconnect();
+    }, []);
+
+    return (
+        <Component
+            className={`reveal-on-scroll ${className}`}
+            ref={ref}
+            style={{ '--reveal-delay': `${delay}ms` }}
+        >
+            {children}
+        </Component>
+    );
+}
+
+function ProductCard({ onAddedToCart, product }) {
+    const imageSrc = storageImage(product.image_path);
+    const detailHref = productHref(product);
+    const imageRef = useRef(null);
+    const [isAddingToCart, setIsAddingToCart] = useState(false);
+
+    const addToCart = () => {
+        if (isAddingToCart) {
+            return;
+        }
+
+        setIsAddingToCart(true);
+
+        router.post(route('cart.items.store'), {
+            product_id: product.id,
+            quantity: 1,
+        }, {
+            onSuccess: () => onAddedToCart?.({
+                imagePath: product.image_path,
+                name: product.name,
+                sourceRect: imageRef.current?.getBoundingClientRect(),
+            }),
+            onFinish: () => setIsAddingToCart(false),
+            preserveScroll: true,
+        });
+    };
+
+    return (
+        <div className="min-w-[280px] md:min-w-[calc(25%-18px)] snap-start overflow-hidden rounded-2xl border border-outline-variant bg-white shadow-sm group/card cursor-pointer" style={{ opacity: '1', transform: 'translateY(0px)', transition: '0.6s ease-out' }}>
+            <div className="h-48 overflow-hidden bg-[#F6F7F7]" ref={imageRef}>
+                {imageSrc ? (
+                    <img className="h-full w-full object-cover transition-transform duration-500 group-hover/card:scale-105" src={imageSrc} alt={product.name} />
+                ) : (
+                    <BotanicalFallback label={productCategoryLabel(product)} />
+                )}
+            </div>
+            <div className="p-5">
+                <span className="inline-flex mb-3 rounded-full bg-[#1E4D3A] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white">{productCategoryLabel(product)}</span>
+                <p className="font-bold text-primary font-body-md mb-2">{product.name}</p>
+                <p className="text-[#1E4D3A] font-label-md">{formatRupiah(product.price)}</p>
+                {product.short_description && <p className="mt-3 line-clamp-2 text-sm text-on-surface-variant">{product.short_description}</p>}
+                <div className="mt-4 flex items-center gap-3">
+                    <Link href={detailHref} className="flex-1 bg-[#1E4D3A] text-white py-2 rounded-full font-label-md hover:bg-[#163B2C] transition-all active:scale-95 text-center">Lihat Produk</Link>
+                    <button type="button" onClick={addToCart} disabled={isAddingToCart} aria-label={`Tambahkan ${product.name} ke keranjang`} className="h-10 w-10 rounded-full border border-[#1E4D3A]/20 text-[#1E4D3A] flex items-center justify-center hover:bg-[#1E4D3A] hover:text-white transition-all active:scale-95 disabled:pointer-events-none disabled:opacity-60">
+                        <span className="material-symbols-outlined text-[20px]">shopping_cart</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function ServiceCard({ service, consultationHref }) {
+    const imageSrc = storageImage(service.image_path);
+    const detailHref = serviceHref(service);
+
+    return (
+        <div className="min-w-[280px] md:min-w-[calc(25%-18px)] snap-start overflow-hidden rounded-2xl border border-outline-variant bg-white shadow-sm group/card cursor-pointer" style={{ opacity: '1', transform: 'translateY(0px)', transition: '0.6s ease-out' }}>
+            <div className="h-48 overflow-hidden bg-[#F6F7F7]">
+                {imageSrc ? (
+                    <img className="h-full w-full object-cover transition-transform duration-500 group-hover/card:scale-105" src={imageSrc} alt={service.name} />
+                ) : (
+                    <BotanicalFallback label="Layanan Phoenix" />
+                )}
+            </div>
+            <div className="p-5">
+                <span className="inline-flex mb-3 rounded-full bg-[#6FA788] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white">{visitTypeLabel(service.visit_type)}</span>
+                <p className="font-bold text-primary font-body-md mb-2">{service.name}</p>
+                <p className="text-[#1E4D3A] font-label-md">{formatRupiah(service.price)}</p>
+                {service.description && <p className="mt-3 line-clamp-2 text-sm text-on-surface-variant">{service.description}</p>}
+                <div className="mt-4 flex items-center gap-3">
+                    <Link href={consultationHref} className="flex-1 bg-[#1E4D3A] text-white py-2 rounded-full font-label-md hover:bg-[#163B2C] transition-all active:scale-95 text-center">Booking</Link>
+                    <Link href={detailHref} aria-label={`Lihat layanan ${service.name}`} className="h-10 w-10 rounded-full border border-[#1E4D3A]/20 text-[#1E4D3A] flex items-center justify-center hover:bg-[#1E4D3A] hover:text-white transition-all active:scale-95">
+                        <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+                    </Link>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function EmptyCarouselState({ children }) {
+    return (
+        <div className="min-w-[280px] rounded-2xl border border-dashed border-outline-variant bg-white/70 p-8 text-center text-on-surface-variant">
+            <BotanicalFallback />
+            <p className="mt-5 font-body-md text-sm leading-relaxed">{children}</p>
+        </div>
+    );
+}
+
+function SmoothAnchor({ children, className, href, onClick, ...props }) {
+    return (
+        <a className={className} href={href} onClick={onClick} {...props}>
+            {children}
+        </a>
+    );
+}
+
+function TestimonialCard({ testimonial }) {
+    const avatarSrc = storageImage(testimonial.photo_path);
+
+    return (
+        <div className="min-w-[280px] snap-start md:min-w-0 bg-white rounded-2xl p-6 border border-outline-variant shadow-sm flex flex-col gap-4 shrink-0">
+            <span className="font-headline-lg text-3xl leading-none text-[#6FA788]">“</span>
+            <div className="flex gap-0.5">
+                {Array.from({ length: 5 }, (_, star) => star + 1).map((star) => (
+                    <span key={star} className="material-symbols-outlined text-base text-tertiary" style={{ fontVariationSettings: '"FILL" 1' }}>star</span>
+                ))}
+            </div>
+            <p className="text-on-surface font-body-md leading-relaxed flex-1 italic">“{testimonial.content}”</p>
+            <div className="flex items-center gap-3 pt-2 border-t border-outline-variant">
+                {avatarSrc ? (
+                    <img src={avatarSrc} alt={testimonial.customer_name} className="w-10 h-10 rounded-full object-cover border-2 border-primary-container shrink-0" />
+                ) : (
+                    <div className="flex w-10 h-10 rounded-full border-2 border-primary-container bg-primary-fixed/35 text-primary shrink-0 items-center justify-center font-bold">
+                        {(testimonial.customer_name ?? 'P').charAt(0).toUpperCase()}
+                    </div>
+                )}
+                <div>
+                    <p className="font-bold text-primary text-sm">{testimonial.customer_name ?? 'Pelanggan Phoenix'}</p>
+                    <p className="text-on-surface-variant text-xs">Pelanggan Phoenix</p>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export default function Welcome({ auth, featuredProducts = [], featuredServices = [], testimonials = [] }) {
     const [isScrolled, setIsScrolled] = useState(false);
+    const [flyingProduct, setFlyingProduct] = useState(null);
+    const cartCount = Number(usePage().props.cartSummary?.count ?? 0);
+    const isAuthenticated = Boolean(auth?.user);
+    const accountHref = (() => {
+        if (!isAuthenticated) {
+            return route('login');
+        }
+
+        if (auth.user.role === 'admin') {
+            return route('admin.dashboard.index');
+        }
+
+        if (auth.user.role === 'field_staff') {
+            return route('field.dashboard.index');
+        }
+
+        return route('customer.dashboard.index');
+    })();
+    const consultationHref = isAuthenticated ? route('bookings.create') : route('login');
+
+    const handleAnchorClick = (event) => {
+        const href = event.currentTarget.getAttribute('href');
+
+        if (!href?.startsWith('#') || href.length === 1) {
+            return;
+        }
+
+        const target = document.querySelector(href);
+
+        if (!target) {
+            return;
+        }
+
+        event.preventDefault();
+
+        const nav = document.querySelector('nav');
+        const navOffset = nav?.offsetHeight ?? 0;
+        const targetTop = target.getBoundingClientRect().top + window.scrollY - navOffset;
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        window.scrollTo({
+            top: Math.max(targetTop, 0),
+            behavior: prefersReducedMotion ? 'auto' : 'smooth',
+        });
+    };
+
+    const animateProductToCart = ({ imagePath, name, sourceRect }) => {
+        const target = document.querySelector('[data-cart-link]');
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const flySize = 64;
+        const flyOffset = flySize / 2;
+
+        if (!sourceRect || !target || prefersReducedMotion) {
+            return;
+        }
+
+        const targetRect = target.getBoundingClientRect();
+        const startX = sourceRect.left + (sourceRect.width / 2) - flyOffset;
+        const startY = sourceRect.top + (sourceRect.height / 2) - flyOffset;
+        const endX = targetRect.left + (targetRect.width / 2) - flyOffset;
+        const endY = targetRect.top + (targetRect.height / 2) - flyOffset;
+
+        setFlyingProduct({
+            endX,
+            endY,
+            imagePath,
+            midX: (startX + endX) / 2,
+            midY: startY - 90,
+            name,
+            startX,
+            startY,
+        });
+
+        window.setTimeout(() => setFlyingProduct(null), 900);
+    };
 
     useEffect(() => {
         const handleScroll = () => {
@@ -12,21 +295,14 @@ export default function Welcome({ auth }) {
         handleScroll();
         window.addEventListener('scroll', handleScroll);
 
-        const elements = document.querySelectorAll('.hover\\:shadow-xl, .group\\/card');
-        elements.forEach((el, index) => {
-            if (el) {
-                el.style.opacity = '0';
-                el.style.transform = 'translateY(20px)';
-                el.style.transition = 'all 0.6s ease-out';
-                setTimeout(() => {
-                    el.style.opacity = '1';
-                    el.style.transform = 'translateY(0)';
-                }, 50 * index);
-            }
-        });
-
         // Load jQuery first, expose globally, then load SpriteSpin
         const initSpriteSpin = async () => {
+            const spriteSpinContainer = document.getElementById('spritespin-container');
+
+            if (!spriteSpinContainer) {
+                return;
+            }
+
             const { default: jQuery } = await import('jquery');
             window.jQuery = jQuery;
             window.$ = jQuery;
@@ -35,7 +311,7 @@ export default function Welcome({ auth }) {
 
             const frames = Array.from({ length: 7 }, (_, i) => `/360-frames/genqi/${i + 1}.png`);
 
-            jQuery('#spritespin-container').spritespin({
+            jQuery(spriteSpinContainer).spritespin({
                 source: frames,
                 width: 400,
                 height: 400,
@@ -50,8 +326,10 @@ export default function Welcome({ auth }) {
 
         return () => {
             window.removeEventListener('scroll', handleScroll);
-            if (window.$ && window.$('#spritespin-container').data('spritespin')) {
-                window.$('#spritespin-container').spritespin('destroy');
+            const spriteSpinContainer = document.getElementById('spritespin-container');
+
+            if (spriteSpinContainer && window.$?.(spriteSpinContainer).data('spritespin')) {
+                window.$(spriteSpinContainer).spritespin('destroy');
             }
         };
     }, []);
@@ -61,28 +339,112 @@ export default function Welcome({ auth }) {
         <div className="bg-surface text-on-surface selection:bg-primary-fixed selection:text-on-primary-fixed min-h-screen">
             <Head title="Phoenix Terapi & Herbal" />
 
+            <style>{`
+                .reveal-on-scroll {
+                    opacity: 0;
+                    transform: translate3d(0, 28px, 0) scale(0.985);
+                    transition: opacity 780ms ease, transform 780ms cubic-bezier(0.22, 1, 0.36, 1);
+                    transition-delay: var(--reveal-delay, 0ms);
+                    will-change: opacity, transform;
+                }
+
+                .reveal-on-scroll.is-visible {
+                    opacity: 1;
+                    transform: translate3d(0, 0, 0) scale(1);
+                    will-change: auto;
+                }
+
+                @media (prefers-reduced-motion: reduce) {
+                    .reveal-on-scroll {
+                        opacity: 1;
+                        transform: none;
+                        transition: none;
+                    }
+
+                }
+
+                .fly-to-cart {
+                    animation: fly-to-cart 820ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+                }
+
+                @keyframes fly-to-cart {
+                    0% {
+                        opacity: 0;
+                        transform: translate3d(var(--fly-start-x), var(--fly-start-y), 0) scale(0.86);
+                    }
+
+                    12% {
+                        opacity: 1;
+                    }
+
+                    72% {
+                        opacity: 1;
+                        transform: translate3d(var(--fly-mid-x), var(--fly-mid-y), 0) scale(0.7) rotate(-8deg);
+                    }
+
+                    100% {
+                        opacity: 0;
+                        transform: translate3d(var(--fly-end-x), var(--fly-end-y), 0) scale(0.28) rotate(8deg);
+                    }
+                }
+
+                @media (prefers-reduced-motion: reduce) {
+                    .fly-to-cart {
+                        animation: none;
+                    }
+                }
+            `}</style>
+
+            {flyingProduct && (
+                <div
+                    aria-hidden="true"
+                    className="fly-to-cart pointer-events-none fixed left-0 top-0 z-[80] h-16 w-16 overflow-hidden rounded-2xl border-2 border-white bg-primary-fixed shadow-2xl shadow-primary-container/30"
+                    style={{
+                        '--fly-end-x': `${flyingProduct.endX}px`,
+                        '--fly-end-y': `${flyingProduct.endY}px`,
+                        '--fly-mid-x': `${flyingProduct.midX}px`,
+                        '--fly-mid-y': `${flyingProduct.midY}px`,
+                        '--fly-start-x': `${flyingProduct.startX}px`,
+                        '--fly-start-y': `${flyingProduct.startY}px`,
+                    }}
+                >
+                    {flyingProduct.imagePath ? (
+                        <img alt="" className="h-full w-full object-cover" src={storageImage(flyingProduct.imagePath)} />
+                    ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-primary-fixed text-primary-container">
+                            <ShoppingBag aria-hidden="true" className="h-6 w-6" />
+                        </div>
+                    )}
+                </div>
+            )}
+
             {/* TopNavBar */}
             <nav className={`fixed top-0 left-0 w-full z-50 border-b backdrop-blur-xl transition-all duration-300 ${isScrolled ? 'bg-white/95 border-[#E5E7EB] shadow-sm' : 'bg-white/80 border-white/70 shadow-none'}`}>
                 <div className="flex h-20 w-full max-w-container-max items-center justify-between px-margin-mobile md:px-margin-desktop mx-auto">
-                    <a className="rounded-full pr-3 transition-all duration-300 hover:bg-[#F6F7F7]" href="#beranda" aria-label="Phoenix Terapi & Herbal">
+                    <SmoothAnchor className="rounded-full pr-3 transition-all duration-300 hover:bg-[#F6F7F7]" href="#beranda" onClick={handleAnchorClick} aria-label="Phoenix Terapi & Herbal">
                         <span className="leading-none">
                             <span className="block font-headline-md text-xl font-bold tracking-[0.16em] text-[#1E4D3A]">PHOENIX</span>
                             <span className="mt-1 block font-label-sm text-[9px] font-bold uppercase tracking-[0.22em] text-[#333333]">Terapi &amp; Herbal</span>
                         </span>
-                    </a>
+                    </SmoothAnchor>
                     <div className="hidden items-center gap-8 md:flex">
-                        <a className="font-body-md text-body-md font-semibold text-[#1E4D3A] transition-colors hover:text-[#6FA788]" href="#beranda">Beranda</a>
-                        <a className="font-body-md text-body-md font-medium text-[#333333] transition-colors hover:text-[#1E4D3A]" href="#produk">Produk</a>
-                        <a className="font-body-md text-body-md font-medium text-[#333333] transition-colors hover:text-[#1E4D3A]" href="#layanan">Layanan</a>
-                        <a className="font-body-md text-body-md font-medium text-[#333333] transition-colors hover:text-[#1E4D3A]" href="#tentang-kami">Tentang Kami</a>
+                        <SmoothAnchor className="font-body-md text-body-md font-semibold text-[#1E4D3A] transition-colors hover:text-[#6FA788]" href="#beranda" onClick={handleAnchorClick}>Beranda</SmoothAnchor>
+                        <SmoothAnchor className="font-body-md text-body-md font-medium text-[#333333] transition-colors hover:text-[#1E4D3A]" href="#produk" onClick={handleAnchorClick}>Produk</SmoothAnchor>
+                        <SmoothAnchor className="font-body-md text-body-md font-medium text-[#333333] transition-colors hover:text-[#1E4D3A]" href="#layanan" onClick={handleAnchorClick}>Layanan</SmoothAnchor>
+                        <SmoothAnchor className="font-body-md text-body-md font-medium text-[#333333] transition-colors hover:text-[#1E4D3A]" href="#tentang-kami" onClick={handleAnchorClick}>Tentang Kami</SmoothAnchor>
                     </div>
                     <div className="flex items-center gap-2 sm:gap-3">
-                        <button type="button" className="flex h-11 w-11 items-center justify-center rounded-full border border-[#1E4D3A]/30 bg-white text-[#1E4D3A] transition-all duration-150 hover:border-[#1E4D3A] hover:bg-[#A8C5B3]/20 active:scale-95" aria-label="Keranjang belanja">
-                            <span className="material-symbols-outlined text-xl">shopping_bag</span>
-                        </button>
-                        <button type="button" className="inline-flex rounded-full bg-[#1E4D3A] px-5 py-2.5 font-label-md font-semibold text-white shadow-sm transition-all duration-150 hover:bg-[#163B2C] active:scale-95">
-                            Login
-                        </button>
+                        <Link href={route('cart.index')} className="relative flex h-11 w-11 items-center justify-center rounded-full border border-[#1E4D3A]/30 bg-white text-[#1E4D3A] transition-all duration-150 hover:border-[#1E4D3A] hover:bg-[#A8C5B3]/20 active:scale-95" aria-label="Keranjang belanja" data-cart-link>
+                            <span className="material-symbols-outlined text-xl" data-cart-icon>shopping_bag</span>
+                            {cartCount > 0 && (
+                                <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-tertiary px-1.5 font-body-sm text-[10px] font-black leading-none text-white shadow-sm shadow-[#1E4D3A]/20">
+                                    {cartCount > 99 ? '99+' : cartCount}
+                                </span>
+                            )}
+                        </Link>
+                        <Link href={accountHref} className="inline-flex rounded-full bg-[#1E4D3A] px-5 py-2.5 font-label-md font-semibold text-white shadow-sm transition-all duration-150 hover:bg-[#163B2C] active:scale-95">
+                            {isAuthenticated ? 'Dashboard' : 'Login'}
+                        </Link>
                     </div>
                 </div>
             </nav>
@@ -94,7 +456,7 @@ export default function Welcome({ auth }) {
                     <div className="absolute inset-0 bg-gradient-to-b from-white/55 via-transparent to-[#F6F7F7]/35"></div>
                     <div className="absolute left-0 top-0 h-72 w-72 rounded-full bg-[#A8C5B3]/30 blur-3xl"></div>
                     <div className="relative z-10 mx-auto flex w-full max-w-container-max items-center px-margin-mobile py-16 md:px-margin-desktop md:py-24 lg:min-h-[calc(100vh-5rem)]">
-                        <div className="max-w-2xl py-10 md:py-16">
+                        <Reveal className="max-w-2xl py-10 md:py-16">
                             <h1 className="font-headline-xl text-5xl font-bold leading-tight text-[#1E4D3A] md:text-6xl lg:text-7xl">
                                 Hidup Seimbang Secara Alami
                             </h1>
@@ -102,13 +464,13 @@ export default function Welcome({ auth }) {
                                 Phoenix Terapi &amp; Herbal menghadirkan produk herbal, alat terapi, dan konsultasi profesional dalam pendekatan yang alami, bersih, dan terpercaya.
                             </p>
                             <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                                <button type="button" className="inline-flex items-center justify-center gap-2 rounded-full bg-[#1E4D3A] px-8 py-4 font-label-md font-semibold text-white shadow-sm transition-all duration-150 hover:bg-[#163B2C] active:scale-95">
+                                <Link href={consultationHref} className="inline-flex items-center justify-center gap-2 rounded-full bg-[#1E4D3A] px-8 py-4 font-label-md font-semibold text-white shadow-sm transition-all duration-150 hover:bg-[#163B2C] active:scale-95">
                                     Konsultasi Sekarang
                                     <span className="material-symbols-outlined text-xl">arrow_forward</span>
-                                </button>
-                                <button type="button" className="inline-flex items-center justify-center rounded-full border border-[#1E4D3A] bg-white/80 px-8 py-4 font-label-md font-semibold text-[#1E4D3A] backdrop-blur-md transition-all duration-150 hover:bg-[#A8C5B3]/20 active:scale-95">
+                                </Link>
+                                <Link href={route('products.index')} className="inline-flex items-center justify-center rounded-full border border-[#1E4D3A] bg-white/80 px-8 py-4 font-label-md font-semibold text-[#1E4D3A] backdrop-blur-md transition-all duration-150 hover:bg-[#A8C5B3]/20 active:scale-95">
                                     Lihat Produk Herbal
-                                </button>
+                                </Link>
                             </div>
                             <div className="mt-10 flex flex-wrap gap-3">
                                 {['100% Natural', 'Konsultasi Profesional', 'Terapi Holistik'].map((benefit) => (
@@ -120,14 +482,14 @@ export default function Welcome({ auth }) {
                                     </div>
                                 ))}
                             </div>
-                        </div>
+                        </Reveal>
                     </div>
                 </section>
                 {/* Brand Essence (Timeline & 3D Showcase) */}
-                <section className="py-24 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto relative">
+                <section id="tentang-kami" className="py-24 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto relative">
                     <div className="absolute inset-0 bg-botanical-pattern -z-10"></div>
 
-                    <div className="flex flex-col lg:flex-row gap-16 items-center">
+                    <Reveal className="flex flex-col lg:flex-row gap-16 items-center" delay={80}>
                         {/* Left Content (Text & Timeline) */}
                         <div className="w-full lg:w-1/2">
                             {/* Tag line */}
@@ -342,311 +704,84 @@ export default function Welcome({ auth }) {
                                 }
                             `}</style>
                         </div>
-                    </div>
+                    </Reveal>
                 </section>
                 {/* Kategori Produk & Layanan (Carousel Section) */}
                 <section className="py-24 bg-surface-container-low px-margin-mobile md:px-margin-desktop overflow-hidden">
-                    <div className="max-w-container-max mx-auto">
+                    <Reveal className="max-w-container-max mx-auto" delay={80}>
                         <div className="flex flex-col md:flex-row items-end justify-between mb-16 gap-6">
                             <div className="max-w-2xl">
                                 <h2 className="font-headline-lg text-headline-lg text-primary mb-4">Eksplorasi Solusi Kesehatan</h2>
                                 <p className="font-body-md text-body-md text-on-surface-variant">Temukan kategori produk dan layanan yang kami desain khusus untuk menunjang gaya hidup sehat Anda setiap hari.</p>
                             </div>
-                            <a className="text-primary font-label-md flex items-center gap-2 group" href="#layanan">
+                            <Link className="text-primary font-label-md flex items-center gap-2 group" href={route('services.index')}>
                                 Lihat Semua Layanan
                                 <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_right_alt</span>
-                            </a>
+                            </Link>
                         </div>
                         <div className="space-y-24">
                             {/* Herbal Products Section */}
-                            <div className="relative group">
+                            <div id="produk" className="relative group">
                                 <div className="flex items-center justify-between mb-8">
                                     <h3 className="font-headline-md text-primary">Produk Herbal</h3>
-                                    <button type="button" className="rounded-full border border-primary px-5 py-2 font-label-md text-sm font-semibold text-primary transition-all hover:bg-primary hover:text-white active:scale-95">
+                                    <Link href={route('products.index')} className="rounded-full border border-primary px-5 py-2 font-label-md text-sm font-semibold text-primary transition-all hover:bg-primary hover:text-white active:scale-95">
                                         Lihat Semua Produk
-                                    </button>
+                                    </Link>
                                 </div>
                                 <div className="flex gap-6 overflow-x-auto no-scrollbar snap-x pb-4" id="carousel-herbal">
-                                    <div className="min-w-[280px] md:min-w-[calc(25%-18px)] snap-start overflow-hidden rounded-2xl border border-outline-variant bg-white shadow-sm group/card cursor-pointer" style={{ opacity: '1', transform: 'translateY(0px)', transition: '0.6s ease-out' }}>
-                                        <div className="h-48 overflow-hidden bg-[#F6F7F7]">
-                                            <img className="h-full w-full object-cover transition-transform duration-500 group-hover/card:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCjbrTu4J4lorvc_opU5eeOotIJ68PL4Rw6iy5MXTICpUjyT8hYTTut1ciWQYxsL7ZdCiyEEfrDU-XADsA5joS6gBlpXgKRIIvwQ2UjVkCdcqktbQtVS5SmM_ORxn8TgxfBcbtEHy8XRKcras_W5bAACJ0KoC42i3hzzd6x4v9cUsKSZNy_IIR2_mwbdxW-IePgi6BjUN8gVlFOBDBwwRu3agUx2gaj6R3-44ATVsBnpVcSDXpkU6gq3HrQ_GsssUi9zIfB0rK3R0Gp" alt="Madu Hutan Murni" />
-                                        </div>
-                                        <div className="p-5">
-                                            <span className="inline-flex mb-3 rounded-full bg-[#1E4D3A] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white">100% Herbal</span>
-                                            <p className="font-bold text-primary font-body-md mb-2">Madu Hutan Murni</p>
-                                            <p className="text-[#1E4D3A] font-label-md">Rp 125.000</p>
-                                            <div className="mt-4 flex items-center gap-3">
-                                                <button type="button" className="flex-1 bg-[#1E4D3A] text-white py-2 rounded-full font-label-md hover:bg-[#163B2C] transition-all active:scale-95">Beli</button>
-                                                <button type="button" aria-label="Tambahkan Madu Hutan Murni ke keranjang" className="h-10 w-10 rounded-full border border-[#1E4D3A]/20 text-[#1E4D3A] flex items-center justify-center hover:bg-[#1E4D3A] hover:text-white transition-all active:scale-95">
-                                                    <span className="material-symbols-outlined text-[20px]">shopping_cart</span>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="min-w-[280px] md:min-w-[calc(25%-18px)] snap-start overflow-hidden rounded-2xl border border-outline-variant bg-white shadow-sm group/card cursor-pointer" style={{ opacity: '1', transform: 'translateY(0px)', transition: '0.6s ease-out' }}>
-                                        <div className="h-48 overflow-hidden bg-[#F6F7F7]">
-                                            <img className="h-full w-full object-cover transition-transform duration-500 group-hover/card:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCjbrTu4J4lorvc_opU5eeOotIJ68PL4Rw6iy5MXTICpUjyT8hYTTut1ciWQYxsL7ZdCiyEEfrDU-XADsA5joS6gBlpXgKRIIvwQ2UjVkCdcqktbQtVS5SmM_ORxn8TgxfBcbtEHy8XRKcras_W5bAACJ0KoC42i3hzzd6x4v9cUsKSZNy_IIR2_mwbdxW-IePgi6BjUN8gVlFOBDBwwRu3agUx2gaj6R3-44ATVsBnpVcSDXpkU6gq3HrQ_GsssUi9zIfB0rK3R0Gp" alt="Teh Herbal Detoks" />
-                                        </div>
-                                        <div className="p-5">
-                                            <span className="inline-flex mb-3 rounded-full bg-[#1E4D3A] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white">100% Herbal</span>
-                                            <p className="font-bold text-primary font-body-md mb-2">Teh Herbal Detoks</p>
-                                            <p className="text-[#1E4D3A] font-label-md">Rp 85.000</p>
-                                            <div className="mt-4 flex items-center gap-3">
-                                                <button type="button" className="flex-1 bg-[#1E4D3A] text-white py-2 rounded-full font-label-md hover:bg-[#163B2C] transition-all active:scale-95">Beli</button>
-                                                <button type="button" aria-label="Tambahkan Teh Herbal Detoks ke keranjang" className="h-10 w-10 rounded-full border border-[#1E4D3A]/20 text-[#1E4D3A] flex items-center justify-center hover:bg-[#1E4D3A] hover:text-white transition-all active:scale-95">
-                                                    <span className="material-symbols-outlined text-[20px]">shopping_cart</span>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="min-w-[280px] md:min-w-[calc(25%-18px)] snap-start overflow-hidden rounded-2xl border border-outline-variant bg-white shadow-sm group/card cursor-pointer" style={{ opacity: '1', transform: 'translateY(0px)', transition: '0.6s ease-out' }}>
-                                        <div className="h-48 overflow-hidden bg-[#F6F7F7]">
-                                            <img className="h-full w-full object-cover transition-transform duration-500 group-hover/card:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCjbrTu4J4lorvc_opU5eeOotIJ68PL4Rw6iy5MXTICpUjyT8hYTTut1ciWQYxsL7ZdCiyEEfrDU-XADsA5joS6gBlpXgKRIIvwQ2UjVkCdcqktbQtVS5SmM_ORxn8TgxfBcbtEHy8XRKcras_W5bAACJ0KoC42i3hzzd6x4v9cUsKSZNy_IIR2_mwbdxW-IePgi6BjUN8gVlFOBDBwwRu3agUx2gaj6R3-44ATVsBnpVcSDXpkU6gq3HrQ_GsssUi9zIfB0rK3R0Gp" alt="Kapsul Temulawak" />
-                                        </div>
-                                        <div className="p-5">
-                                            <span className="inline-flex mb-3 rounded-full bg-[#1E4D3A] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white">100% Herbal</span>
-                                            <p className="font-bold text-primary font-body-md mb-2">Kapsul Temulawak</p>
-                                            <p className="text-[#1E4D3A] font-label-md">Rp 95.000</p>
-                                            <div className="mt-4 flex items-center gap-3">
-                                                <button type="button" className="flex-1 bg-[#1E4D3A] text-white py-2 rounded-full font-label-md hover:bg-[#163B2C] transition-all active:scale-95">Beli</button>
-                                                <button type="button" aria-label="Tambahkan Kapsul Temulawak ke keranjang" className="h-10 w-10 rounded-full border border-[#1E4D3A]/20 text-[#1E4D3A] flex items-center justify-center hover:bg-[#1E4D3A] hover:text-white transition-all active:scale-95">
-                                                    <span className="material-symbols-outlined text-[20px]">shopping_cart</span>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="min-w-[280px] md:min-w-[calc(25%-18px)] snap-start overflow-hidden rounded-2xl border border-outline-variant bg-white shadow-sm group/card cursor-pointer" style={{ opacity: '1', transform: 'translateY(0px)', transition: '0.6s ease-out' }}>
-                                        <div className="h-48 overflow-hidden bg-[#F6F7F7]">
-                                            <img className="h-full w-full object-cover transition-transform duration-500 group-hover/card:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCjbrTu4J4lorvc_opU5eeOotIJ68PL4Rw6iy5MXTICpUjyT8hYTTut1ciWQYxsL7ZdCiyEEfrDU-XADsA5joS6gBlpXgKRIIvwQ2UjVkCdcqktbQtVS5SmM_ORxn8TgxfBcbtEHy8XRKcras_W5bAACJ0KoC42i3hzzd6x4v9cUsKSZNy_IIR2_mwbdxW-IePgi6BjUN8gVlFOBDBwwRu3agUx2gaj6R3-44ATVsBnpVcSDXpkU6gq3HrQ_GsssUi9zIfB0rK3R0Gp" alt="Minyak Zaitun Organik" />
-                                        </div>
-                                        <div className="p-5">
-                                            <span className="inline-flex mb-3 rounded-full bg-[#1E4D3A] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white">100% Herbal</span>
-                                            <p className="font-bold text-primary font-body-md mb-2">Minyak Zaitun Organik</p>
-                                            <p className="text-[#1E4D3A] font-label-md">Rp 110.000</p>
-                                            <div className="mt-4 flex items-center gap-3">
-                                                <button type="button" className="flex-1 bg-[#1E4D3A] text-white py-2 rounded-full font-label-md hover:bg-[#163B2C] transition-all active:scale-95">Beli</button>
-                                                <button type="button" aria-label="Tambahkan Minyak Zaitun Organik ke keranjang" className="h-10 w-10 rounded-full border border-[#1E4D3A]/20 text-[#1E4D3A] flex items-center justify-center hover:bg-[#1E4D3A] hover:text-white transition-all active:scale-95">
-                                                    <span className="material-symbols-outlined text-[20px]">shopping_cart</span>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            {/* Therapy Tools Section */}
-                            <div id="layanan" className="relative group">
-                                <div className="flex items-center justify-between mb-8">
-                                    <h3 className="font-headline-md text-[#1F3B63]">Alat Terapi</h3>
-                                    <button type="button" className="rounded-full border border-[#1F3B63] px-5 py-2 font-label-md text-sm font-semibold text-[#1F3B63] transition-all hover:bg-[#1F3B63] hover:text-white active:scale-95">
-                                        Lihat Semua Alat
-                                    </button>
-                                </div>
-                                <div className="flex gap-6 overflow-x-auto no-scrollbar snap-x pb-4" id="carousel-tools">
-                                    <div className="min-w-[280px] md:min-w-[calc(25%-18px)] snap-start overflow-hidden rounded-2xl border border-outline-variant bg-white shadow-sm group/card cursor-pointer" style={{ opacity: '1', transform: 'translateY(0px)', transition: '0.6s ease-out' }}>
-                                        <div className="h-48 overflow-hidden bg-[#F6F7F7]">
-                                            <img className="h-full w-full object-cover transition-transform duration-500 group-hover/card:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD_bWboIXjnQe4W2vvjbhW0DGThd33DkHzIf7VjRouYQTEAFQ_e4IdiQV55Kj4-njG7p-bofdUEWdtMPp6gRs6pugqaUkCmS3WfszCLdhcs73NLYq9PwgNocWcOtSIYem-aCtt8y2nzoWOAdDeWGX_54eMErRMwgnZb69IPOXyi7-0ARTUYrhE4zFW_hqjlkihGs5ZHwuoXPp2LH2O4qRHPyJ77CRVqwHLbtUwTPxhUb6kQM8kXTDESY0Bo8aDy-9_oFT9NXrxsaoVI" alt="Alat Terapi Listrik" />
-                                        </div>
-                                        <div className="p-5">
-                                            <span className="inline-flex mb-3 rounded-full bg-[#1F3B63] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white">Alat Terapi</span>
-                                            <p className="font-bold text-[#1F3B63] font-body-md mb-2">Alat Terapi Listrik</p>
-                                            <p className="text-[#1E4D3A] font-label-md">Rp 450.000</p>
-                                            <div className="mt-4 flex items-center gap-3">
-                                                <button type="button" className="flex-1 bg-[#1E4D3A] text-white py-2 rounded-full font-label-md hover:bg-[#163B2C] transition-all active:scale-95">Beli</button>
-                                                <button type="button" aria-label="Tambahkan Alat Terapi Listrik ke keranjang" className="h-10 w-10 rounded-full border border-[#1E4D3A]/20 text-[#1E4D3A] flex items-center justify-center hover:bg-[#1E4D3A] hover:text-white transition-all active:scale-95">
-                                                    <span className="material-symbols-outlined text-[20px]">shopping_cart</span>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="min-w-[280px] md:min-w-[calc(25%-18px)] snap-start overflow-hidden rounded-2xl border border-outline-variant bg-white shadow-sm group/card cursor-pointer" style={{ opacity: '1', transform: 'translateY(0px)', transition: '0.6s ease-out' }}>
-                                        <div className="h-48 overflow-hidden bg-[#F6F7F7]">
-                                            <img className="h-full w-full object-cover transition-transform duration-500 group-hover/card:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD_bWboIXjnQe4W2vvjbhW0DGThd33DkHzIf7VjRouYQTEAFQ_e4IdiQV55Kj4-njG7p-bofdUEWdtMPp6gRs6pugqaUkCmS3WfszCLdhcs73NLYq9PwgNocWcOtSIYem-aCtt8y2nzoWOAdDeWGX_54eMErRMwgnZb69IPOXyi7-0ARTUYrhE4zFW_hqjlkihGs5ZHwuoXPp2LH2O4qRHPyJ77CRVqwHLbtUwTPxhUb6kQM8kXTDESY0Bo8aDy-9_oFT9NXrxsaoVI" alt="Bantal Pemanas Medis" />
-                                        </div>
-                                        <div className="p-5">
-                                            <span className="inline-flex mb-3 rounded-full bg-[#1F3B63] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white">Alat Terapi</span>
-                                            <p className="font-bold text-[#1F3B63] font-body-md mb-2">Bantal Pemanas Medis</p>
-                                            <p className="text-[#1E4D3A] font-label-md">Rp 290.000</p>
-                                            <div className="mt-4 flex items-center gap-3">
-                                                <button type="button" className="flex-1 bg-[#1E4D3A] text-white py-2 rounded-full font-label-md hover:bg-[#163B2C] transition-all active:scale-95">Beli</button>
-                                                <button type="button" aria-label="Tambahkan Bantal Pemanas Medis ke keranjang" className="h-10 w-10 rounded-full border border-[#1E4D3A]/20 text-[#1E4D3A] flex items-center justify-center hover:bg-[#1E4D3A] hover:text-white transition-all active:scale-95">
-                                                    <span className="material-symbols-outlined text-[20px]">shopping_cart</span>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="min-w-[280px] md:min-w-[calc(25%-18px)] snap-start overflow-hidden rounded-2xl border border-outline-variant bg-white shadow-sm group/card cursor-pointer" style={{ opacity: '1', transform: 'translateY(0px)', transition: '0.6s ease-out' }}>
-                                        <div className="h-48 overflow-hidden bg-[#F6F7F7]">
-                                            <img className="h-full w-full object-cover transition-transform duration-500 group-hover/card:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD_bWboIXjnQe4W2vvjbhW0DGThd33DkHzIf7VjRouYQTEAFQ_e4IdiQV55Kj4-njG7p-bofdUEWdtMPp6gRs6pugqaUkCmS3WfszCLdhcs73NLYq9PwgNocWcOtSIYem-aCtt8y2nzoWOAdDeWGX_54eMErRMwgnZb69IPOXyi7-0ARTUYrhE4zFW_hqjlkihGs5ZHwuoXPp2LH2O4qRHPyJ77CRVqwHLbtUwTPxhUb6kQM8kXTDESY0Bo8aDy-9_oFT9NXrxsaoVI" alt="Inframerah Portabel" />
-                                        </div>
-                                        <div className="p-5">
-                                            <span className="inline-flex mb-3 rounded-full bg-[#1F3B63] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white">Alat Terapi</span>
-                                            <p className="font-bold text-[#1F3B63] font-body-md mb-2">Inframerah Portabel</p>
-                                            <p className="text-[#1E4D3A] font-label-md">Rp 580.000</p>
-                                            <div className="mt-4 flex items-center gap-3">
-                                                <button type="button" className="flex-1 bg-[#1E4D3A] text-white py-2 rounded-full font-label-md hover:bg-[#163B2C] transition-all active:scale-95">Beli</button>
-                                                <button type="button" aria-label="Tambahkan Inframerah Portabel ke keranjang" className="h-10 w-10 rounded-full border border-[#1E4D3A]/20 text-[#1E4D3A] flex items-center justify-center hover:bg-[#1E4D3A] hover:text-white transition-all active:scale-95">
-                                                    <span className="material-symbols-outlined text-[20px]">shopping_cart</span>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="min-w-[280px] md:min-w-[calc(25%-18px)] snap-start overflow-hidden rounded-2xl border border-outline-variant bg-white shadow-sm group/card cursor-pointer" style={{ opacity: '1', transform: 'translateY(0px)', transition: '0.6s ease-out' }}>
-                                        <div className="h-48 overflow-hidden bg-[#F6F7F7]">
-                                            <img className="h-full w-full object-cover transition-transform duration-500 group-hover/card:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD_bWboIXjnQe4W2vvjbhW0DGThd33DkHzIf7VjRouYQTEAFQ_e4IdiQV55Kj4-njG7p-bofdUEWdtMPp6gRs6pugqaUkCmS3WfszCLdhcs73NLYq9PwgNocWcOtSIYem-aCtt8y2nzoWOAdDeWGX_54eMErRMwgnZb69IPOXyi7-0ARTUYrhE4zFW_hqjlkihGs5ZHwuoXPp2LH2O4qRHPyJ77CRVqwHLbtUwTPxhUb6kQM8kXTDESY0Bo8aDy-9_oFT9NXrxsaoVI" alt="Set Bekam Profesional" />
-                                        </div>
-                                        <div className="p-5">
-                                            <span className="inline-flex mb-3 rounded-full bg-[#1F3B63] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white">Alat Terapi</span>
-                                            <p className="font-bold text-[#1F3B63] font-body-md mb-2">Set Bekam Profesional</p>
-                                            <p className="text-[#1E4D3A] font-label-md">Rp 320.000</p>
-                                            <div className="mt-4 flex items-center gap-3">
-                                                <button type="button" className="flex-1 bg-[#1E4D3A] text-white py-2 rounded-full font-label-md hover:bg-[#163B2C] transition-all active:scale-95">Beli</button>
-                                                <button type="button" aria-label="Tambahkan Set Bekam Profesional ke keranjang" className="h-10 w-10 rounded-full border border-[#1E4D3A]/20 text-[#1E4D3A] flex items-center justify-center hover:bg-[#1E4D3A] hover:text-white transition-all active:scale-95">
-                                                    <span className="material-symbols-outlined text-[20px]">shopping_cart</span>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    {featuredProducts.length > 0 ? featuredProducts.map((product) => (
+                                        <ProductCard key={product.id ?? product.slug ?? product.name} onAddedToCart={animateProductToCart} product={product} />
+                                    )) : (
+                                        <EmptyCarouselState>Produk pilihan sedang disiapkan. Silakan cek katalog lengkap untuk melihat koleksi herbal Phoenix.</EmptyCarouselState>
+                                    )}
                                 </div>
                             </div>
                             {/* Services Section */}
-                            <div className="relative group">
+                            <div id="layanan" className="relative group">
                                 <div className="flex items-center justify-between mb-8">
                                     <h3 className="font-headline-md text-primary">Layanan</h3>
-                                    <button type="button" className="rounded-full border border-primary px-5 py-2 font-label-md text-sm font-semibold text-primary transition-all hover:bg-primary hover:text-white active:scale-95">
+                                    <Link href={route('services.index')} className="rounded-full border border-primary px-5 py-2 font-label-md text-sm font-semibold text-primary transition-all hover:bg-primary hover:text-white active:scale-95">
                                         Lihat Semua Layanan
-                                    </button>
+                                    </Link>
                                 </div>
                                 <div className="flex gap-6 overflow-x-auto no-scrollbar snap-x pb-4" id="carousel-services">
-                                    <div className="min-w-[280px] md:min-w-[calc(25%-18px)] snap-start overflow-hidden rounded-2xl border border-outline-variant bg-white shadow-sm group/card cursor-pointer" style={{ opacity: '1', transform: 'translateY(0px)', transition: '0.6s ease-out' }}>
-                                        <div className="h-48 overflow-hidden bg-[#F6F7F7]">
-                                            <img className="h-full w-full object-cover transition-transform duration-500 group-hover/card:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCA0IZ7J3kEkY_0TDnJOZRm60R6F0hJFxIgdL7f2cm6xyryTepsaSopZ6ht1dsQKxyYIi5zTnnXwOyGhPIQgfpyllStfaBCdq73Dh6k3LTD3cJjYXnm222-KHmfVySgmstAxkwvlDj0RB94YMGMFFIaUXHOtOpugUynkfmudgoOqn9ON-0hUCMR7y-cJqfEPun5ITy64FvgWTJSaJe-hbKJhZ6-7uwZtq0JP5t5cJ_gblPk5gh9QTatDqEWo0SxWjYdfvvUcNOorwvV" alt="Konsultasi Holistik" />
-                                        </div>
-                                        <div className="p-5">
-                                            <span className="inline-flex mb-3 rounded-full bg-[#6FA788] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white">Service</span>
-                                            <p className="font-bold text-primary font-body-md mb-2">Konsultasi Holistik</p>
-                                            <p className="text-[#1E4D3A] font-label-md">Rp 150.000</p>
-                                            <div className="mt-4 flex items-center gap-3">
-                                                <button type="button" className="flex-1 bg-[#1E4D3A] text-white py-2 rounded-full font-label-md hover:bg-[#163B2C] transition-all active:scale-95">Beli</button>
-                                                <button type="button" aria-label="Tambahkan Konsultasi Holistik ke keranjang" className="h-10 w-10 rounded-full border border-[#1E4D3A]/20 text-[#1E4D3A] flex items-center justify-center hover:bg-[#1E4D3A] hover:text-white transition-all active:scale-95">
-                                                    <span className="material-symbols-outlined text-[20px]">shopping_cart</span>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="min-w-[280px] md:min-w-[calc(25%-18px)] snap-start overflow-hidden rounded-2xl border border-outline-variant bg-white shadow-sm group/card cursor-pointer" style={{ opacity: '1', transform: 'translateY(0px)', transition: '0.6s ease-out' }}>
-                                        <div className="h-48 overflow-hidden bg-[#F6F7F7]">
-                                            <img className="h-full w-full object-cover transition-transform duration-500 group-hover/card:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCA0IZ7J3kEkY_0TDnJOZRm60R6F0hJFxIgdL7f2cm6xyryTepsaSopZ6ht1dsQKxyYIi5zTnnXwOyGhPIQgfpyllStfaBCdq73Dh6k3LTD3cJjYXnm222-KHmfVySgmstAxkwvlDj0RB94YMGMFFIaUXHOtOpugUynkfmudgoOqn9ON-0hUCMR7y-cJqfEPun5ITy64FvgWTJSaJe-hbKJhZ6-7uwZtq0JP5t5cJ_gblPk5gh9QTatDqEWo0SxWjYdfvvUcNOorwvV" alt="Terapi Fisik Intensif" />
-                                        </div>
-                                        <div className="p-5">
-                                            <span className="inline-flex mb-3 rounded-full bg-[#6FA788] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white">Service</span>
-                                            <p className="font-bold text-primary font-body-md mb-2">Terapi Fisik Intensif</p>
-                                            <p className="text-[#1E4D3A] font-label-md">Rp 300.000</p>
-                                            <div className="mt-4 flex items-center gap-3">
-                                                <button type="button" className="flex-1 bg-[#1E4D3A] text-white py-2 rounded-full font-label-md hover:bg-[#163B2C] transition-all active:scale-95">Beli</button>
-                                                <button type="button" aria-label="Tambahkan Terapi Fisik Intensif ke keranjang" className="h-10 w-10 rounded-full border border-[#1E4D3A]/20 text-[#1E4D3A] flex items-center justify-center hover:bg-[#1E4D3A] hover:text-white transition-all active:scale-95">
-                                                    <span className="material-symbols-outlined text-[20px]">shopping_cart</span>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="min-w-[280px] md:min-w-[calc(25%-18px)] snap-start overflow-hidden rounded-2xl border border-outline-variant bg-white shadow-sm group/card cursor-pointer" style={{ opacity: '1', transform: 'translateY(0px)', transition: '0.6s ease-out' }}>
-                                        <div className="h-48 overflow-hidden bg-[#F6F7F7]">
-                                            <img className="h-full w-full object-cover transition-transform duration-500 group-hover/card:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCA0IZ7J3kEkY_0TDnJOZRm60R6F0hJFxIgdL7f2cm6xyryTepsaSopZ6ht1dsQKxyYIi5zTnnXwOyGhPIQgfpyllStfaBCdq73Dh6k3LTD3cJjYXnm222-KHmfVySgmstAxkwvlDj0RB94YMGMFFIaUXHOtOpugUynkfmudgoOqn9ON-0hUCMR7y-cJqfEPun5ITy64FvgWTJSaJe-hbKJhZ6-7uwZtq0JP5t5cJ_gblPk5gh9QTatDqEWo0SxWjYdfvvUcNOorwvV" alt="Terapi Bekam Medik" />
-                                        </div>
-                                        <div className="p-5">
-                                            <span className="inline-flex mb-3 rounded-full bg-[#6FA788] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white">Service</span>
-                                            <p className="font-bold text-primary font-body-md mb-2">Terapi Bekam Medik</p>
-                                            <p className="text-[#1E4D3A] font-label-md">Rp 200.000</p>
-                                            <div className="mt-4 flex items-center gap-3">
-                                                <button type="button" className="flex-1 bg-[#1E4D3A] text-white py-2 rounded-full font-label-md hover:bg-[#163B2C] transition-all active:scale-95">Beli</button>
-                                                <button type="button" aria-label="Tambahkan Terapi Bekam Medik ke keranjang" className="h-10 w-10 rounded-full border border-[#1E4D3A]/20 text-[#1E4D3A] flex items-center justify-center hover:bg-[#1E4D3A] hover:text-white transition-all active:scale-95">
-                                                    <span className="material-symbols-outlined text-[20px]">shopping_cart</span>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="min-w-[280px] md:min-w-[calc(25%-18px)] snap-start overflow-hidden rounded-2xl border border-outline-variant bg-white shadow-sm group/card cursor-pointer" style={{ opacity: '1', transform: 'translateY(0px)', transition: '0.6s ease-out' }}>
-                                        <div className="h-48 overflow-hidden bg-[#F6F7F7]">
-                                            <img className="h-full w-full object-cover transition-transform duration-500 group-hover/card:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCA0IZ7J3kEkY_0TDnJOZRm60R6F0hJFxIgdL7f2cm6xyryTepsaSopZ6ht1dsQKxyYIi5zTnnXwOyGhPIQgfpyllStfaBCdq73Dh6k3LTD3cJjYXnm222-KHmfVySgmstAxkwvlDj0RB94YMGMFFIaUXHOtOpugUynkfmudgoOqn9ON-0hUCMR7y-cJqfEPun5ITy64FvgWTJSaJe-hbKJhZ6-7uwZtq0JP5t5cJ_gblPk5gh9QTatDqEWo0SxWjYdfvvUcNOorwvV" alt="Refleksologi Saraf" />
-                                        </div>
-                                        <div className="p-5">
-                                            <span className="inline-flex mb-3 rounded-full bg-[#6FA788] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white">Service</span>
-                                            <p className="font-bold text-primary font-body-md mb-2">Refleksologi Saraf</p>
-                                            <p className="text-[#1E4D3A] font-label-md">Rp 175.000</p>
-                                            <div className="mt-4 flex items-center gap-3">
-                                                <button type="button" className="flex-1 bg-[#1E4D3A] text-white py-2 rounded-full font-label-md hover:bg-[#163B2C] transition-all active:scale-95">Beli</button>
-                                                <button type="button" aria-label="Tambahkan Refleksologi Saraf ke keranjang" className="h-10 w-10 rounded-full border border-[#1E4D3A]/20 text-[#1E4D3A] flex items-center justify-center hover:bg-[#1E4D3A] hover:text-white transition-all active:scale-95">
-                                                    <span className="material-symbols-outlined text-[20px]">shopping_cart</span>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    {featuredServices.length > 0 ? featuredServices.map((service) => (
+                                        <ServiceCard key={service.id ?? service.slug ?? service.name} service={service} consultationHref={consultationHref} />
+                                    )) : (
+                                        <EmptyCarouselState>Layanan unggulan sedang diperbarui. Tim Phoenix tetap siap membantu melalui halaman layanan.</EmptyCarouselState>
+                                    )}
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </Reveal>
                 </section>
                 {/* Testimonials */}
                 <section className="py-24 px-margin-mobile md:px-margin-desktop">
-                    <div className="max-w-container-max mx-auto">
+                    <Reveal className="max-w-container-max mx-auto" delay={80}>
                         <div className="mb-12">
                             <p className="font-label-md text-secondary uppercase tracking-widest mb-2">Testimoni Pengguna</p>
                             <h2 className="font-headline-lg text-headline-lg text-primary">Kisah Sukses Mereka</h2>
                         </div>
-                        {/* Row 1 — slide on mobile */}
-                        <div className="flex gap-5 overflow-x-auto no-scrollbar snap-x pb-2 md:grid md:grid-cols-3 md:overflow-visible">
-                            {[
-                                { name: 'Andi, 38 Thn', role: 'Wirausaha', stars: 5, quote: '"Nyeri sendi saya yang sudah 5 tahun akhirnya membaik setelah rutin menggunakan alat terapi GenQi. Luar biasa!"', avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB-ESFipY7daENUXujkQUG3TsZUfTe8ihYNTUpk6UrKEYNDy_FTGJu_mLhAU1I_5seiXifTxc5DVJ0cT1pyLRonPH6c2qj5ytsrjP9hNaNXyahaT8etnINT_YusnCK0sf280kMMl4s5mC9iY8p1XJguSCQ-fhriOSDUdm9LkHUo77zoaaQ9wqcu2akvsiQYHuEsCV5i8SCtLX6ksD4Kg394CkYhZTaE5sx9dHG0LlQv8SsdLoVMcmr-RGtmgCKJ1aqZ__ODAvMCdpDE' },
-                                { name: 'Sari, 45 Thn', role: 'Ibu Rumah Tangga', stars: 5, quote: '"Produk herbal dari Phonix membantu tidur saya jauh lebih nyenyak. Tubuh terasa lebih ringan dan segar setiap pagi."', avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCnztmSll6Puk4hFZxZnQherEi-0cA_2SZzSQwDEUL9_YgZ1JZny43o8huaHu4rWG4f1dSuJeVITXZuFHuJonW8L0i5xDmdmvu3RO0KgqVezoarO_aRAgAJnrN3UJIGfAF-_rhth0GEE-pofxAlpk8xkH1yYHVmpty0sb13wsJ8CZY0DW32Ou2Eb41QDBcU1TzkHNwXtOALe0zt4Rii9KPdBSMvxYlEnOIbUgsRN7YnzoCRCQQ6EE-9kTHz8AdvbP3VAQd4K48dJWQ1' },
-                                { name: 'Budi, 52 Thn', role: 'Pegawai Negeri', stars: 5, quote: '"Konsultasi holistik di Phonix membuka mata saya soal pola hidup sehat. Tensi darah saya turun drastis dalam 3 bulan."', avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB-ESFipY7daENUXujkQUG3TsZUfTe8ihYNTUpk6UrKEYNDy_FTGJu_mLhAU1I_5seiXifTxc5DVJ0cT1pyLRonPH6c2qj5ytsrjP9hNaNXyahaT8etnINT_YusnCK0sf280kMMl4s5mC9iY8p1XJguSCQ-fhriOSDUdm9LkHUo77zoaaQ9wqcu2akvsiQYHuEsCV5i8SCtLX6ksD4Kg394CkYhZTaE5sx9dHG0LlQv8SsdLoVMcmr-RGtmgCKJ1aqZ__ODAvMCdpDE' },
-                            ].map((t, i) => (
-                                <div key={i} className="min-w-[280px] snap-start md:min-w-0 bg-white rounded-2xl p-6 border border-outline-variant shadow-sm flex flex-col gap-4 shrink-0">
-                                    <span className="font-headline-lg text-3xl leading-none text-[#6FA788]">“</span>
-                                    <div className="flex gap-0.5">
-                                        {Array.from({ length: t.stars }).map((_, s) => (
-                                            <span key={s} className="material-symbols-outlined text-base text-tertiary" style={{ fontVariationSettings: '"FILL" 1' }}>star</span>
-                                        ))}
-                                    </div>
-                                    <p className="text-on-surface font-body-md leading-relaxed flex-1 italic">{t.quote}</p>
-                                    <div className="flex items-center gap-3 pt-2 border-t border-outline-variant">
-                                        <img src={t.avatar} alt={t.name} className="w-10 h-10 rounded-full object-cover border-2 border-primary-container shrink-0" />
-                                        <div>
-                                            <p className="font-bold text-primary text-sm">{t.name}</p>
-                                            <p className="text-on-surface-variant text-xs">{t.role}</p>
-                                        </div>
-                                    </div>
+                        {testimonials.length > 0 ? (
+                            <div className="flex gap-5 overflow-x-auto no-scrollbar snap-x pb-2 md:grid md:grid-cols-3 md:overflow-visible">
+                                {testimonials.map((testimonial) => (
+                                    <TestimonialCard key={testimonial.id ?? testimonial.customer_name} testimonial={testimonial} />
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="rounded-2xl border border-outline-variant bg-white p-8 text-center shadow-sm">
+                                <div className="mx-auto h-28 w-28 overflow-hidden rounded-full">
+                                    <BotanicalFallback />
                                 </div>
-                            ))}
-                        </div>
-                        {/* Row 2 */}
-                        <div className="mt-5 flex gap-5 overflow-x-auto no-scrollbar snap-x pb-2 md:grid md:grid-cols-3 md:overflow-visible">
-                            {[
-                                { name: 'Rina, 33 Thn', role: 'Dokter Umum', stars: 5, quote: '"Sebagai tenaga medis saya terkesan dengan pendekatan bio-elektrik GenQi. Pasien yang saya rekomendasikan merasakan manfaat nyata."', avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCnztmSll6Puk4hFZxZnQherEi-0cA_2SZzSQwDEUL9_YgZ1JZny43o8huaHu4rWG4f1dSuJeVITXZuFHuJonW8L0i5xDmdmvu3RO0KgqVezoarO_aRAgAJnrN3UJIGfAF-_rhth0GEE-pofxAlpk8xkH1yYHVmpty0sb13wsJ8CZY0DW32Ou2Eb41QDBcU1TzkHNwXtOALe0zt4Rii9KPdBSMvxYlEnOIbUgsRN7YnzoCRCQQ6EE-9kTHz8AdvbP3VAQd4K48dJWQ1' },
-                                { name: 'Hendra, 41 Thn', role: 'Atlet', stars: 5, quote: '"Recovery otot setelah latihan berat jadi jauh lebih cepat. GenQi sudah jadi bagian rutinitas harian saya sekarang."', avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB-ESFipY7daENUXujkQUG3TsZUfTe8ihYNTUpk6UrKEYNDy_FTGJu_mLhAU1I_5seiXifTxc5DVJ0cT1pyLRonPH6c2qj5ytsrjP9hNaNXyahaT8etnINT_YusnCK0sf280kMMl4s5mC9iY8p1XJguSCQ-fhriOSDUdm9LkHUo77zoaaQ9wqcu2akvsiQYHuEsCV5i8SCtLX6ksD4Kg394CkYhZTaE5sx9dHG0LlQv8SsdLoVMcmr-RGtmgCKJ1aqZ__ODAvMCdpDE' },
-                                { name: 'Dewi, 29 Thn', role: 'Content Creator', stars: 5, quote: '"Herbal Phonix cocok banget untuk yang aktif seperti saya. Stamina meningkat, kulit lebih cerah, dan pikiran lebih fokus."', avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCnztmSll6Puk4hFZxZnQherEi-0cA_2SZzSQwDEUL9_YgZ1JZny43o8huaHu4rWG4f1dSuJeVITXZuFHuJonW8L0i5xDmdmvu3RO0KgqVezoarO_aRAgAJnrN3UJIGfAF-_rhth0GEE-pofxAlpk8xkH1yYHVmpty0sb13wsJ8CZY0DW32Ou2Eb41QDBcU1TzkHNwXtOALe0zt4Rii9KPdBSMvxYlEnOIbUgsRN7YnzoCRCQQ6EE-9kTHz8AdvbP3VAQd4K48dJWQ1' },
-                            ].map((t, i) => (
-                                <div key={i} className="min-w-[280px] snap-start md:min-w-0 bg-white rounded-2xl p-6 border border-outline-variant shadow-sm flex flex-col gap-4 shrink-0">
-                                    <span className="font-headline-lg text-3xl leading-none text-[#6FA788]">“</span>
-                                    <div className="flex gap-0.5">
-                                        {Array.from({ length: t.stars }).map((_, s) => (
-                                            <span key={s} className="material-symbols-outlined text-base text-tertiary" style={{ fontVariationSettings: '"FILL" 1' }}>star</span>
-                                        ))}
-                                    </div>
-                                    <p className="text-on-surface font-body-md leading-relaxed flex-1 italic">{t.quote}</p>
-                                    <div className="flex items-center gap-3 pt-2 border-t border-outline-variant">
-                                        <img src={t.avatar} alt={t.name} className="w-10 h-10 rounded-full object-cover border-2 border-primary-container shrink-0" />
-                                        <div>
-                                            <p className="font-bold text-primary text-sm">{t.name}</p>
-                                            <p className="text-on-surface-variant text-xs">{t.role}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
+                                <p className="mx-auto mt-5 max-w-xl font-body-md text-body-md text-on-surface-variant">
+                                    Testimoni pelanggan sedang dikurasi. Kami akan segera menampilkan kisah nyata dari pengguna Phoenix di sini.
+                                </p>
+                            </div>
+                        )}
+                    </Reveal>
                 </section>
                 {/* Newsletter / CTA */}
-                <section className="py-16 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto">
+                <Reveal as="section" className="py-16 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto" delay={80}>
                     <div className="rounded-3xl overflow-hidden flex flex-col md:flex-row items-center bg-[#F6F7F7] border border-[#E5E7EB]">
                         {/* Kiri: Teks + Form */}
                         <div className="flex-1 px-10 py-12 md:py-14">
@@ -678,7 +813,7 @@ export default function Welcome({ auth }) {
                             />
                         </div>
                     </div>
-                </section>
+                </Reveal>
             </main>
             {/* Footer */}
             <footer className="w-full py-16 px-margin-mobile md:px-margin-desktop flex flex-col items-center gap-8 text-center bg-primary text-on-primary">
@@ -686,19 +821,19 @@ export default function Welcome({ auth }) {
                     <img alt="Phoenix Terapi &amp; Herbal" className="h-12 w-auto object-contain brightness-0 invert" src="https://lh3.googleusercontent.com/aida/ADBb0ujPaqtXI-j2UcJPo7FMIYVaftg-h3f_u7kcbryg7t9lMg_D7MNBxUbIbbnM3B6tyhwBrc-cvH4a9oSzp7-VevRK5DX8pPJ6OR2b58Ez6TcBDqHzyTD_HHifZQkdwBHT-AX8QqITIhrpIg-Jn1nR_kWPcC9_KZisexKvhw8wf-yG_x3bBXtxAtHt8TRRZhu9226xMso5M6ZyPOf5Ea_MBT4XiuNdiHIQWisPeGUG0NFsrmJKGchUmcapEa_r" />
                 </div>
                 <div className="flex flex-wrap justify-center gap-x-12 gap-y-4">
-                    <a className="font-body-sm text-body-sm text-on-primary/80 hover:text-on-primary transition-opacity" href="#">Hubungi Kami</a>
-                    <a className="font-body-sm text-body-sm text-on-primary/80 hover:text-on-primary transition-opacity" href="#">Kebijakan Privasi</a>
-                    <a className="font-body-sm text-body-sm text-on-primary/80 hover:text-on-primary transition-opacity" href="#">Syarat &amp; Ketentuan</a>
-                    <a className="font-body-sm text-body-sm text-on-primary/80 hover:text-on-primary transition-opacity" href="#">FAQ</a>
+                    <a className="font-body-sm text-body-sm text-on-primary/80 hover:text-on-primary transition-opacity" href="mailto:info@phoenixherbal.test">Hubungi Kami</a>
+                    <SmoothAnchor className="font-body-sm text-body-sm text-on-primary/80 hover:text-on-primary transition-opacity" href="#tentang-kami" onClick={handleAnchorClick}>Kebijakan Privasi</SmoothAnchor>
+                    <SmoothAnchor className="font-body-sm text-body-sm text-on-primary/80 hover:text-on-primary transition-opacity" href="#tentang-kami" onClick={handleAnchorClick}>Syarat &amp; Ketentuan</SmoothAnchor>
+                    <SmoothAnchor className="font-body-sm text-body-sm text-on-primary/80 hover:text-on-primary transition-opacity" href="#beranda" onClick={handleAnchorClick}>FAQ</SmoothAnchor>
                 </div>
                 <div className="flex gap-6 mt-4">
-                    <a className="w-10 h-10 rounded-full border border-on-primary/30 flex items-center justify-center hover:bg-white/10 transition-colors" href="#">
+                    <SmoothAnchor className="w-10 h-10 rounded-full border border-on-primary/30 flex items-center justify-center hover:bg-white/10 transition-colors" href="#beranda" onClick={handleAnchorClick}>
                         <span className="material-symbols-outlined text-xl">share</span>
-                    </a>
-                    <a className="w-10 h-10 rounded-full border border-on-primary/30 flex items-center justify-center hover:bg-white/10 transition-colors" href="#">
+                    </SmoothAnchor>
+                    <SmoothAnchor className="w-10 h-10 rounded-full border border-on-primary/30 flex items-center justify-center hover:bg-white/10 transition-colors" href="#produk" onClick={handleAnchorClick}>
                         <span className="material-symbols-outlined text-xl">camera</span>
-                    </a>
-                    <a className="w-10 h-10 rounded-full border border-on-primary/30 flex items-center justify-center hover:bg-white/10 transition-colors" href="#">
+                    </SmoothAnchor>
+                    <a className="w-10 h-10 rounded-full border border-on-primary/30 flex items-center justify-center hover:bg-white/10 transition-colors" href="mailto:info@phoenixherbal.test">
                         <span className="material-symbols-outlined text-xl">mail</span>
                     </a>
                 </div>

@@ -32,16 +32,16 @@ class AdminVoucherTest extends TestCase
         $voucher = $this->createVoucher();
 
         $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.vouchers.index'))
-            ->assertOk()->assertJsonPath('component', 'Welcome')->assertJsonPath('props.page', 'admin.vouchers.index')->assertJsonStructure(['props' => ['vouchers']]);
+            ->assertOk()->assertJsonPath('component', 'Admin/Vouchers/Index')->assertJsonPath('props.page', 'admin.vouchers.index')->assertJsonStructure(['props' => ['vouchers']]);
 
         $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.vouchers.create'))
-            ->assertOk()->assertJsonPath('component', 'Welcome')->assertJsonPath('props.page', 'admin.vouchers.create');
+            ->assertOk()->assertJsonPath('component', 'Admin/Vouchers/Create')->assertJsonPath('props.page', 'admin.vouchers.create');
 
         $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.vouchers.show', $voucher))
-            ->assertOk()->assertJsonPath('component', 'Welcome')->assertJsonPath('props.page', 'admin.vouchers.show')->assertJsonStructure(['props' => ['voucher' => ['orders_count', 'voucher_redemptions_count']]]);
+            ->assertOk()->assertJsonPath('component', 'Admin/Vouchers/Show')->assertJsonPath('props.page', 'admin.vouchers.show')->assertJsonStructure(['props' => ['voucher' => ['orders_count', 'voucher_redemptions_count']]]);
 
         $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.vouchers.edit', $voucher))
-            ->assertOk()->assertJsonPath('component', 'Welcome')->assertJsonPath('props.page', 'admin.vouchers.edit')->assertJsonPath('props.voucher.id', $voucher->id);
+            ->assertOk()->assertJsonPath('component', 'Admin/Vouchers/Edit')->assertJsonPath('props.page', 'admin.vouchers.edit')->assertJsonPath('props.voucher.id', $voucher->id);
     }
 
     public function test_active_admin_can_create_voucher_and_code_is_normalized(): void
@@ -156,7 +156,7 @@ class AdminVoucherTest extends TestCase
         ]);
 
         $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.vouchers.redemptions.index', $voucher))
-            ->assertOk()->assertJsonPath('component', 'Welcome')->assertJsonPath('props.page', 'admin.vouchers.redemptions.index')->assertJsonPath('props.voucher.id', $voucher->id)->assertJsonPath('props.redemptions.0.customer_profile.id', $profile->id)->assertJsonPath('props.redemptions.0.order.id', $order->id);
+            ->assertOk()->assertJsonPath('component', 'Admin/Vouchers/Redemptions/Index')->assertJsonPath('props.page', 'admin.vouchers.redemptions.index')->assertJsonPath('props.voucher.id', $voucher->id)->assertJsonPath('props.redemptions.0.customer_profile.id', $profile->id)->assertJsonPath('props.redemptions.0.order.id', $order->id);
     }
 
     private function createAdmin(): User

@@ -21,7 +21,7 @@ class CustomerDashboardController extends Controller
             return $this->redirectToProfile();
         }
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Customer/Dashboard/Index', [
             'page' => 'customer.dashboard.index',
             'customerProfile' => $customerProfile,
             'summary' => [
@@ -63,9 +63,13 @@ class CustomerDashboardController extends Controller
 
         abort_unless($order->customer_profile_id === $customerProfile->id && $order->user_id === $request->user()->id, 404);
 
-        $order->load('orderItems.product:id,name,slug,price,image_path', 'voucherRedemption.voucher:id,code,name');
+        $order->load(
+            'orderItems.product:id,name,slug,price,image_path',
+            'voucherRedemption.voucher:id,code,name',
+            'paymentMethod:id,type,bank_name,account_number,account_holder_name,qris_image_path,instructions,is_active',
+        );
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Customer/Dashboard/Orders/Show', [
             'page' => 'customer.dashboard.orders.show',
             'order' => $order,
         ]);
@@ -83,7 +87,7 @@ class CustomerDashboardController extends Controller
 
         $booking->load('service:id,name,slug,description,price,visit_type,image_path', 'examinations.productRecommendations.product:id,name,slug,price,image_path');
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Customer/Dashboard/Bookings/Show', [
             'page' => 'customer.dashboard.bookings.show',
             'booking' => $booking,
         ]);

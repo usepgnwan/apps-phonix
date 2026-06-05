@@ -12,8 +12,7 @@ class ProductController extends Controller
 {
     public function index(): Response
     {
-        return Inertia::render('Welcome', [
-            'page' => 'products.index',
+        return Inertia::render('Public/Products/Index', [
             'products' => Product::query()
                 ->with('productCategory:id,name,slug')
                 ->where('is_active', true)
@@ -33,8 +32,7 @@ class ProductController extends Controller
 
         $product->load('productCategory:id,name,slug');
 
-        return Inertia::render('Welcome', [
-            'page' => 'products.show',
+        return Inertia::render('Public/Products/Show', [
             'product' => $product,
             'relatedProducts' => Product::query()
                 ->with('productCategory:id,name,slug')

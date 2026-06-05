@@ -20,14 +20,14 @@ class CustomerProfileTest extends TestCase
         $this->patch(route('customer.profile.update'), [])->assertRedirect(route('login'));
     }
 
-    public function test_authenticated_user_without_profile_can_view_create_placeholder(): void
+    public function test_authenticated_user_without_profile_can_view_create_page(): void
     {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->withHeader('X-Inertia', 'true')->get(route('customer.profile.create'));
+        $response = $this->inertiaGet($user, route('customer.profile.create'));
 
         $response->assertOk()
-            ->assertJsonPath('component', 'Welcome')
+            ->assertJsonPath('component', 'Customer/Profile/Create')
             ->assertJsonPath('props.page', 'customer.profile.create');
     }
 
@@ -76,7 +76,7 @@ class CustomerProfileTest extends TestCase
         $this->assertSame(1, CustomerProfile::query()->where('user_id', $user->id)->count());
     }
 
-    public function test_authenticated_user_with_profile_can_view_show_and_edit_placeholders(): void
+    public function test_authenticated_user_with_profile_can_view_show_and_edit_pages(): void
     {
         $user = User::factory()->create();
         $profile = CustomerProfile::query()->create([
@@ -87,16 +87,16 @@ class CustomerProfileTest extends TestCase
             'member_status' => 'member',
         ]);
 
-        $show = $this->actingAs($user)->withHeader('X-Inertia', 'true')->get(route('customer.profile.show'));
-        $edit = $this->actingAs($user)->withHeader('X-Inertia', 'true')->get(route('customer.profile.edit'));
+        $show = $this->inertiaGet($user, route('customer.profile.show'));
+        $edit = $this->inertiaGet($user, route('customer.profile.edit'));
 
         $show->assertOk()
-            ->assertJsonPath('component', 'Welcome')
+            ->assertJsonPath('component', 'Customer/Profile/Show')
             ->assertJsonPath('props.page', 'customer.profile.show')
             ->assertJsonPath('props.customerProfile.id', $profile->id);
 
         $edit->assertOk()
-            ->assertJsonPath('component', 'Welcome')
+            ->assertJsonPath('component', 'Customer/Profile/Edit')
             ->assertJsonPath('props.page', 'customer.profile.edit')
             ->assertJsonPath('props.customerProfile.id', $profile->id);
     }
@@ -157,10 +157,21 @@ class CustomerProfileTest extends TestCase
             'primary_address' => 'Jl. Mawar No. 1',
         ]);
 
-        $response = $this->actingAs($user)->withHeader('X-Inertia', 'true')->get(route('customer.dashboard.index'));
+        $response = $this->inertiaGet($user, route('customer.dashboard.index'));
 
         $response->assertOk()
-            ->assertJsonPath('component', 'Welcome')
+            ->assertJsonPath('component', 'Customer/Dashboard/Index')
             ->assertJsonPath('props.page', 'customer.dashboard.index');
+    }
+
+    private function inertiaGet(User $user, string $url)
+    {
+        $headers = ['X-Inertia' => 'true'];
+
+        if (file_exists(public_path('build/manifest.json'))) {
+            $headers['X-Inertia-Version'] = hash_file('xxh128', public_path('build/manifest.json'));
+        }
+
+        return $this->actingAs($user)->withHeaders($headers)->get($url);
     }
 }

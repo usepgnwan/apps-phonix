@@ -29,26 +29,26 @@ class AdminOrderTest extends TestCase
         $this->actingAs($user)->get(route('admin.orders.index'))->assertForbidden();
     }
 
-    public function test_active_admin_can_view_index_placeholder(): void
+    public function test_active_admin_can_view_orders_index(): void
     {
         $admin = $this->createAdmin();
         $this->createOrder();
 
         $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.orders.index'))
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
+            ->assertJsonPath('component', 'Admin/Orders/Index')
             ->assertJsonPath('props.page', 'admin.orders.index')
             ->assertJsonStructure(['props' => ['orders']]);
     }
 
-    public function test_active_admin_can_view_show_placeholder_with_relations(): void
+    public function test_active_admin_can_view_order_detail_with_relations(): void
     {
         $admin = $this->createAdmin();
         $order = $this->createOrder(withRelations: true);
 
         $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.orders.show', $order))
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
+            ->assertJsonPath('component', 'Admin/Orders/Show')
             ->assertJsonPath('props.page', 'admin.orders.show')
             ->assertJsonStructure([
                 'props' => [

@@ -26,8 +26,7 @@ class ExaminationController extends Controller
     {
         $this->authorizeAdmin();
 
-        return Inertia::render('Welcome', [
-            'page' => 'admin.examinations.index',
+        return Inertia::render('Admin/Examinations/Index', [
             'examinations' => Examination::query()
                 ->with(['customerProfile', 'booking', 'creator', 'productRecommendations.product'])
                 ->latest()
@@ -39,8 +38,7 @@ class ExaminationController extends Controller
     {
         $this->authorizeAdmin();
 
-        return Inertia::render('Welcome', [
-            'page' => 'admin.examinations.create',
+        return Inertia::render('Admin/Examinations/Create', [
             'customerProfiles' => CustomerProfile::query()->orderBy('name')->get(),
             'bookings' => Booking::query()->with(['customerProfile', 'service'])->latest()->get(),
             'products' => Product::query()->where('is_active', true)->orderBy('name')->get(),
@@ -60,8 +58,7 @@ class ExaminationController extends Controller
 
         $examination->load(['customerProfile', 'booking', 'creator', 'productRecommendations.product']);
 
-        return Inertia::render('Welcome', [
-            'page' => 'admin.examinations.show',
+        return Inertia::render('Admin/Examinations/Show', [
             'examination' => $examination,
         ]);
     }

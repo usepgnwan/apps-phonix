@@ -29,7 +29,7 @@ class AdminCatalogTest extends TestCase
         $response->assertForbidden();
     }
 
-    public function test_active_admin_can_view_admin_catalog_placeholders(): void
+    public function test_active_admin_can_view_admin_catalog_pages(): void
     {
         $admin = $this->createAdmin();
         $category = $this->createCategory();
@@ -37,43 +37,43 @@ class AdminCatalogTest extends TestCase
         $service = $this->createService();
 
         $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.product-categories.index'))
-            ->assertOk()->assertJsonPath('component', 'Welcome')->assertJsonPath('props.page', 'admin.product-categories.index')
+            ->assertOk()->assertJsonPath('component', 'Admin/ProductCategories/Index')->assertJsonPath('props.page', 'admin.product-categories.index')
             ->assertJsonCount(1, 'props.productCategories');
 
         $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.product-categories.create'))
-            ->assertOk()->assertJsonPath('component', 'Welcome')->assertJsonPath('props.page', 'admin.product-categories.create');
+            ->assertOk()->assertJsonPath('component', 'Admin/ProductCategories/Create')->assertJsonPath('props.page', 'admin.product-categories.create');
 
         $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.product-categories.show', $category))
-            ->assertOk()->assertJsonPath('component', 'Welcome')->assertJsonPath('props.page', 'admin.product-categories.show');
+            ->assertOk()->assertJsonPath('component', 'Admin/ProductCategories/Show')->assertJsonPath('props.page', 'admin.product-categories.show');
 
         $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.product-categories.edit', $category))
-            ->assertOk()->assertJsonPath('component', 'Welcome')->assertJsonPath('props.page', 'admin.product-categories.edit');
+            ->assertOk()->assertJsonPath('component', 'Admin/ProductCategories/Edit')->assertJsonPath('props.page', 'admin.product-categories.edit');
 
         $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.products.index'))
-            ->assertOk()->assertJsonPath('component', 'Welcome')->assertJsonPath('props.page', 'admin.products.index');
+            ->assertOk()->assertJsonPath('component', 'Admin/Products/Index')->assertJsonPath('props.page', 'admin.products.index');
 
         $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.products.create'))
-            ->assertOk()->assertJsonPath('component', 'Welcome')->assertJsonPath('props.page', 'admin.products.create')
+            ->assertOk()->assertJsonPath('component', 'Admin/Products/Create')->assertJsonPath('props.page', 'admin.products.create')
             ->assertJsonCount(1, 'props.productCategories');
 
         $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.products.show', $product))
-            ->assertOk()->assertJsonPath('component', 'Welcome')->assertJsonPath('props.page', 'admin.products.show');
+            ->assertOk()->assertJsonPath('component', 'Admin/Products/Show')->assertJsonPath('props.page', 'admin.products.show');
 
         $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.products.edit', $product))
-            ->assertOk()->assertJsonPath('component', 'Welcome')->assertJsonPath('props.page', 'admin.products.edit')
+            ->assertOk()->assertJsonPath('component', 'Admin/Products/Edit')->assertJsonPath('props.page', 'admin.products.edit')
             ->assertJsonCount(1, 'props.productCategories');
 
         $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.services.index'))
-            ->assertOk()->assertJsonPath('component', 'Welcome')->assertJsonPath('props.page', 'admin.services.index');
+            ->assertOk()->assertJsonPath('component', 'Admin/Services/Index')->assertJsonPath('props.page', 'admin.services.index');
 
         $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.services.create'))
-            ->assertOk()->assertJsonPath('component', 'Welcome')->assertJsonPath('props.page', 'admin.services.create');
+            ->assertOk()->assertJsonPath('component', 'Admin/Services/Create')->assertJsonPath('props.page', 'admin.services.create');
 
         $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.services.show', $service))
-            ->assertOk()->assertJsonPath('component', 'Welcome')->assertJsonPath('props.page', 'admin.services.show');
+            ->assertOk()->assertJsonPath('component', 'Admin/Services/Show')->assertJsonPath('props.page', 'admin.services.show');
 
         $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.services.edit', $service))
-            ->assertOk()->assertJsonPath('component', 'Welcome')->assertJsonPath('props.page', 'admin.services.edit');
+            ->assertOk()->assertJsonPath('component', 'Admin/Services/Edit')->assertJsonPath('props.page', 'admin.services.edit');
     }
 
     public function test_active_admin_can_crud_product_categories(): void

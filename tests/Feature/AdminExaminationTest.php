@@ -38,7 +38,7 @@ class AdminExaminationTest extends TestCase
         $this->actingAs($admin)->get(route('admin.examinations.index'))->assertForbidden();
     }
 
-    public function test_active_admin_can_view_index_create_and_show_placeholders(): void
+    public function test_active_admin_can_view_index_create_and_show_pages(): void
     {
         $admin = $this->createAdmin();
         $customerProfile = $this->createCustomerProfile();
@@ -47,19 +47,17 @@ class AdminExaminationTest extends TestCase
         $inactiveProduct = $this->createProduct(['name' => 'Herbal Nonaktif', 'is_active' => false]);
         $examination = $this->createExamination($customerProfile, $booking, $admin, $product);
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.examinations.index'))
+        $this->inertiaGet($admin, route('admin.examinations.index'))
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
-            ->assertJsonPath('props.page', 'admin.examinations.index')
+            ->assertJsonPath('component', 'Admin/Examinations/Index')
             ->assertJsonPath('props.examinations.0.id', $examination->id)
             ->assertJsonPath('props.examinations.0.customer_profile.name', $customerProfile->name)
             ->assertJsonPath('props.examinations.0.creator.id', $admin->id)
             ->assertJsonPath('props.examinations.0.product_recommendations.0.product.name', $product->name);
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.examinations.create'))
+        $this->inertiaGet($admin, route('admin.examinations.create'))
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
-            ->assertJsonPath('props.page', 'admin.examinations.create')
+            ->assertJsonPath('component', 'Admin/Examinations/Create')
             ->assertJsonPath('props.customerProfiles.0.name', $customerProfile->name)
             ->assertJsonPath('props.bookings.0.id', $booking->id)
             ->assertJsonPath('props.products.0.name', 'Herbal Rekomendasi')
@@ -67,10 +65,9 @@ class AdminExaminationTest extends TestCase
 
         $this->assertSame('Herbal Nonaktif', $inactiveProduct->name);
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.examinations.show', $examination))
+        $this->inertiaGet($admin, route('admin.examinations.show', $examination))
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
-            ->assertJsonPath('props.page', 'admin.examinations.show')
+            ->assertJsonPath('component', 'Admin/Examinations/Show')
             ->assertJsonPath('props.examination.id', $examination->id)
             ->assertJsonPath('props.examination.booking.id', $booking->id)
             ->assertJsonPath('props.examination.product_recommendations.0.product.name', $product->name);
@@ -201,6 +198,17 @@ class AdminExaminationTest extends TestCase
     private function createAdmin(): User
     {
         return User::factory()->create(['role' => 'admin', 'is_active' => true]);
+    }
+
+    private function inertiaGet(User $admin, string $url): \Illuminate\Testing\TestResponse
+    {
+        $request = $this->actingAs($admin)->withHeader('X-Inertia', 'true');
+
+        if (file_exists(public_path('build/manifest.json'))) {
+            $request->withHeader('X-Inertia-Version', hash_file('xxh128', public_path('build/manifest.json')));
+        }
+
+        return $request->get($url);
     }
 
     private function createCustomerProfile(): CustomerProfile

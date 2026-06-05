@@ -33,36 +33,32 @@ class AdminEventTest extends TestCase
         $this->actingAs($admin)->get(route('admin.events.index'))->assertForbidden();
     }
 
-    public function test_active_admin_can_view_placeholders_with_relation_counts(): void
+    public function test_active_admin_can_view_event_pages_with_relation_counts(): void
     {
         $admin = $this->createAdmin();
         $event = $this->createEvent();
         $this->createLead($event);
         $this->createOfflineSale($event);
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.events.index'))
+        $this->inertiaGet($admin, route('admin.events.index'))
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
-            ->assertJsonPath('props.page', 'admin.events.index')
+            ->assertJsonPath('component', 'Admin/Events/Index')
             ->assertJsonPath('props.events.0.leads_count', 1)
             ->assertJsonPath('props.events.0.offline_sales_count', 1);
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.events.create'))
+        $this->inertiaGet($admin, route('admin.events.create'))
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
-            ->assertJsonPath('props.page', 'admin.events.create');
+            ->assertJsonPath('component', 'Admin/Events/Create');
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.events.show', $event))
+        $this->inertiaGet($admin, route('admin.events.show', $event))
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
-            ->assertJsonPath('props.page', 'admin.events.show')
+            ->assertJsonPath('component', 'Admin/Events/Show')
             ->assertJsonPath('props.event.leads_count', 1)
             ->assertJsonPath('props.event.offline_sales_count', 1);
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.events.edit', $event))
+        $this->inertiaGet($admin, route('admin.events.edit', $event))
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
-            ->assertJsonPath('props.page', 'admin.events.edit')
+            ->assertJsonPath('component', 'Admin/Events/Edit')
             ->assertJsonPath('props.event.id', $event->id);
     }
 
@@ -196,6 +192,17 @@ class AdminEventTest extends TestCase
     private function createAdmin(): User
     {
         return User::factory()->create(['role' => 'admin', 'is_active' => true]);
+    }
+
+    private function inertiaGet(User $admin, string $url): \Illuminate\Testing\TestResponse
+    {
+        $request = $this->actingAs($admin)->withHeader('X-Inertia', 'true');
+
+        if (file_exists(public_path('build/manifest.json'))) {
+            $request->withHeader('X-Inertia-Version', hash_file('xxh128', public_path('build/manifest.json')));
+        }
+
+        return $request->get($url);
     }
 
     private function createEvent(array $attributes = []): Event

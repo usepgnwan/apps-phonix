@@ -24,16 +24,14 @@ class BookingController extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        return Inertia::render('Welcome', [
-            'page' => 'bookings.index',
+        return Inertia::render('Public/Bookings/Index', [
             'bookings' => $bookings,
         ]);
     }
 
     public function create(Request $request): Response
     {
-        return Inertia::render('Welcome', [
-            'page' => 'bookings.create',
+        return Inertia::render('Public/Bookings/Create', [
             'customerProfile' => $request->user()->customerProfile,
             'services' => Service::query()
                 ->where('is_active', true)
@@ -73,8 +71,7 @@ class BookingController extends Controller
 
         $booking->load('service:id,name,slug,description,price,visit_type,image_path');
 
-        return Inertia::render('Welcome', [
-            'page' => 'bookings.show',
+        return Inertia::render('Public/Bookings/Show', [
             'booking' => $booking,
         ]);
     }

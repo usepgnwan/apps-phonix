@@ -23,8 +23,7 @@ class EventController extends Controller
     {
         $this->authorizeAdmin();
 
-        return Inertia::render('Welcome', [
-            'page' => 'admin.events.index',
+        return Inertia::render('Admin/Events/Index', [
             'events' => Event::query()
                 ->withCount(['leads', 'offlineSales'])
                 ->latest()
@@ -36,9 +35,7 @@ class EventController extends Controller
     {
         $this->authorizeAdmin();
 
-        return Inertia::render('Welcome', [
-            'page' => 'admin.events.create',
-        ]);
+        return Inertia::render('Admin/Events/Create');
     }
 
     public function store(StoreEventRequest $request): RedirectResponse
@@ -54,8 +51,7 @@ class EventController extends Controller
 
         $event->loadCount(['leads', 'offlineSales']);
 
-        return Inertia::render('Welcome', [
-            'page' => 'admin.events.show',
+        return Inertia::render('Admin/Events/Show', [
             'event' => $event,
         ]);
     }
@@ -64,8 +60,7 @@ class EventController extends Controller
     {
         $this->authorizeAdmin();
 
-        return Inertia::render('Welcome', [
-            'page' => 'admin.events.edit',
+        return Inertia::render('Admin/Events/Edit', [
             'event' => $event,
         ]);
     }

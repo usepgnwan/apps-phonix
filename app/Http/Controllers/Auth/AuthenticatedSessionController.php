@@ -33,7 +33,17 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        return redirect()->intended($this->dashboardPathFor($request->user()->role));
+    }
+
+    private function dashboardPathFor(string $role): string
+    {
+        return match ($role) {
+            'admin' => route('admin.dashboard.index', absolute: false),
+            'field_staff' => route('field.dashboard.index', absolute: false),
+            'customer' => route('customer.dashboard.index', absolute: false),
+            default => route('dashboard', absolute: false),
+        };
     }
 
     /**

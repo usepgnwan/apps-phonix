@@ -23,8 +23,7 @@ class BookingController extends Controller
     {
         $this->authorizeAdmin();
 
-        return Inertia::render('Welcome', [
-            'page' => 'admin.bookings.index',
+        return Inertia::render('Admin/Bookings/Index', [
             'bookings' => Booking::query()
                 ->with([
                     'user:id,name,email',
@@ -46,8 +45,7 @@ class BookingController extends Controller
             'service:id,name,slug,description,price,visit_type,image_path',
         ]);
 
-        return Inertia::render('Welcome', [
-            'page' => 'admin.bookings.show',
+        return Inertia::render('Admin/Bookings/Show', [
             'booking' => $booking,
         ]);
     }

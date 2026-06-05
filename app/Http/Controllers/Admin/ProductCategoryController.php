@@ -23,7 +23,7 @@ class ProductCategoryController extends Controller
     {
         $this->authorizeAdmin();
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/ProductCategories/Index', [
             'page' => 'admin.product-categories.index',
             'productCategories' => ProductCategory::query()->latest()->get(),
         ]);
@@ -33,7 +33,7 @@ class ProductCategoryController extends Controller
     {
         $this->authorizeAdmin();
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/ProductCategories/Create', [
             'page' => 'admin.product-categories.create',
         ]);
     }
@@ -51,7 +51,7 @@ class ProductCategoryController extends Controller
     {
         $this->authorizeAdmin();
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/ProductCategories/Show', [
             'page' => 'admin.product-categories.show',
             'productCategory' => $productCategory,
         ]);
@@ -61,7 +61,7 @@ class ProductCategoryController extends Controller
     {
         $this->authorizeAdmin();
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/ProductCategories/Edit', [
             'page' => 'admin.product-categories.edit',
             'productCategory' => $productCategory,
         ]);

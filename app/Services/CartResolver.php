@@ -48,4 +48,25 @@ class CartResolver
             ],
         );
     }
+
+    public function existing(Request $request): ?Cart
+    {
+        $user = $request->user();
+
+        if ($user !== null) {
+            return Cart::query()
+                ->where('user_id', $user->id)
+                ->first();
+        }
+
+        $sessionId = $request->session()->get('cart_session_id');
+
+        if ($sessionId === null) {
+            return null;
+        }
+
+        return Cart::query()
+            ->where('session_id', $sessionId)
+            ->first();
+    }
 }

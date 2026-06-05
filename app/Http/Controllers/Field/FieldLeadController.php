@@ -26,8 +26,7 @@ class FieldLeadController extends Controller
     {
         $this->ensureActiveFieldStaff($request);
 
-        return Inertia::render('Welcome', [
-            'page' => 'field.leads.index',
+        return Inertia::render('Field/Leads/Index', [
             'leads' => Lead::query()
                 ->where('assigned_staff_id', $request->user()->id)
                 ->with(['leadSource', 'customerProfile', 'event'])
@@ -42,8 +41,7 @@ class FieldLeadController extends Controller
         $this->ensureActiveFieldStaff($request);
         $this->ensureAssignedLead($request, $lead);
 
-        return Inertia::render('Welcome', [
-            'page' => 'field.leads.show',
+        return Inertia::render('Field/Leads/Show', [
             'lead' => $lead->load(['leadSource', 'customerProfile', 'event', 'fieldActivities']),
             'activityTypes' => ['visit', 'follow_up', 'note'],
             'leadStatuses' => self::LEAD_STATUSES,

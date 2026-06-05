@@ -23,7 +23,7 @@ class ServiceController extends Controller
     {
         $this->authorizeAdmin();
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/Services/Index', [
             'page' => 'admin.services.index',
             'services' => Service::query()->latest()->get(),
         ]);
@@ -33,7 +33,7 @@ class ServiceController extends Controller
     {
         $this->authorizeAdmin();
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/Services/Create', [
             'page' => 'admin.services.create',
         ]);
     }
@@ -51,7 +51,7 @@ class ServiceController extends Controller
     {
         $this->authorizeAdmin();
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/Services/Show', [
             'page' => 'admin.services.show',
             'service' => $service,
         ]);
@@ -61,7 +61,7 @@ class ServiceController extends Controller
     {
         $this->authorizeAdmin();
 
-        return Inertia::render('Welcome', [
+        return Inertia::render('Admin/Services/Edit', [
             'page' => 'admin.services.edit',
             'service' => $service,
         ]);

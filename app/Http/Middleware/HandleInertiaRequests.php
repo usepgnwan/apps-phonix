@@ -2,11 +2,16 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\CartResolver;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
 {
+    public function __construct(private readonly CartResolver $cartResolver)
+    {
+    }
+
     /**
      * The root template that is loaded on the first page visit.
      *
@@ -33,6 +38,9 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'auth' => [
                 'user' => $request->user(),
+            ],
+            'cartSummary' => fn (): array => [
+                'count' => (int) ($this->cartResolver->existing($request)?->cartItems()->sum('quantity') ?? 0),
             ],
         ];
     }

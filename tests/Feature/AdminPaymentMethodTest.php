@@ -33,31 +33,31 @@ class AdminPaymentMethodTest extends TestCase
         $this->actingAs($admin)->get(route('admin.payment-methods.index'))->assertForbidden();
     }
 
-    public function test_active_admin_can_view_placeholder_pages_with_counts(): void
+    public function test_active_admin_can_view_payment_method_pages_with_counts(): void
     {
         $admin = $this->createAdmin();
         $paymentMethod = $this->createPaymentMethod();
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.payment-methods.index'))
+        $this->inertiaGet($admin, route('admin.payment-methods.index'))
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
+            ->assertJsonPath('component', 'Admin/PaymentMethods/Index')
             ->assertJsonPath('props.page', 'admin.payment-methods.index')
             ->assertJsonStructure(['props' => ['paymentMethods']]);
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.payment-methods.create'))
+        $this->inertiaGet($admin, route('admin.payment-methods.create'))
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
+            ->assertJsonPath('component', 'Admin/PaymentMethods/Create')
             ->assertJsonPath('props.page', 'admin.payment-methods.create');
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.payment-methods.show', $paymentMethod))
+        $this->inertiaGet($admin, route('admin.payment-methods.show', $paymentMethod))
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
+            ->assertJsonPath('component', 'Admin/PaymentMethods/Show')
             ->assertJsonPath('props.page', 'admin.payment-methods.show')
             ->assertJsonPath('props.paymentMethod.orders_count', 0);
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.payment-methods.edit', $paymentMethod))
+        $this->inertiaGet($admin, route('admin.payment-methods.edit', $paymentMethod))
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
+            ->assertJsonPath('component', 'Admin/PaymentMethods/Edit')
             ->assertJsonPath('props.page', 'admin.payment-methods.edit')
             ->assertJsonPath('props.paymentMethod.id', $paymentMethod->id);
     }
@@ -162,6 +162,17 @@ class AdminPaymentMethodTest extends TestCase
     private function createAdmin(): User
     {
         return User::factory()->create(['role' => 'admin', 'is_active' => true]);
+    }
+
+    private function inertiaGet(User $admin, string $url)
+    {
+        $request = $this->actingAs($admin)->withHeader('X-Inertia', 'true');
+
+        if (file_exists(public_path('build/manifest.json'))) {
+            $request = $request->withHeader('X-Inertia-Version', hash_file('xxh128', public_path('build/manifest.json')));
+        }
+
+        return $request->get($url);
     }
 
     private function createPaymentMethod(array $attributes = []): PaymentMethod

@@ -31,32 +31,32 @@ class AdminLeadSourceTest extends TestCase
         $this->actingAs($admin)->get(route('admin.lead-sources.index'))->assertForbidden();
     }
 
-    public function test_active_admin_can_view_placeholders_with_leads_count(): void
+    public function test_active_admin_can_view_pages_with_leads_count(): void
     {
         $admin = $this->createAdmin();
         $leadSource = LeadSource::query()->create(['name' => 'Instagram', 'slug' => 'instagram-'.(LeadSource::query()->count() + 1), 'is_active' => true]);
         $this->createLead($leadSource);
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.lead-sources.index'))
+        $this->inertiaGet($admin, route('admin.lead-sources.index'))
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
+            ->assertJsonPath('component', 'Admin/LeadSources/Index')
             ->assertJsonPath('props.page', 'admin.lead-sources.index')
             ->assertJsonPath('props.leadSources.0.leads_count', 1);
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.lead-sources.create'))
+        $this->inertiaGet($admin, route('admin.lead-sources.create'))
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
+            ->assertJsonPath('component', 'Admin/LeadSources/Create')
             ->assertJsonPath('props.page', 'admin.lead-sources.create');
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.lead-sources.show', $leadSource))
+        $this->inertiaGet($admin, route('admin.lead-sources.show', $leadSource))
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
+            ->assertJsonPath('component', 'Admin/LeadSources/Show')
             ->assertJsonPath('props.page', 'admin.lead-sources.show')
             ->assertJsonPath('props.leadSource.leads_count', 1);
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.lead-sources.edit', $leadSource))
+        $this->inertiaGet($admin, route('admin.lead-sources.edit', $leadSource))
             ->assertOk()
-            ->assertJsonPath('component', 'Welcome')
+            ->assertJsonPath('component', 'Admin/LeadSources/Edit')
             ->assertJsonPath('props.page', 'admin.lead-sources.edit')
             ->assertJsonPath('props.leadSource.id', $leadSource->id);
     }
@@ -174,6 +174,17 @@ class AdminLeadSourceTest extends TestCase
     private function createAdmin(): User
     {
         return User::factory()->create(['role' => 'admin', 'is_active' => true]);
+    }
+
+    private function inertiaGet(User $admin, string $url)
+    {
+        $headers = ['X-Inertia' => 'true'];
+
+        if (file_exists(public_path('build/manifest.json'))) {
+            $headers['X-Inertia-Version'] = hash_file('xxh128', public_path('build/manifest.json'));
+        }
+
+        return $this->actingAs($admin)->withHeaders($headers)->get($url);
     }
 
     private function createLead(LeadSource $leadSource): Lead
