@@ -1,6 +1,8 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { ShoppingBag } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import BeforeAfterSlider from '@/Components/BeforeAfterSlider';
+import FloatingWhatsApp from '@/Components/FloatingWhatsApp';
 
 const formatRupiah = (value) => new Intl.NumberFormat('id-ID', {
     currency: 'IDR',
@@ -507,17 +509,6 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                                 {/* Vertical Line */}
                                 <div className="absolute left-7 top-4 bottom-4 w-0.5 bg-gradient-to-b from-primary/40 via-primary/15 to-transparent z-0"></div>
 
-                                {/* Item 1 — Salon Kecantikan */}
-                                <div className="relative z-10 flex gap-6 group">
-                                    <div className="w-14 h-14 shrink-0 rounded-full bg-white border-2 border-primary/30 flex items-center justify-center text-primary shadow-md group-hover:bg-primary group-hover:text-white group-hover:border-primary transition-all duration-300">
-                                        <span className="material-symbols-outlined text-2xl">face</span>
-                                    </div>
-                                    <div>
-                                        <h3 className="font-bold text-primary text-lg mb-1 uppercase tracking-wide">Salon Kecantikan</h3>
-                                        <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">Tingkatkan layanan kecantikan dengan teknologi modern untuk hasil maksimal.</p>
-                                    </div>
-                                </div>
-
                                 {/* Item 2 — Pusat Wellness */}
                                 <div className="relative z-10 flex gap-6 group">
                                     <div className="w-14 h-14 shrink-0 rounded-full bg-white border-2 border-primary/30 flex items-center justify-center text-primary shadow-md group-hover:bg-primary group-hover:text-white group-hover:border-primary transition-all duration-300">
@@ -597,8 +588,8 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                                     <div className="absolute bottom-6 left-1/2 -translate-x-1/2 px-3 py-2 rounded-2xl flex items-center gap-1.5 z-30"
                                         style={{
                                             background: '#ffffff',
-                                             boxShadow: '0 8px 24px rgba(30,77,58,0.12)',
-                                             border: '1px solid rgba(168,197,179,0.45)',
+                                            boxShadow: '0 8px 24px rgba(30,77,58,0.12)',
+                                            border: '1px solid rgba(168,197,179,0.45)',
                                             animation: 'float 4s ease-in-out infinite 0.8s'
                                         }}>
                                         <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: '"FILL" 1', color: '#F08A2B' }}>star</span>
@@ -611,8 +602,8 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                                     {/* === FLOATING BADGE: Sertifikasi BPOM === */}
                                     <div className="absolute -top-3 -left-2 text-white px-3 py-2 rounded-2xl flex items-center gap-1.5 z-30"
                                         style={{
-                                             background: 'linear-gradient(135deg, #6FA788, #1E4D3A)',
-                                             boxShadow: '0 4px 20px rgba(30,77,58,0.22)',
+                                            background: 'linear-gradient(135deg, #6FA788, #1E4D3A)',
+                                            boxShadow: '0 4px 20px rgba(30,77,58,0.22)',
                                             animation: 'float 3s ease-in-out infinite'
                                         }}>
                                         <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: '"FILL" 1', color: '#A8C5B3' }}>verified</span>
@@ -627,9 +618,9 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                                     {/* === FLOATING BADGE: Bio-Elektrik === */}
                                     <div className="absolute bottom-16 -left-4 text-white px-3 py-2 rounded-2xl flex items-center gap-1.5 z-30"
                                         style={{
-                                             background: 'linear-gradient(135deg, #1F3B63, #1E4D3A)',
-                                             boxShadow: '0 4px 20px rgba(31,59,99,0.22)',
-                                             border: '1px solid rgba(168,197,179,0.25)',
+                                            background: 'linear-gradient(135deg, #1F3B63, #1E4D3A)',
+                                            boxShadow: '0 4px 20px rgba(31,59,99,0.22)',
+                                            border: '1px solid rgba(168,197,179,0.25)',
                                             animation: 'float 3.5s ease-in-out infinite 1.2s'
                                         }}>
                                         <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: '"FILL" 1', color: '#F08A2B' }}>bolt</span>
@@ -642,8 +633,8 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                                     {/* === FLOATING BADGE: Hidrogen === */}
                                     <div className="absolute bottom-16 -right-4 text-white px-3 py-2 rounded-2xl flex items-center gap-1.5 z-30"
                                         style={{
-                                             background: 'linear-gradient(135deg, #6FA788, #1E4D3A)',
-                                             boxShadow: '0 4px 20px rgba(30,77,58,0.22)',
+                                            background: 'linear-gradient(135deg, #6FA788, #1E4D3A)',
+                                            boxShadow: '0 4px 20px rgba(30,77,58,0.22)',
                                             animation: 'float 4.5s ease-in-out infinite 0.4s'
                                         }}>
                                         <span className="text-lg font-black leading-none" style={{ color: '#A8C5B3' }}>H₂</span>
@@ -657,8 +648,8 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                                 {/* === BOTTOM INFO STRIP === */}
                                 <div className="w-full rounded-2xl px-5 py-3.5 flex items-center justify-between gap-4"
                                     style={{
-                                         background: 'rgba(168,197,179,0.18)',
-                                         border: '1px solid rgba(168,197,179,0.45)',
+                                        background: 'rgba(168,197,179,0.18)',
+                                        border: '1px solid rgba(168,197,179,0.45)',
                                     }}>
                                     {/* Tanpa Jarum */}
                                     <div className="flex-1 flex items-center justify-center gap-2">
@@ -684,8 +675,8 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                             <div className="absolute top-4 right-4 px-3.5 py-2.5 rounded-xl flex items-center gap-2 z-30"
                                 style={{
                                     background: '#ffffff',
-                                     boxShadow: '0 4px 16px rgba(30,77,58,0.1)',
-                                     border: '1px solid rgba(168,197,179,0.45)',
+                                    boxShadow: '0 4px 16px rgba(30,77,58,0.1)',
+                                    border: '1px solid rgba(168,197,179,0.45)',
                                 }}>
                                 <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: '#1E4D3A' }}>
                                     <span className="material-symbols-outlined text-base" style={{ color: '#A8C5B3' }}>eco</span>
@@ -703,6 +694,54 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                                     50% { transform: translateY(-8px); }
                                 }
                             `}</style>
+                        </div>
+                    </Reveal>
+                </section>
+
+                {/* Transformasi (Video & Slider) */}
+                <section className="py-24 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto relative">
+                    <Reveal delay={80}>
+                        <div className="mb-10 text-center max-w-2xl mx-auto">
+                            <h2 className="font-headline-lg text-headline-lg text-primary mb-4">Bukti Nyata Terapi Kami</h2>
+                            <p className="font-body-md text-body-md text-on-surface-variant">Lihat langsung proses dan hasil terapi di klinik Phoenix. Kami menggunakan metode yang aman dan efektif.</p>
+                        </div>
+                        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-center">
+                            {/* Left Content (Video) */}
+                            <div className="w-full lg:w-1/2">
+                            <div className="rounded-3xl overflow-hidden shadow-lg border border-outline-variant bg-white aspect-[4/3] relative">
+                                <video 
+                                    className="w-full h-full object-cover"
+                                    autoPlay 
+                                    loop 
+                                    muted 
+                                    playsInline
+                                >
+                                    <source src="/images/video1.mp4" type="video/mp4" />
+                                    Browser Anda tidak mendukung video HTML5.
+                                </video>
+                            </div>
+                        </div>
+
+                        {/* Right Content (Before/After Slider) */}
+                        <div className="w-full lg:w-1/2 flex flex-col justify-center gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="rounded-3xl overflow-hidden shadow-lg border border-outline-variant bg-white aspect-[4/5] relative">
+                                    <BeforeAfterSlider 
+                                        beforeImage="/images/before_treatment_real.jpg" 
+                                        afterImage="/images/after_treatment_real.jpg" 
+                                        className="w-full h-full"
+                                    />
+                                </div>
+                                <div className="rounded-3xl overflow-hidden shadow-lg border border-outline-variant bg-white aspect-[4/5] relative">
+                                    <BeforeAfterSlider 
+                                        beforeImage="/images/card2_before.jpg" 
+                                        afterImage="/images/card2_after.jpg" 
+                                        className="w-full h-full"
+                                    />
+                                </div>
+                            </div>
+                            <p className="text-center mt-2 text-sm text-on-surface-variant italic">Geser slider untuk melihat perbandingan sebelum dan sesudah terapi.</p>
+                        </div>
                         </div>
                     </Reveal>
                 </section>
@@ -785,31 +824,27 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                     <div className="rounded-3xl overflow-hidden flex flex-col md:flex-row items-center bg-[#F6F7F7] border border-[#E5E7EB]">
                         {/* Kiri: Teks + Form */}
                         <div className="flex-1 px-10 py-12 md:py-14">
-                            <p className="font-label-md text-secondary uppercase tracking-widest mb-3">Newsletter</p>
+                            <p className="font-label-md text-secondary uppercase tracking-widest mb-3">Konsultasi Gratis</p>
                             <h2 className="font-headline-lg text-headline-lg text-primary mb-3">Siap Untuk Hidup Lebih Sehat?</h2>
-                            <p className="font-body-md text-body-md text-on-surface-variant mb-8">Dapatkan tips kesehatan mingguan dan penawaran eksklusif langsung di email Anda.</p>
-                            <form className="flex flex-col sm:flex-row gap-3" onSubmit={(event) => { event.preventDefault(); alert('Terima kasih telah berlangganan!'); }}>
-                                <input
-                                    className="flex-1 px-5 py-3.5 rounded-xl bg-white border border-outline-variant focus:ring-2 focus:ring-primary focus:border-transparent transition-all font-body-md text-on-surface"
-                                    placeholder="Alamat Email Anda"
-                                    required
-                                    type="email"
-                                />
-                                <button
-                                    className="flex items-center gap-2 bg-[#1E4D3A] text-white px-7 py-3.5 rounded-full font-label-md hover:bg-[#163B2C] transition-all active:scale-95 shadow-sm whitespace-nowrap"
-                                    type="submit"
-                                >
-                                    <span className="material-symbols-outlined text-lg">send</span>
-                                    Berlangganan
-                                </button>
-                            </form>
+                            <p className="font-body-md text-body-md text-on-surface-variant mb-8">Tim ahli kami siap membantu Anda menentukan terapi dan produk herbal yang tepat sesuai kebutuhan Anda. Hubungi kami sekarang untuk konsultasi gratis!</p>
+                            <a 
+                                href="https://wa.me/6281234567890?text=Halo%20Phoenix%2C%20saya%20tertarik%20untuk%20konsultasi."
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 bg-[#25D366] text-white px-8 py-4 rounded-full font-label-md hover:bg-[#20bd5a] transition-all active:scale-95 shadow-md hover:shadow-lg whitespace-nowrap w-fit"
+                            >
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.888-.788-1.487-1.761-1.66-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+                                </svg>
+                                Hubungi Kami Sekarang
+                            </a>
                         </div>
                         {/* Kanan: Gambar */}
-                        <div className="w-full md:w-[42%] h-56 md:h-auto md:self-stretch shrink-0">
+                        <div className="w-full md:w-[42%] h-64 md:h-auto md:self-stretch shrink-0 flex items-center justify-center p-4">
                             <img
-                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCA0IZ7J3kEkY_0TDnJOZRm60R6F0hJFxIgdL7f2cm6xyryTepsaSopZ6ht1dsQKxyYIi5zTnnXwOyGhPIQgfpyllStfaBCdq73Dh6k3LTD3cJjYXnm222-KHmfVySgmstAxkwvlDj0RB94YMGMFFIaUXHOtOpugUynkfmudgoOqn9ON-0hUCMR7y-cJqfEPun5ITy64FvgWTJSaJe-hbKJhZ6-7uwZtq0JP5t5cJ_gblPk5gh9QTatDqEWo0SxWjYdfvvUcNOorwvV"
-                                alt="Hidup Sehat"
-                                className="w-full h-full object-cover"
+                                src="/images/capture_web.png"
+                                alt="Capture Website Phoenix"
+                                className="w-full h-full object-contain"
                             />
                         </div>
                     </div>
@@ -841,6 +876,8 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                     © 2024 Phoenix Terapi &amp; Herbal. Solusi Alami, Alat Tepat, Layanan Profesional untuk Hidup Lebih Sehat.
                 </p>
             </footer>
+
+            <FloatingWhatsApp phoneNumber="6281234567890" />
         </div>
     );
 }
