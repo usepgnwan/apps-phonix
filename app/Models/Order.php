@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-#[Fillable(['order_number', 'user_id', 'customer_profile_id', 'voucher_id', 'payment_method_id', 'customer_name', 'customer_whatsapp_number', 'shipping_address', 'subtotal', 'voucher_discount_amount', 'shipping_cost', 'total', 'courier_name', 'tracking_number', 'shipping_status', 'shipping_notes', 'payment_status', 'payment_received_at', 'payment_notes', 'status', 'admin_notes', 'stock_decremented_at'])]
+#[Fillable(['order_number', 'user_id', 'customer_profile_id', 'voucher_id', 'payment_method_id', 'customer_name', 'customer_whatsapp_number', 'customer_email', 'shipping_address', 'subtotal', 'voucher_discount_amount', 'shipping_cost', 'total', 'courier_name', 'tracking_number', 'shipping_status', 'shipping_notes', 'payment_status', 'payment_received_at', 'payment_notes', 'status', 'admin_notes', 'stock_decremented_at'])]
 class Order extends Model
 {
     protected function casts(): array

@@ -12,7 +12,7 @@ Dokumen ini mencatat progres implementasi yang sudah dikerjakan agar batch berik
 
 ## Status Terakhir
 
-Progress saat ini sudah mencakup fondasi data, model domain, controller publik awal, flow backend cart dan checkout manual, booking, customer dashboard, customer profile backend, admin catalog backend untuk kategori produk, produk, dan layanan, Batch 8 Admin Commerce backend yang terdiri dari admin order, admin voucher, dan admin payment method, Batch 9 Admin Booking backend, Batch 10 Admin Customer backend, Batch 11 Admin Lead/CRM backend, Batch 12 Field Staff backend, Batch 13 Admin Event backend, Batch 14 Admin Offline Sales backend read/create-only, Batch 15 Admin Examination & Product Recommendation backend read/create-only, Batch 16 Admin Dashboard & Basic Reports backend read-only, Batch 17 Admin Order Fulfillment & Stock Movement backend, Batch 18 Admin Layout Shell & Dashboard UI, Batch 19 Admin Reports UI read-only, Batch 20 Admin Orders UI, Batch 21 Admin Catalog UI, Batch 22 Admin Voucher UI, Batch 23 Admin Payment Method UI, Batch 24 Admin Booking UI, Batch 25 Admin Customer UI, Batch 26 Admin Lead/CRM UI, Batch 27 Admin Event UI, Batch 28 Admin Offline Sales UI, Batch 29 Admin Examination & Product Recommendation UI, Batch 30 Field Staff UI, Batch 31 Admin UX Polish, auth redirect, dan seed dummy lokal, Batch 32 Customer Dashboard & Profile UI, Batch 33 Public Commerce UI untuk produk, cart, dan checkout, Batch 34 Public Service & Booking Create UI, Batch 35 Public Booking List & Detail UI, Batch 36 Customer Payment Instruction UI, Batch 37 Homepage CTA Integration Polish, serta Batch 38 Homepage Dynamic Content Polish. Flow publik utama customer untuk homepage, produk/cart/checkout, instruksi pembayaran customer, dan layanan/booking sudah tersambung ke route Inertia nyata dan homepage sudah memakai data unggulan dari backend.
+Progress saat ini sudah mencakup fondasi data, model domain, controller publik awal, flow backend cart dan checkout manual, booking, customer dashboard, customer profile backend, admin catalog backend untuk kategori produk, produk, dan layanan, Batch 8 Admin Commerce backend yang terdiri dari admin order, admin voucher, dan admin payment method, Batch 9 Admin Booking backend, Batch 10 Admin Customer backend, Batch 11 Admin Lead/CRM backend, Batch 12 Field Staff backend, Batch 13 Admin Event backend, Batch 14 Admin Offline Sales backend read/create-only, Batch 15 Admin Examination & Product Recommendation backend read/create-only, Batch 16 Admin Dashboard & Basic Reports backend read-only, Batch 17 Admin Order Fulfillment & Stock Movement backend, Batch 18 Admin Layout Shell & Dashboard UI, Batch 19 Admin Reports UI read-only, Batch 20 Admin Orders UI, Batch 21 Admin Catalog UI, Batch 22 Admin Voucher UI, Batch 23 Admin Payment Method UI, Batch 24 Admin Booking UI, Batch 25 Admin Customer UI, Batch 26 Admin Lead/CRM UI, Batch 27 Admin Event UI, Batch 28 Admin Offline Sales UI, Batch 29 Admin Examination & Product Recommendation UI, Batch 30 Field Staff UI, Batch 31 Admin UX Polish, auth redirect, dan seed dummy lokal, Batch 32 Customer Dashboard & Profile UI, Batch 33 Public Commerce UI untuk produk, cart, dan checkout, Batch 34 Public Service & Booking Create UI, Batch 35 Public Booking List & Detail UI, Batch 36 Customer Payment Instruction UI, Batch 37 Homepage CTA Integration Polish, Batch 38 Homepage Dynamic Content Polish, serta Batch 39 Guest Order Lookup. Flow publik utama customer untuk homepage, produk/cart/checkout, cek pesanan guest, instruksi pembayaran customer, dan layanan/booking sudah tersambung ke route Inertia nyata dan homepage sudah memakai data unggulan dari backend.
 
 ## Struktur Data dan Model
 
@@ -1148,7 +1148,6 @@ Test yang sudah dibuat:
 Route admin offline sales yang sudah tersedia dan berada di middleware `auth`:
 
 - `GET /admin/offline-sales` dengan nama `admin.offline-sales.index`
-- `GET /admin/offline-sales/create` dengan nama `admin.offline-sales.create`
 - `POST /admin/offline-sales` dengan nama `admin.offline-sales.store`
 - `GET /admin/offline-sales/{offlineSale}` dengan nama `admin.offline-sales.show`
 
@@ -1157,9 +1156,9 @@ Implementasi admin offline sales saat ini:
 - Semua route wajib login.
 - Akses admin offline sales dibatasi untuk user dengan `role = admin` dan `is_active = true`.
 - Batch ini read/create-only: tidak ada edit, update, delete, payment handling, atau field staff offline sales routes.
-- `index`, `create`, dan `show` sementara render Inertia page `Welcome` dengan prop `page` karena UI admin offline sales belum tersedia.
+- `index` menjadi halaman list sekaligus input offline sale ala POS.
 - `index` mengirim daftar `offlineSales` terbaru dengan relasi `customerProfile`, `lead`, `fieldStaff`, dan `event`.
-- `create` mengirim lookup data produk aktif, customer profiles, leads, field staff aktif, events, dan daftar source.
+- `index` juga mengirim lookup data produk aktif, customer profiles, leads, field staff aktif, events, dan daftar source untuk form POS offline sale.
 - `show` mengirim `offlineSale` dengan relasi `offlineSaleItems.product`, `customerProfile`, `lead`, `fieldStaff`, dan `event`.
 - Store memakai `OfflineSaleService` dan `DB::transaction`.
 - `sale_number` dibuat otomatis dengan format `OFF-YYYYMMDD-XXXXXX`.
@@ -1198,7 +1197,7 @@ Coverage `AdminOfflineSaleTest`:
 - Guest diarahkan ke login saat membuka admin offline sales.
 - User non-admin mendapat 403.
 - Admin tidak aktif mendapat 403.
-- Admin aktif dapat membuka placeholder index/create/show offline sales.
+- Admin aktif dapat membuka index/show offline sales; route create terpisah tidak diekspos.
 - Admin aktif dapat create offline sale dengan item produk.
 - Total dan line total dihitung server-side dari harga produk saat ini.
 - Sale number mengikuti format `OFF-YYYYMMDD-XXXXXX`.
@@ -1214,7 +1213,7 @@ Hasil targeted test setelah Batch 14:
 - `php artisan test tests/Feature/AdminOfflineSaleTest.php`: pass, 10 tests, 53 assertions.
 - `php artisan test tests/Feature/AdminEventTest.php`: pass, 12 tests, 53 assertions.
 - `php artisan test tests/Feature/CheckoutTest.php`: pass, 5 tests, 22 assertions.
-- `php artisan route:list --name=admin.offline-sales`: 4 route admin offline sales terdaftar.
+- `php artisan route:list --name=admin.offline-sales`: route admin offline sales mencakup index, store, dan show; route create terpisah sudah ditiadakan.
 
 ## Batch 15: Admin Examination & Product Recommendation Backend Flow
 
@@ -1245,10 +1244,10 @@ Implementasi admin examination saat ini:
 
 - Semua route wajib login.
 - Akses admin examination dibatasi untuk user dengan `role = admin` dan `is_active = true`.
-- Batch ini read/create-only: tidak ada edit, update, delete, update status booking, order creation, offline sale creation, atau UI admin examination.
-- `index`, `create`, dan `show` sementara render Inertia page `Welcome` dengan prop `page` karena UI admin examination belum tersedia.
+- Batch ini read/create-only: tidak ada edit, update, delete, update status booking, order creation, offline sale creation, atau stock changes.
+- `index` menjadi halaman list pemeriksaan.
 - `index` mengirim daftar `examinations` terbaru dengan relasi `customerProfile`, `booking`, `creator`, dan `productRecommendations.product`.
-- `create` mengirim lookup data `customerProfiles`, `bookings` dengan `customerProfile` dan `service`, serta produk aktif.
+- `create` mengirim lookup data `customerProfiles`, `bookings` dengan `customerProfile` dan `service`, serta produk aktif untuk form POS pemeriksaan.
 - `show` mengirim `examination` dengan relasi `customerProfile`, `booking`, `creator`, dan `productRecommendations.product`.
 - Store memakai `ExaminationService` dan `DB::transaction`.
 - `created_by` pada `examinations` selalu memakai current admin.
@@ -1261,8 +1260,11 @@ Implementasi admin examination saat ini:
 Validasi admin examination saat ini:
 
 - `customer_profile_id` wajib dan harus valid.
+- `customer_mode` wajib bernilai `registered` atau `guest`.
+- Mode `registered` wajib memilih `customer_profile_id` existing.
+- Mode `guest` wajib mengirim `guest_name`, `guest_whatsapp_number`, dan `guest_address`; sistem membuat `customer_profile` tanpa `user_id` dengan `member_status = non_member`.
 - `booking_id` nullable dan harus valid jika diisi.
-- Jika `booking_id` diisi, booking harus milik `customer_profile_id` yang dipilih.
+- Jika `booking_id` diisi, booking harus milik `customer_profile_id` yang dipilih dan hanya berlaku untuk mode `registered`.
 - `complaint`, `result`, `summary`, dan `internal_recommendation` wajib string.
 - `created_by` dilarang dari payload.
 - `product_recommendations` nullable array.
@@ -1275,8 +1277,8 @@ Coverage `AdminExaminationTest`:
 - Guest diarahkan ke login saat membuka admin examinations.
 - User non-admin mendapat 403.
 - Admin tidak aktif mendapat 403.
-- Admin aktif dapat membuka placeholder index/create/show examination.
-- `create` hanya mengirim produk aktif.
+- Admin aktif dapat membuka index/create/show examination.
+- `create` menjadi halaman POS pemeriksaan dan mengirim customer profiles, booking, serta produk aktif.
 - Admin aktif dapat create examination tanpa product recommendations.
 - Admin aktif dapat create examination dengan product recommendations.
 - `created_by` examination dan product recommendation memakai current admin.
@@ -1293,7 +1295,7 @@ Hasil targeted test setelah Batch 15:
 - `php artisan test tests/Feature/AdminExaminationTest.php`: pass, 11 tests, 51 assertions.
 - `php artisan test tests/Feature/AdminBookingTest.php`: pass, 11 tests, 32 assertions.
 - `php artisan test tests/Feature/AdminOfflineSaleTest.php`: pass, 10 tests, 53 assertions.
-- `php artisan route:list --name=admin.examinations`: 4 route admin examination terdaftar.
+- `php artisan route:list --name=admin.examinations`: route admin examination mencakup index, create, store, dan show.
 
 ## Batch 16: Admin Dashboard & Basic Reports Backend Flow
 
@@ -1889,8 +1891,9 @@ Implementasi offline sales admin UI saat ini:
   - `Admin/OfflineSales/Create`,
   - `Admin/OfflineSales/Show`.
 - Offline sales index menampilkan metrics lokal untuk total transaksi, revenue, event sales, dan door-to-door sales dari prop existing `offlineSales`.
-- Offline sales create memakai route existing `admin.offline-sales.store` dengan field validasi backend: `customer_profile_id`, `lead_id`, `field_staff_id`, `event_id`, `source`, `customer_name`, `customer_whatsapp_number`, `notes`, `sold_at`, dan `items` berisi `product_id` serta `quantity`.
-- Form item hanya mengirim product dan quantity; harga, line total, dan total final tetap dihitung ulang oleh `OfflineSaleService` di server.
+- Offline sales index memuat layout POS langsung di `/admin/offline-sales`: grid kiri untuk sumber, data customer, relasi CRM, waktu penjualan, dan catatan; panel kanan untuk item produk, kuantitas, stok, estimasi line total, dan ringkasan subtotal.
+- Form POS offline sale tetap memakai route existing `admin.offline-sales.store` dengan field validasi backend: `customer_profile_id`, `lead_id`, `field_staff_id`, `event_id`, `source`, `customer_name`, `customer_whatsapp_number`, `notes`, `sold_at`, dan `items` berisi `product_id` serta `quantity`.
+- Form item hanya mengirim product dan quantity; estimasi UI hanya membantu kasir/admin, sedangkan harga, line total, total final, dan stok tetap dihitung ulang oleh `OfflineSaleService` di server.
 - Offline sales show menampilkan detail transaksi, relasi customer profile, lead, field staff, event, notes, dan daftar item penjualan.
 - Batch ini tidak menambahkan backend filter, search, pagination, dependency, endpoint baru, update/edit/delete action, stock decrement, atau perubahan public/customer/field UI.
 - Batch ini tidak mengubah validation/business logic offline sales maupun kalkulasi total server-side.
@@ -1926,8 +1929,8 @@ Implementasi examination admin UI saat ini:
   - `Admin/Examinations/Create`,
   - `Admin/Examinations/Show`.
 - Examination index menampilkan metrics lokal untuk total pemeriksaan, total rekomendasi produk, pemeriksaan dengan booking, dan pemeriksaan manual dari prop existing `examinations`.
-- Examination create memakai route existing `admin.examinations.store` dengan field validasi backend: `customer_profile_id`, `booking_id`, `complaint`, `result`, `summary`, `internal_recommendation`, dan `product_recommendations` berisi `product_id` serta `notes`.
-- Form create tidak mengirim `created_by`; creator pemeriksaan dan rekomendasi produk tetap diisi server-side oleh `ExaminationService`.
+- Examination create memuat form POS internal untuk create pemeriksaan memakai route existing `admin.examinations.store` dengan field validasi backend: `customer_profile_id`, `booking_id`, `complaint`, `result`, `summary`, `internal_recommendation`, dan `product_recommendations` berisi `product_id` serta `notes`.
+- Form POS internal tidak mengirim `created_by`; creator pemeriksaan dan rekomendasi produk tetap diisi server-side oleh `ExaminationService`.
 - Product recommendation dibuat bersama pemeriksaan dari form create; tidak ada endpoint rekomendasi produk terpisah.
 - Examination show menampilkan detail customer, booking/service, creator, complaint, result, summary, internal recommendation, dan daftar rekomendasi produk.
 - Batch ini tidak menambahkan backend filter, search, pagination, dependency, endpoint baru, edit/delete/update action, order/offline-sale creation, stock changes, atau perubahan public/customer/field UI.

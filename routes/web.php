@@ -23,6 +23,7 @@ use App\Http\Controllers\Public\CheckoutController;
 use App\Http\Controllers\Field\FieldDashboardController;
 use App\Http\Controllers\Field\FieldLeadController;
 use App\Http\Controllers\Public\HomeController;
+use App\Http\Controllers\Public\OrderLookupController;
 use App\Http\Controllers\Public\ProductController;
 use App\Http\Controllers\Public\ServiceController;
 use App\Http\Controllers\ProfileController;
@@ -41,6 +42,9 @@ Route::patch('/cart/items/{cartItem}', [CartController::class, 'update'])->name(
 Route::delete('/cart/items/{cartItem}', [CartController::class, 'destroy'])->name('cart.items.destroy');
 Route::get('/checkout', [CheckoutController::class, 'show'])->name('checkout.show');
 Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
+Route::get('/orders/lookup', [OrderLookupController::class, 'create'])->name('orders.lookup.create');
+Route::post('/orders/lookup', [OrderLookupController::class, 'store'])->middleware('throttle:10,1')->name('orders.lookup.store');
+Route::get('/orders/lookup/{order:order_number}', [OrderLookupController::class, 'show'])->name('orders.lookup.show');
 
 Route::get('/dashboard', function (Request $request): RedirectResponse {
     $user = $request->user();
@@ -84,7 +88,6 @@ Route::middleware('auth')->group(function () {
         Route::patch('/orders/{order}/status', [AdminOrderController::class, 'updateStatus'])->name('orders.status.update');
 
         Route::get('/offline-sales', [AdminOfflineSaleController::class, 'index'])->name('offline-sales.index');
-        Route::get('/offline-sales/create', [AdminOfflineSaleController::class, 'create'])->name('offline-sales.create');
         Route::post('/offline-sales', [AdminOfflineSaleController::class, 'store'])->name('offline-sales.store');
         Route::get('/offline-sales/{offlineSale}', [AdminOfflineSaleController::class, 'show'])->name('offline-sales.show');
 

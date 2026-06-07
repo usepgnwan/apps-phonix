@@ -156,6 +156,9 @@ Flow checkout manual:
 - Order customer login terhubung ke akun customer
 - Order guest tetap masuk ke admin panel tanpa wajib akun customer
 - Order masuk ke admin panel dengan status menunggu konfirmasi ongkir
+- Setelah checkout berhasil, customer diarahkan ke halaman detail pesanan publik dan mendapat nomor order untuk disimpan
+- Guest dapat mengecek transaksi ulang memakai kombinasi nomor order dan nomor WhatsApp yang dipakai saat checkout
+- Sistem tidak menyediakan pencarian transaksi hanya memakai nomor WhatsApp
 - Admin mengecek alamat dan menentukan ongkir manual
 - Admin mengisi kurir dan ongkir
 - Sistem menghitung total akhir dari subtotal produk + ongkir

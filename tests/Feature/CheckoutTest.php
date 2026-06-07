@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\CustomerProfile;
+use App\Models\Order;
+use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\User;
@@ -18,6 +20,26 @@ class CheckoutTest extends TestCase
     {
         [$user, $profile] = $this->createCustomer(memberStatus: 'member');
         $product = $this->createProduct(price: 125000, stockQuantity: 5);
+        $paymentMethod = $this->createPaymentMethod();
+        $this->createPaymentMethod(['is_active' => false, 'bank_name' => 'BNI']);
+
+        Order::query()->create([
+            'order_number' => 'PX-20260607-000001',
+            'user_id' => $user->id,
+            'customer_profile_id' => $profile->id,
+            'payment_method_id' => $paymentMethod->id,
+            'customer_name' => $profile->name,
+            'customer_whatsapp_number' => $profile->whatsapp_number,
+            'customer_email' => $user->email,
+            'shipping_address' => 'Jl. Riwayat Order No. 9',
+            'subtotal' => 100000,
+            'voucher_discount_amount' => 0,
+            'shipping_cost' => 0,
+            'total' => 100000,
+            'shipping_status' => 'pending_shipping_confirmation',
+            'payment_status' => 'pending',
+            'status' => 'waiting_shipping_confirmation',
+        ]);
 
         $this->actingAs($user)->post(route('cart.items.store'), [
             'product_id' => $product->id,
@@ -33,12 +55,17 @@ class CheckoutTest extends TestCase
             ->assertOk()
             ->assertJsonPath('component', 'Public/Checkout/Show')
             ->assertJsonPath('props.cart.cart_items.0.product_id', $product->id)
-            ->assertJsonPath('props.customerProfile.id', $profile->id);
+            ->assertJsonPath('props.customerProfile.id', $profile->id)
+            ->assertJsonPath('props.paymentMethods.0.id', $paymentMethod->id)
+            ->assertJsonPath('props.savedShippingAddresses.0', $profile->primary_address)
+            ->assertJsonPath('props.savedShippingAddresses.1', 'Jl. Riwayat Order No. 9')
+            ->assertJsonMissingPath('props.paymentMethods.1.id');
     }
 
     public function test_guest_checkout_creates_order_items_and_clears_cart(): void
     {
         $product = $this->createProduct(price: 125000, stockQuantity: 5);
+        $paymentMethod = $this->createPaymentMethod();
         $this->post(route('cart.items.store'), [
             'product_id' => $product->id,
             'quantity' => 2,
@@ -47,17 +74,27 @@ class CheckoutTest extends TestCase
         $response = $this->post(route('checkout.store'), [
             'customer_name' => 'Guest Customer',
             'customer_whatsapp_number' => '08123456789',
+            'customer_email' => 'guest@example.com',
+            'payment_method_id' => $paymentMethod->id,
             'shipping_address' => 'Jl. Guest Herbal No. 2',
         ]);
 
         $response
             ->assertSessionHasNoErrors()
-            ->assertRedirect(route('cart.index'));
+            ->assertSessionHas('order_number')
+            ->assertRedirect();
+
+        $order = \App\Models\Order::query()->firstOrFail();
+        $response
+            ->assertSessionHas('guest_order_lookup.'.$order->id)
+            ->assertRedirect(route('orders.lookup.show', ['order' => $order->order_number]));
 
         $this->assertDatabaseHas('orders', [
             'user_id' => null,
             'customer_profile_id' => null,
             'customer_name' => 'Guest Customer',
+            'customer_email' => 'guest@example.com',
+            'payment_method_id' => $paymentMethod->id,
             'subtotal' => 250000,
             'voucher_discount_amount' => 0,
             'shipping_cost' => 0,
@@ -80,6 +117,7 @@ class CheckoutTest extends TestCase
     {
         [$user, $profile] = $this->createCustomer(memberStatus: 'member');
         $product = $this->createProduct(price: 200000, stockQuantity: 5);
+        $paymentMethod = $this->createPaymentMethod();
         $voucher = $this->createVoucher([
             'code' => 'MEMBER50',
             'discount_type' => 'fixed',
@@ -95,18 +133,28 @@ class CheckoutTest extends TestCase
         $response = $this->actingAs($user)->post(route('checkout.store'), [
             'customer_name' => $profile->name,
             'customer_whatsapp_number' => $profile->whatsapp_number,
+            'customer_email' => $user->email,
+            'payment_method_id' => $paymentMethod->id,
             'shipping_address' => $profile->primary_address,
             'voucher_code' => 'MEMBER50',
         ]);
 
         $response
             ->assertSessionHasNoErrors()
-            ->assertRedirect(route('cart.index'));
+            ->assertSessionHas('order_number')
+            ->assertRedirect();
+
+        $order = \App\Models\Order::query()->firstOrFail();
+        $response
+            ->assertSessionHas('guest_order_lookup.'.$order->id)
+            ->assertRedirect(route('orders.lookup.show', ['order' => $order->order_number]));
 
         $this->assertDatabaseHas('orders', [
             'user_id' => $user->id,
             'customer_profile_id' => $profile->id,
             'voucher_id' => $voucher->id,
+            'customer_email' => $user->email,
+            'payment_method_id' => $paymentMethod->id,
             'subtotal' => 200000,
             'voucher_discount_amount' => 50000,
             'total' => 150000,
@@ -122,6 +170,7 @@ class CheckoutTest extends TestCase
     public function test_guest_checkout_with_voucher_is_rejected(): void
     {
         $product = $this->createProduct(price: 100000);
+        $paymentMethod = $this->createPaymentMethod();
         $this->createVoucher(['code' => 'MEMBERONLY']);
         $this->post(route('cart.items.store'), [
             'product_id' => $product->id,
@@ -131,6 +180,8 @@ class CheckoutTest extends TestCase
         $response = $this->post(route('checkout.store'), [
             'customer_name' => 'Guest Customer',
             'customer_whatsapp_number' => '08123456789',
+            'customer_email' => 'guest@example.com',
+            'payment_method_id' => $paymentMethod->id,
             'shipping_address' => 'Jl. Guest Herbal No. 2',
             'voucher_code' => 'MEMBERONLY',
         ]);
@@ -144,6 +195,7 @@ class CheckoutTest extends TestCase
     {
         [$user, $profile] = $this->createCustomer(memberStatus: 'non_member');
         $product = $this->createProduct(price: 100000);
+        $paymentMethod = $this->createPaymentMethod();
         $this->createVoucher(['code' => 'MEMBERONLY']);
 
         $this->actingAs($user)->post(route('cart.items.store'), [
@@ -154,6 +206,8 @@ class CheckoutTest extends TestCase
         $response = $this->actingAs($user)->post(route('checkout.store'), [
             'customer_name' => $profile->name,
             'customer_whatsapp_number' => $profile->whatsapp_number,
+            'customer_email' => $user->email,
+            'payment_method_id' => $paymentMethod->id,
             'shipping_address' => $profile->primary_address,
             'voucher_code' => 'MEMBERONLY',
         ]);
@@ -164,9 +218,13 @@ class CheckoutTest extends TestCase
 
     public function test_empty_cart_checkout_is_rejected(): void
     {
+        $paymentMethod = $this->createPaymentMethod();
+
         $response = $this->post(route('checkout.store'), [
             'customer_name' => 'Guest Customer',
             'customer_whatsapp_number' => '08123456789',
+            'customer_email' => 'guest@example.com',
+            'payment_method_id' => $paymentMethod->id,
             'shipping_address' => 'Jl. Guest Herbal No. 2',
         ]);
 
@@ -222,6 +280,19 @@ class CheckoutTest extends TestCase
             'ends_at' => now()->addDay(),
             'usage_limit' => 10,
             'is_published' => true,
+        ], $attributes));
+    }
+
+
+    private function createPaymentMethod(array $attributes = []): PaymentMethod
+    {
+        return PaymentMethod::query()->create(array_merge([
+            'type' => 'bank_transfer',
+            'bank_name' => 'BCA',
+            'account_number' => '1234567890',
+            'account_holder_name' => 'PT Phoenix',
+            'instructions' => 'Transfer ke rekening Phoenix.',
+            'is_active' => true,
         ], $attributes));
     }
 

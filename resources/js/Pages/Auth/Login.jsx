@@ -36,16 +36,10 @@ export default function Login({ status, canResetPassword }) {
                     aria-label="Phoenix Terapi & Herbal"
                 >
                     <img
-                        src="/images/logo-transparent.png"
-                        alt="Phoenix Terapi & Herbal"
-                        className="h-auto w-40 sm:w-44"
+                        src="/images/logo_blue_box.png"
+                        alt="Logo Phoenix Terapi & Herbal"
+                        className="h-auto w-40 rounded-xl object-contain shadow-sm shadow-black/10 sm:w-44"
                     />
-                    <span className="mt-3 font-label-md text-xl font-extrabold uppercase tracking-[0.32em] text-white">
-                        PHOENIX
-                    </span>
-                    <span className="mt-1 font-body-sm text-sm font-semibold tracking-[0.18em] text-white/90">
-                        Terapi &amp; Herbal
-                    </span>
                 </Link>
 
                 <section className="w-full max-w-md rounded-lg border border-outline-variant bg-white px-6 py-6 shadow-sm sm:px-8">

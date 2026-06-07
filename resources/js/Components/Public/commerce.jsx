@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Leaf, ShoppingBag, Sprout } from 'lucide-react';
+import { Leaf } from 'lucide-react';
 import { forwardRef } from 'react';
 
 export function formatRupiah(value) {
@@ -47,49 +47,69 @@ export function serviceVisitOptions(service) {
     return [];
 }
 
-export function PublicShell({ children }) {
-    const cartCount = Number(usePage().props.cartSummary?.count ?? 0);
+export function PublicShell({ children, fullWidth = false }) {
+    const { auth, cartSummary } = usePage().props;
+    const cartCount = Number(cartSummary?.count ?? 0);
+    const isAuthenticated = Boolean(auth?.user);
+    const accountHref = (() => {
+        if (!isAuthenticated) {
+            return route('login');
+        }
+
+        if (auth.user.role === 'admin') {
+            return route('admin.dashboard.index');
+        }
+
+        if (auth.user.role === 'field_staff') {
+            return route('field.dashboard.index');
+        }
+
+        return route('customer.dashboard.index');
+    })();
+    const mainClassName = fullWidth
+        ? 'relative w-full pb-8 pt-28 md:pb-12 md:pt-32'
+        : 'relative mx-auto w-full max-w-container-max px-margin-mobile pb-8 pt-28 md:px-margin-desktop md:pb-12 md:pt-32';
 
     return (
         <div className="min-h-screen bg-surface font-body-md text-on-surface selection:bg-primary-fixed selection:text-on-primary-fixed">
-            <header className="sticky top-0 z-40 border-b border-outline-variant/80 bg-white/90 backdrop-blur-xl">
+            <header className="fixed left-0 top-0 z-50 w-full border-b border-white/70 bg-white/80 shadow-none backdrop-blur-xl transition-all duration-300">
                 <div className="mx-auto flex h-20 w-full max-w-container-max items-center justify-between px-margin-mobile md:px-margin-desktop">
-                    <Link className="flex items-center gap-3 rounded-full pr-3" href={route('home')}>
-                        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary-container text-white shadow-sm shadow-primary-container/20">
-                            <Sprout aria-hidden="true" className="h-5 w-5" />
-                        </span>
-                        <span className="leading-none">
-                            <span className="block font-headline-md text-lg font-bold tracking-[0.18em] text-primary-container">
-                                PHOENIX
-                            </span>
-                            <span className="mt-1 block font-label-sm text-[9px] font-bold uppercase tracking-[0.22em] text-on-surface-variant">
-                                Terapi &amp; Herbal
-                            </span>
-                        </span>
+                    <Link className="rounded-2xl pr-3 transition-all duration-300 hover:opacity-80" href={`${route('home')}#beranda`} aria-label="Phoenix Terapi & Herbal">
+                        <img src="/images/logo_blue_box.png" alt="Phoenix Terapi &amp; Herbal" className="h-12 w-auto rounded-xl object-contain shadow-sm shadow-black/10 md:h-14" />
                     </Link>
 
-                    <nav className="hidden items-center gap-2 md:flex">
-                        <Link className="rounded-full px-4 py-2 font-body-sm text-sm font-bold text-on-surface-variant transition hover:bg-primary-fixed/35 hover:text-primary-container" href={route('products.index')}>
+                    <nav className="hidden items-center gap-8 md:flex">
+                        <Link className="font-body-md text-body-md font-semibold text-[#1E4D3A] transition-colors hover:text-[#6FA788]" href={`${route('home')}#beranda`}>
+                            Beranda
+                        </Link>
+                        <Link className="font-body-md text-body-md font-medium text-[#333333] transition-colors hover:text-[#1E4D3A]" href={`${route('home')}#produk`}>
                             Produk
                         </Link>
-                        <Link className="rounded-full px-4 py-2 font-body-sm text-sm font-bold text-on-surface-variant transition hover:bg-primary-fixed/35 hover:text-primary-container" href={route('services.index')}>
+                        <Link className="font-body-md text-body-md font-medium text-[#333333] transition-colors hover:text-[#1E4D3A]" href={`${route('home')}#layanan`}>
                             Layanan
+                        </Link>
+                        <Link className="font-body-md text-body-md font-medium text-[#333333] transition-colors hover:text-[#1E4D3A]" href={`${route('home')}#tentang-kami`}>
+                            Tentang Kami
                         </Link>
                     </nav>
 
-                    <Link className="relative inline-flex items-center gap-2 rounded-full bg-primary-container px-4 py-2.5 font-label-md text-sm font-bold text-white shadow-sm shadow-primary-container/20 transition hover:bg-primary" data-cart-link href={route('cart.index')}>
-                        <ShoppingBag aria-hidden="true" className="h-4 w-4" />
-                        Keranjang
-                        {cartCount > 0 && (
-                            <span className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-white bg-tertiary px-1.5 font-body-sm text-[11px] font-black leading-none text-white shadow-sm shadow-primary-container/20" data-cart-count>
-                                {cartCount > 99 ? '99+' : cartCount}
-                            </span>
-                        )}
-                    </Link>
+                    <div className="flex items-center gap-2 sm:gap-3">
+                        <Link href={route('cart.index')} className="relative flex h-11 w-11 items-center justify-center rounded-full border border-[#1E4D3A]/30 bg-white text-[#1E4D3A] transition-all duration-150 hover:border-[#1E4D3A] hover:bg-[#A8C5B3]/20 active:scale-95" aria-label="Keranjang belanja" data-cart-link>
+                            <span className="material-symbols-outlined text-xl" data-cart-icon>shopping_bag</span>
+                            {cartCount > 0 && (
+                                <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-tertiary px-1.5 font-body-sm text-[10px] font-black leading-none text-white shadow-sm shadow-[#1E4D3A]/20" data-cart-count>
+                                    {cartCount > 99 ? '99+' : cartCount}
+                                </span>
+                            )}
+                        </Link>
+                        <Link href={accountHref} className="inline-flex rounded-full bg-[#1E4D3A] px-5 py-2.5 font-label-md font-semibold text-white shadow-sm transition-all duration-150 hover:bg-[#163B2C] active:scale-95">
+                            {isAuthenticated ? 'Dashboard' : 'Login'}
+                        </Link>
+                    </div>
                 </div>
             </header>
 
-            <main className="relative mx-auto w-full max-w-container-max px-margin-mobile py-8 md:px-margin-desktop md:py-12">
+            <main className={mainClassName}>
                 <div className="pointer-events-none absolute right-8 top-8 h-48 w-48 rounded-full bg-primary-fixed/45 blur-3xl" />
                 <div className="pointer-events-none absolute bottom-8 left-4 h-40 w-40 rounded-full bg-tertiary-fixed/35 blur-3xl" />
                 <div className="relative">{children}</div>

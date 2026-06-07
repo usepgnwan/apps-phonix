@@ -32,36 +32,31 @@ const navigationGroups = [
         ],
     },
     {
-        label: 'Commerce',
+        label: 'Transaksi',
         items: [
             { label: 'Order', routeName: 'admin.orders.index', pattern: 'admin.orders.*', icon: WalletCards },
-            { label: 'Voucher', routeName: 'admin.vouchers.index', pattern: 'admin.vouchers.*', icon: BadgePercent },
-            { label: 'Metode Pembayaran', routeName: 'admin.payment-methods.index', pattern: 'admin.payment-methods.*', icon: CreditCard },
             { label: 'Penjualan Offline', routeName: 'admin.offline-sales.index', pattern: 'admin.offline-sales.*', icon: Store },
-        ],
-    },
-    {
-        label: 'Booking & Customer',
-        items: [
             { label: 'Booking', routeName: 'admin.bookings.index', pattern: 'admin.bookings.*', icon: CalendarCheck },
-            { label: 'Customer', routeName: 'admin.customers.index', pattern: 'admin.customers.*', icon: UsersRound },
             { label: 'Pemeriksaan', routeName: 'admin.examinations.index', pattern: 'admin.examinations.*', icon: ClipboardPlus },
         ],
     },
     {
-        label: 'Katalog',
+        label: 'CRM',
+        items: [
+            { label: 'Customer', routeName: 'admin.customers.index', pattern: 'admin.customers.*', icon: UsersRound },
+            { label: 'Lead', routeName: 'admin.leads.index', pattern: 'admin.leads.*', icon: UserRound },
+            { label: 'Event', routeName: 'admin.events.index', pattern: 'admin.events.*', icon: CalendarCheck },
+        ],
+    },
+    {
+        label: 'Master Data',
         items: [
             { label: 'Produk', routeName: 'admin.products.index', pattern: 'admin.products.*', icon: Package },
             { label: 'Kategori Produk', routeName: 'admin.product-categories.index', pattern: 'admin.product-categories.*', icon: Tags },
             { label: 'Layanan', routeName: 'admin.services.index', pattern: 'admin.services.*', icon: Leaf },
-        ],
-    },
-    {
-        label: 'CRM & Field',
-        items: [
-            { label: 'Lead', routeName: 'admin.leads.index', pattern: 'admin.leads.*', icon: UserRound },
+            { label: 'Voucher', routeName: 'admin.vouchers.index', pattern: 'admin.vouchers.*', icon: BadgePercent },
+            { label: 'Metode Pembayaran', routeName: 'admin.payment-methods.index', pattern: 'admin.payment-methods.*', icon: CreditCard },
             { label: 'Sumber Lead', routeName: 'admin.lead-sources.index', pattern: 'admin.lead-sources.*', icon: Tags },
-            { label: 'Event', routeName: 'admin.events.index', pattern: 'admin.events.*', icon: CalendarCheck },
         ],
     },
 ];

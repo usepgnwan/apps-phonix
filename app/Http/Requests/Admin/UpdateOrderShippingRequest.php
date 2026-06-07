@@ -18,9 +18,9 @@ class UpdateOrderShippingRequest extends FormRequest
     {
         return [
             'courier_name' => ['nullable', 'string', 'max:255'],
-            'tracking_number' => ['nullable', 'string', 'max:255'],
+            'tracking_number' => ['nullable', 'string', 'max:255', Rule::prohibitedIf($this->input('shipping_status') !== 'ready_to_ship')],
             'shipping_cost' => ['required', 'numeric', 'min:0'],
-            'shipping_status' => ['required', Rule::in(['pending_shipping_confirmation', 'shipping_cost_confirmed', 'ready_to_ship', 'shipped', 'delivered', 'cancelled'])],
+            'shipping_status' => ['required', Rule::in(['pending_shipping_confirmation', 'shipping_cost_confirmed', 'ready_to_ship'])],
             'shipping_notes' => ['nullable', 'string'],
         ];
     }

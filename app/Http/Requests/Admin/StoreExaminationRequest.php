@@ -19,7 +19,11 @@ class StoreExaminationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'customer_profile_id' => ['required', 'exists:customer_profiles,id'],
+            'customer_mode' => ['required', Rule::in(['registered', 'guest'])],
+            'customer_profile_id' => ['required_if:customer_mode,registered', 'nullable', 'exists:customer_profiles,id'],
+            'guest_name' => ['required_if:customer_mode,guest', 'nullable', 'string', 'max:255'],
+            'guest_whatsapp_number' => ['required_if:customer_mode,guest', 'nullable', 'string', 'max:30'],
+            'guest_address' => ['required_if:customer_mode,guest', 'nullable', 'string', 'max:1000'],
             'booking_id' => ['nullable', 'exists:bookings,id'],
             'complaint' => ['required', 'string'],
             'result' => ['required', 'string'],
@@ -42,6 +46,13 @@ class StoreExaminationRequest extends FormRequest
             function (Validator $validator): void {
                 $bookingId = $this->input('booking_id');
                 $customerProfileId = $this->input('customer_profile_id');
+                $customerMode = $this->input('customer_mode');
+
+                if ($customerMode === 'guest' && $bookingId !== null) {
+                    $validator->errors()->add('booking_id', 'Booking hanya dapat dipilih untuk customer terdaftar.');
+
+                    return;
+                }
 
                 if ($bookingId === null || $customerProfileId === null) {
                     return;

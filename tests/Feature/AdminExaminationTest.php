@@ -60,6 +60,8 @@ class AdminExaminationTest extends TestCase
             ->assertJsonPath('component', 'Admin/Examinations/Create')
             ->assertJsonPath('props.customerProfiles.0.name', $customerProfile->name)
             ->assertJsonPath('props.bookings.0.id', $booking->id)
+            ->assertJsonPath('props.bookings.0.customer_profile.name', $customerProfile->name)
+            ->assertJsonPath('props.bookings.0.service.name', $booking->service->name)
             ->assertJsonPath('props.products.0.name', 'Herbal Rekomendasi')
             ->assertJsonMissingPath('props.products.1');
 
@@ -132,6 +134,68 @@ class AdminExaminationTest extends TestCase
             'notes' => null,
             'created_by' => $admin->id,
         ]);
+    }
+
+    public function test_active_admin_can_create_guest_examination_and_auto_create_customer_profile(): void
+    {
+        $admin = $this->createAdmin();
+        $product = $this->createProduct(['name' => 'Herbal Guest']);
+
+        $response = $this->actingAs($admin)->post(route('admin.examinations.store'), [
+            'customer_mode' => 'guest',
+            'guest_name' => 'Walk In Customer',
+            'guest_whatsapp_number' => '081299988877',
+            'guest_address' => 'Alamat walk-in',
+            'complaint' => 'Keluhan guest',
+            'result' => 'Hasil guest',
+            'summary' => 'Ringkasan guest',
+            'internal_recommendation' => 'Rekomendasi guest',
+            'product_recommendations' => [
+                ['product_id' => $product->id, 'notes' => 'Minum malam'],
+            ],
+        ]);
+
+        $customerProfile = CustomerProfile::query()->where('whatsapp_number', '081299988877')->firstOrFail();
+        $examination = Examination::query()->latest('id')->firstOrFail();
+
+        $response->assertRedirect(route('admin.examinations.show', $examination));
+        $this->assertNull($customerProfile->user_id);
+        $this->assertSame('non_member', $customerProfile->member_status);
+        $this->assertDatabaseHas('examinations', [
+            'id' => $examination->id,
+            'customer_profile_id' => $customerProfile->id,
+            'booking_id' => null,
+            'created_by' => $admin->id,
+        ]);
+        $this->assertDatabaseHas('product_recommendations', [
+            'customer_profile_id' => $customerProfile->id,
+            'product_id' => $product->id,
+            'examination_id' => $examination->id,
+            'notes' => 'Minum malam',
+            'created_by' => $admin->id,
+        ]);
+        $this->assertSame(0, Order::query()->count());
+        $this->assertSame(0, OfflineSale::query()->count());
+    }
+
+    public function test_guest_examination_cannot_attach_booking(): void
+    {
+        $admin = $this->createAdmin();
+        $customerProfile = $this->createCustomerProfile();
+        $booking = $this->createBooking($customerProfile);
+
+        $this->actingAs($admin)->post(route('admin.examinations.store'), [
+            'customer_mode' => 'guest',
+            'guest_name' => 'Walk In Customer',
+            'guest_whatsapp_number' => '081299988877',
+            'guest_address' => 'Alamat walk-in',
+            'booking_id' => $booking->id,
+            'complaint' => 'Keluhan guest',
+            'result' => 'Hasil guest',
+            'summary' => 'Ringkasan guest',
+            'internal_recommendation' => 'Rekomendasi guest',
+            'product_recommendations' => [],
+        ])->assertSessionHasErrors('booking_id');
     }
 
     public function test_created_by_payload_cannot_be_spoofed(): void
@@ -305,6 +369,7 @@ class AdminExaminationTest extends TestCase
     private function examinationPayload(CustomerProfile $customerProfile, ?Booking $booking = null): array
     {
         return [
+            'customer_mode' => 'registered',
             'customer_profile_id' => $customerProfile->id,
             'booking_id' => $booking?->id,
             'complaint' => 'Keluhan customer',

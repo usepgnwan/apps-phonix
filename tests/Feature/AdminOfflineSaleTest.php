@@ -36,7 +36,7 @@ class AdminOfflineSaleTest extends TestCase
         $this->actingAs($admin)->get(route('admin.offline-sales.index'))->assertForbidden();
     }
 
-    public function test_active_admin_can_view_index_create_and_show_pages(): void
+    public function test_active_admin_can_view_index_with_pos_props_and_show_page(): void
     {
         $admin = $this->createAdmin();
         $product = $this->createProduct(['name' => 'Herbal A']);
@@ -51,11 +51,7 @@ class AdminOfflineSaleTest extends TestCase
             ->assertJsonPath('component', 'Admin/OfflineSales/Index')
             ->assertJsonPath('props.offlineSales.0.sale_number', $offlineSale->sale_number)
             ->assertJsonPath('props.offlineSales.0.customer_profile.name', $customerProfile->name)
-            ->assertJsonPath('props.offlineSales.0.field_staff.id', $fieldStaff->id);
-
-        $this->inertiaGet($admin, route('admin.offline-sales.create'))
-            ->assertOk()
-            ->assertJsonPath('component', 'Admin/OfflineSales/Create')
+            ->assertJsonPath('props.offlineSales.0.field_staff.id', $fieldStaff->id)
             ->assertJsonPath('props.products.0.name', 'Herbal A')
             ->assertJsonPath('props.customerProfiles.0.name', $customerProfile->name)
             ->assertJsonPath('props.leads.0.id', $lead->id)
@@ -70,6 +66,13 @@ class AdminOfflineSaleTest extends TestCase
             ->assertJsonPath('props.offlineSale.lead.id', $lead->id)
             ->assertJsonPath('props.offlineSale.field_staff.id', $fieldStaff->id)
             ->assertJsonPath('props.offlineSale.event.id', $event->id);
+    }
+
+    public function test_admin_offline_sales_create_page_is_not_exposed(): void
+    {
+        $admin = $this->createAdmin();
+
+        $this->actingAs($admin)->get('/admin/offline-sales/create')->assertNotFound();
     }
 
     public function test_active_admin_can_create_offline_sale_with_server_calculated_items_and_total(): void

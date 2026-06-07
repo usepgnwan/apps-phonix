@@ -1,10 +1,11 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { Minus, Plus, Trash2 } from 'lucide-react';
+import { Check, Minus, Plus, Trash2 } from 'lucide-react';
 
-import { cartItems, cartSubtotal, EmptyState, formatRupiah, PrimaryLink, ProductImage, PublicCard, PublicShell, SecondaryLink } from '@/Components/Public/commerce.jsx';
+import { cartItems, cartSubtotal, formatRupiah, PrimaryLink, ProductImage, PublicCard, PublicShell, SecondaryLink } from '@/Components/Public/commerce.jsx';
 
 function QuantityForm({ item }) {
     const { data, errors, patch, processing, setData } = useForm({ quantity: item.quantity });
+    const productName = item.product?.name ?? 'produk Phoenix';
 
     function submit(event) {
         event.preventDefault();
@@ -17,16 +18,16 @@ function QuantityForm({ item }) {
 
     return (
         <form className="space-y-2" onSubmit={submit}>
-            <div className="flex items-center gap-2">
-                <button className="flex h-9 w-9 items-center justify-center rounded-full border border-outline-variant text-primary-container hover:bg-primary-fixed/30" onClick={() => adjust(-1)} type="button">
+            <div className="flex flex-nowrap items-center gap-2">
+                <button aria-label={`Kurangi jumlah ${productName}`} className="flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant bg-white text-primary-container transition hover:bg-primary-fixed/30 focus:outline-none focus:ring-2 focus:ring-primary-container/25" onClick={() => adjust(-1)} type="button">
                     <Minus aria-hidden="true" className="h-4 w-4" />
                 </button>
-                <input className="w-20 rounded-2xl border-outline-variant bg-white text-center font-body-sm text-sm font-bold text-on-surface focus:border-primary-container focus:ring-primary-container" min="1" onChange={(event) => setData('quantity', event.target.value)} type="number" value={data.quantity} />
-                <button className="flex h-9 w-9 items-center justify-center rounded-full border border-outline-variant text-primary-container hover:bg-primary-fixed/30" onClick={() => adjust(1)} type="button">
+                <input aria-label={`Jumlah ${productName}`} className="h-10 min-w-0 flex-1 rounded-2xl border-outline-variant bg-white text-center font-body-sm text-sm font-bold text-on-surface shadow-sm focus:border-primary-container focus:ring-primary-container" min="1" onChange={(event) => setData('quantity', event.target.value)} type="number" value={data.quantity} />
+                <button aria-label={`Tambah jumlah ${productName}`} className="flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant bg-white text-primary-container transition hover:bg-primary-fixed/30 focus:outline-none focus:ring-2 focus:ring-primary-container/25" onClick={() => adjust(1)} type="button">
                     <Plus aria-hidden="true" className="h-4 w-4" />
                 </button>
-                <button className="rounded-full bg-primary-container px-4 py-2 font-body-sm text-xs font-bold text-white transition hover:bg-primary disabled:opacity-60" disabled={processing} type="submit">
-                    Update
+                <button aria-label={`Update jumlah ${productName}`} className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-container text-white shadow-sm shadow-primary-container/20 transition hover:bg-primary disabled:cursor-not-allowed disabled:opacity-60" disabled={processing} type="submit">
+                    <Check aria-hidden="true" className="h-4 w-4" />
                 </button>
             </div>
             {errors.quantity && <p className="font-body-sm text-xs text-error">{errors.quantity}</p>}
@@ -36,27 +37,39 @@ function QuantityForm({ item }) {
 
 function CartItemRow({ item }) {
     const product = item.product ?? {};
+    const productName = product.name ?? 'Produk Phoenix';
+    const unitPrice = Number(product.price ?? 0);
+    const quantity = Number(item.quantity ?? 0);
+    const lineSubtotal = unitPrice * quantity;
 
     function removeItem() {
         router.delete(route('cart.items.destroy', item.id), { preserveScroll: true });
     }
 
     return (
-        <PublicCard className="p-4">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-[120px_1fr]">
-                <ProductImage alt={product.name ?? 'Produk Phoenix'} className="h-32 w-full rounded-3xl" imagePath={product.image_path} />
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div>
-                        <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Keranjang</p>
-                        <h2 className="mt-1 font-headline-md text-headline-md text-primary-container">{product.name}</h2>
-                        <p className="mt-2 font-body-sm text-sm text-on-surface-variant">{formatRupiah(product.price)} / item</p>
-                        <p className="mt-1 font-body-lg text-base font-extrabold text-primary-container">Subtotal {formatRupiah(Number(product.price ?? 0) * Number(item.quantity ?? 0))}</p>
+        <PublicCard className="overflow-hidden p-4 transition hover:border-primary-fixed-dim hover:shadow-md hover:shadow-primary-container/10 md:p-5">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-[128px_1fr]">
+                <ProductImage alt={productName} className="h-44 w-full rounded-3xl sm:h-full sm:min-h-36" imagePath={product.image_path} />
+                <div className="flex min-w-0 flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0 flex-1">
+                        <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Produk Herbal</p>
+                        <h2 className="mt-2 font-headline-md text-headline-md text-primary-container">{productName}</h2>
+                        <div className="mt-4 grid grid-cols-1 gap-3 rounded-3xl bg-surface-container-low p-4 sm:grid-cols-2">
+                            <div>
+                                <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">Harga Satuan</p>
+                                <p className="mt-1 font-body-sm text-sm font-extrabold text-primary-container">{formatRupiah(unitPrice)}</p>
+                            </div>
+                            <div>
+                                <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">Subtotal Item</p>
+                                <p className="mt-1 font-body-lg text-base font-extrabold text-primary-container">{formatRupiah(lineSubtotal)}</p>
+                            </div>
+                        </div>
                     </div>
-                    <div className="space-y-3">
+                    <div className="rounded-3xl border border-outline-variant/80 bg-white p-4 lg:w-64">
+                        <p className="mb-3 font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-on-surface-variant">Jumlah</p>
                         <QuantityForm item={item} />
-                        <button className="inline-flex items-center gap-2 rounded-full border border-error-container bg-white px-4 py-2 font-body-sm text-xs font-bold text-error transition hover:bg-error-container/45" onClick={removeItem} type="button">
+                        <button aria-label={`Hapus ${productName} dari keranjang`} className="mt-3 inline-flex w-full items-center justify-center rounded-full border border-error-container bg-white px-4 py-2.5 font-body-sm text-xs font-bold text-error transition hover:bg-error-container/45 focus:outline-none focus:ring-2 focus:ring-error/20" onClick={removeItem} type="button">
                             <Trash2 aria-hidden="true" className="h-4 w-4" />
-                            Hapus
                         </button>
                     </div>
                 </div>
@@ -68,44 +81,51 @@ function CartItemRow({ item }) {
 export default function CartIndex({ cart }) {
     const items = cartItems(cart);
     const subtotal = cartSubtotal(cart);
+    const totalQuantity = items.reduce((total, item) => total + Number(item.quantity ?? 0), 0);
 
     return (
         <>
             <Head title="Keranjang Phoenix" />
-            <div className="space-y-8">
-                <section className="rounded-[2rem] border border-outline-variant/70 bg-white p-8 shadow-sm shadow-primary-container/5">
-                    <p className="font-label-sm text-xs font-bold uppercase tracking-[0.22em] text-on-surface-variant">Keranjang Belanja</p>
-                    <h1 className="mt-3 font-headline-xl text-4xl font-bold text-primary-container md:text-5xl">Siapkan pesanan herbal Anda.</h1>
-                    <p className="mt-4 font-body-md text-body-md text-on-surface-variant">Atur jumlah produk sebelum lanjut ke checkout dan konfirmasi alamat pengiriman.</p>
-                </section>
-
-                {items.length === 0 ? (
-                    <EmptyState action={<PrimaryLink href={route('products.index')}>Lihat Produk</PrimaryLink>} description="Tambahkan produk herbal Phoenix terlebih dahulu untuk melanjutkan ke checkout." title="Keranjang masih kosong." />
-                ) : (
-                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
-                        <div className="space-y-4">
-                            {items.map((item) => <CartItemRow item={item} key={item.id} />)}
-                        </div>
-                        <PublicCard className="h-fit p-6">
-                            <h2 className="font-headline-lg text-headline-lg text-primary-container">Ringkasan</h2>
-                            <div className="mt-5 space-y-3 border-y border-outline-variant py-4">
-                                <div className="flex justify-between font-body-sm text-sm text-on-surface-variant">
-                                    <span>Total item</span>
-                                    <span>{items.reduce((total, item) => total + Number(item.quantity ?? 0), 0)}</span>
+            <div className="mx-auto w-full max-w-[1600px] px-margin-mobile md:px-margin-desktop">
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-[65fr_35fr]">
+                    <div className="space-y-4">
+                        {items.length > 0 ? (
+                            items.map((item) => <CartItemRow item={item} key={item.id} />)
+                        ) : (
+                            <PublicCard className="p-6 text-center md:p-8">
+                                <h2 className="mt-2 font-headline-lg text-headline-lg text-primary-container">Keranjang Anda masih menunggu produk.</h2>
+                                <p className="mx-auto mt-3 max-w-xl font-body-md text-body-md text-on-surface-variant">Mulai dari katalog produk Phoenix untuk menambahkan herbal pilihan, atau cek status pesanan yang sudah pernah dibuat.</p>
+                                <div className="mx-auto mt-6 flex max-w-md flex-col justify-center gap-3 sm:flex-row">
+                                    <PrimaryLink className="w-full" href={route('products.index')}>Jelajahi Produk Herbal</PrimaryLink>
+                                    <SecondaryLink className="w-full" href={route('orders.lookup.create')}>Cek Pesanan</SecondaryLink>
                                 </div>
-                                <div className="flex justify-between font-body-lg text-base font-extrabold text-primary-container">
-                                    <span>Subtotal</span>
-                                    <span>{formatRupiah(subtotal)}</span>
-                                </div>
-                            </div>
-                            <PrimaryLink className="mt-5 w-full" href={route('checkout.show')}>Lanjut Checkout</PrimaryLink>
-                            <SecondaryLink className="mt-3 w-full" href={route('products.index')}>Tambah Produk</SecondaryLink>
-                        </PublicCard>
+                            </PublicCard>
+                        )}
                     </div>
-                )}
+                    <PublicCard className="h-fit p-6 lg:sticky lg:top-24">
+                        <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Checkout</p>
+                        <h2 className="mt-2 font-headline-lg text-headline-lg text-primary-container">Ringkasan Pesanan</h2>
+                        <div className="mt-5 space-y-3 rounded-3xl border border-outline-variant bg-surface-container-low p-4">
+                            <div className="flex justify-between font-body-sm text-sm text-on-surface-variant">
+                                <span>Total item</span>
+                                <span className="font-bold text-primary-container">{totalQuantity}</span>
+                            </div>
+                            <div className="flex justify-between font-body-lg text-base font-extrabold text-primary-container">
+                                <span>Subtotal</span>
+                                <span>{formatRupiah(subtotal)}</span>
+                            </div>
+                        </div>
+                        <div className="mt-4 rounded-3xl bg-tertiary-fixed/45 p-4">
+                            <p className="font-body-sm text-sm leading-6 text-on-tertiary-fixed">Belum termasuk ongkir. Admin akan mengonfirmasi biaya pengiriman setelah order dibuat.</p>
+                        </div>
+                        <PrimaryLink className="mt-5 w-full" href={route('checkout.show')}>{items.length === 0 ? 'Checkout setelah pilih produk' : 'Lanjut ke Checkout'}</PrimaryLink>
+                        <SecondaryLink className="mt-3 w-full" href={route('products.index')}>Tambah Produk</SecondaryLink>
+                        <SecondaryLink className="mt-3 w-full" href={route('orders.lookup.create')}>Cek Pesanan</SecondaryLink>
+                    </PublicCard>
+                </div>
             </div>
         </>
     );
 }
 
-CartIndex.layout = (page) => <PublicShell>{page}</PublicShell>;
+CartIndex.layout = (page) => <PublicShell fullWidth>{page}</PublicShell>;

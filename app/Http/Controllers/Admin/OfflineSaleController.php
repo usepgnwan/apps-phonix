@@ -33,14 +33,6 @@ class OfflineSaleController extends Controller
                 ->with(['customerProfile', 'lead', 'fieldStaff', 'event'])
                 ->latest()
                 ->get(),
-        ]);
-    }
-
-    public function create(): Response
-    {
-        $this->authorizeAdmin();
-
-        return Inertia::render('Admin/OfflineSales/Create', [
             'products' => Product::query()->where('is_active', true)->orderBy('name')->get(),
             'customerProfiles' => CustomerProfile::query()->orderBy('name')->get(),
             'leads' => Lead::query()->with(['leadSource', 'assignedStaff', 'customerProfile', 'event'])->latest()->get(),

@@ -20,6 +20,7 @@ class ProductController extends Controller
                 ->paginate(12)
                 ->withQueryString(),
             'productCategories' => ProductCategory::query()
+                ->withCount(['products' => fn ($query) => $query->where('is_active', true)])
                 ->where('is_active', true)
                 ->orderBy('name')
                 ->get(['id', 'name', 'slug', 'description']),

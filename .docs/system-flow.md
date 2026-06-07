@@ -209,7 +209,7 @@ Flow checkout:
 8. Sistem membuat `orders` dan `order_items` sebagai snapshot transaksi.
 9. Jika voucher valid dipakai, sistem membuat `voucher_redemptions`.
 10. Sistem mengosongkan cart item setelah order berhasil dibuat.
-11. User diarahkan kembali dengan flash message dan `order_number`.
+11. User diarahkan ke halaman detail/konfirmasi pesanan publik dengan flash message dan `order_number`.
 
 Status awal order:
 
@@ -223,6 +223,31 @@ Catatan:
 - Checkout tidak mengurangi stok.
 - Pengurangan stok dilakukan nanti saat admin mulai fulfillment order.
 - Payment instruction setelah ongkir dikonfirmasi belum dibuat sebagai UI/customer-facing flow lengkap.
+
+### Cek Pesanan Guest
+
+Route utama:
+
+- `GET /orders/lookup` dengan nama `orders.lookup.create`
+- `POST /orders/lookup` dengan nama `orders.lookup.store`
+- `GET /orders/lookup/{order:order_number}` dengan nama `orders.lookup.show`
+
+Flow:
+
+1. Setelah checkout berhasil, guest maupun customer login diarahkan ke detail order publik dari order yang baru dibuat.
+2. Sistem menyimpan penanda session untuk order tersebut agar detail dapat dilihat tanpa login setelah checkout berhasil.
+3. Jika customer ingin mengecek ulang transaksi, customer membuka halaman cek pesanan.
+4. Customer mengisi `order_number` dan `customer_whatsapp_number` yang dipakai saat checkout.
+5. Sistem mencocokkan kombinasi nomor order dan nomor WhatsApp, bukan nomor WhatsApp saja.
+6. Jika cocok, sistem menyimpan penanda session dan menampilkan detail order publik.
+7. Jika tidak cocok atau order tidak ditemukan, sistem memberi pesan error generik agar keberadaan order tidak mudah ditebak.
+
+Catatan keamanan:
+
+- Tidak ada akun atau `customer_profile` yang dibuat otomatis untuk guest checkout.
+- Tidak perlu migration baru karena `orders.order_number` sudah unique dan `orders.customer_whatsapp_number` sudah tersimpan sebagai snapshot checkout.
+- Detail publik tidak menampilkan field internal seperti `admin_notes`, `user_id`, atau `customer_profile_id`.
+- Endpoint lookup memakai pembatasan request ringan karena route bersifat publik.
 
 ### Voucher Member
 
@@ -468,13 +493,12 @@ Catatan:
 Route utama:
 
 - `GET /admin/offline-sales`
-- `GET /admin/offline-sales/create`
 - `POST /admin/offline-sales`
 - `GET /admin/offline-sales/{offlineSale}`
 
 Flow:
 
-1. Admin membuka form offline sale.
+1. Admin membuka halaman offline sale dengan layout POS langsung di `/admin/offline-sales`.
 2. Admin memilih atau mengisi relasi opsional:
    - customer profile,
    - lead,
@@ -484,11 +508,12 @@ Flow:
    - `offline`,
    - `door_to_door`,
    - `event`.
-4. Admin mengisi customer name, WhatsApp opsional, sold at, notes, dan items.
+4. Admin mengisi customer name, WhatsApp opsional, sold at, notes, dan items melalui grid data transaksi di kiri dan panel produk/kalkulasi di kanan.
 5. `OfflineSaleService` menjalankan transaksi untuk membuat `offline_sales` dan `offline_sale_items`.
-6. Harga, line total, dan total dihitung server-side dari harga produk saat ini.
-7. Sale number dibuat dengan format `OFF-YYYYMMDD-XXXXXX`.
-8. Stok produk dikurangi sesuai quantity item dalam transaksi yang sama.
+6. UI menampilkan estimasi subtotal dan total dari produk terpilih, tetapi harga final tetap dihitung server-side.
+7. Harga, line total, dan total dihitung server-side dari harga produk saat ini.
+8. Sale number dibuat dengan format `OFF-YYYYMMDD-XXXXXX`.
+9. Stok produk dikurangi sesuai quantity item dalam transaksi yang sama.
 
 Validasi penting:
 
@@ -513,25 +538,32 @@ Route utama:
 
 Flow:
 
-1. Admin membuka form examination.
-2. Admin memilih customer profile.
-3. Admin dapat memilih booking yang sesuai customer profile.
-4. Admin mengisi complaint, result, summary, dan internal recommendation.
-5. Admin dapat menambahkan product recommendations opsional.
-6. `ExaminationService` menjalankan transaksi.
-7. `created_by` examination dan recommendation selalu current admin.
-8. Recommendation memakai `customer_profile_id` yang sama dengan examination.
+1. Admin membuka halaman `/admin/examinations` untuk melihat daftar pemeriksaan.
+2. Admin membuka `/admin/examinations/create` untuk input pemeriksaan ala POS internal.
+3. Admin memilih mode customer terdaftar atau guest/walk-in.
+4. Jika mode customer terdaftar, admin memilih customer profile dan dapat memilih booking yang sesuai customer profile.
+5. Jika mode guest, admin mengisi nama, nomor WhatsApp, dan alamat; sistem otomatis membuat `customer_profile` tanpa akun user dengan `member_status = non_member`.
+6. Admin mengisi complaint, result, summary, dan internal recommendation.
+7. Admin dapat menambahkan product recommendations opsional.
+8. `ExaminationService` menjalankan transaksi.
+9. `created_by` examination dan recommendation selalu current admin.
+10. Recommendation memakai `customer_profile_id` yang sama dengan examination.
 
 Validasi penting:
 
 - `customer_profile_id` wajib valid.
 - `booking_id` nullable tetapi jika diisi harus milik customer profile yang sama.
 - Product recommendation hanya boleh memakai produk aktif.
+- Guest/walk-in wajib mengisi nama, WhatsApp, dan alamat.
+- Booking hanya dapat dipilih untuk mode customer terdaftar.
 - Payload `created_by` dilarang pada level examination dan nested recommendation.
 
 Catatan:
 
 - Examination saat ini read/create-only.
+- Halaman `/admin/examinations/create` dipakai khusus untuk form POS pemeriksaan.
+- POS pada flow ini berarti point-of-service untuk input pemeriksaan, bukan penjualan, order, pembayaran, atau pengurangan stok.
+- Guest pada POS pemeriksaan otomatis dibuat menjadi `customer_profile` operasional tanpa akun login.
 - Tidak ada update booking status otomatis.
 - Tidak membuat order atau offline sale otomatis.
 - Schema saat ini tidak punya `lead_id` dan `examined_at` pada examination.
@@ -675,7 +707,7 @@ Karena backend sudah cukup lengkap, UI sebaiknya mengikuti urutan dependency dat
 Gap backend yang masih ada dan perlu keputusan sebelum dianggap production-complete:
 
 - Payment method display dan instruksi pembayaran setelah ongkir dikonfirmasi admin.
-- Order detail route customer setelah checkout berhasil.
+- Order detail customer login di dashboard sudah tersedia; guest memakai flow cek pesanan publik berbasis nomor order dan WhatsApp.
 - Offline sale stock decrement jika penjualan offline harus memotong stok inventory yang sama.
 - Restore stok saat order cancelled setelah status `processing`.
 - Strict role validation untuk `assigned_staff_id` pada admin lead.

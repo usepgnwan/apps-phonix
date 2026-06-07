@@ -34,7 +34,7 @@ class AdminOrderTest extends TestCase
         $admin = $this->createAdmin();
         $this->createOrder();
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.orders.index'))
+        $this->inertiaGet($admin, route('admin.orders.index'))
             ->assertOk()
             ->assertJsonPath('component', 'Admin/Orders/Index')
             ->assertJsonPath('props.page', 'admin.orders.index')
@@ -46,7 +46,7 @@ class AdminOrderTest extends TestCase
         $admin = $this->createAdmin();
         $order = $this->createOrder(withRelations: true);
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.orders.show', $order))
+        $this->inertiaGet($admin, route('admin.orders.show', $order))
             ->assertOk()
             ->assertJsonPath('component', 'Admin/Orders/Show')
             ->assertJsonPath('props.page', 'admin.orders.show')
@@ -60,15 +60,43 @@ class AdminOrderTest extends TestCase
                         'order_items',
                         'voucher_redemption',
                     ],
-                    'paymentMethods',
                 ],
             ]);
     }
 
-    public function test_shipping_update_persists_fields_and_recalculates_total(): void
+    public function test_shipping_cost_confirmation_persists_fields_recalculates_total_and_waits_for_payment(): void
     {
         $admin = $this->createAdmin();
         $order = $this->createOrder();
+
+        $response = $this->actingAs($admin)->patch(route('admin.orders.shipping.update', $order), [
+            'courier_name' => 'JNE',
+            'tracking_number' => null,
+            'shipping_cost' => 15000,
+            'shipping_status' => 'shipping_cost_confirmed',
+            'shipping_notes' => 'Ongkir dikonfirmasi',
+        ]);
+
+        $response->assertRedirect(route('admin.orders.show', $order));
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'courier_name' => 'JNE',
+            'tracking_number' => null,
+            'shipping_cost' => 15000,
+            'shipping_status' => 'shipping_cost_confirmed',
+            'shipping_notes' => 'Ongkir dikonfirmasi',
+            'total' => 105000,
+            'payment_status' => 'waiting_payment',
+            'status' => 'waiting_payment',
+        ]);
+    }
+
+    public function test_ready_to_ship_requires_paid_payment_and_accepts_tracking_number(): void
+    {
+        $admin = $this->createAdmin();
+        $order = $this->createOrder(['payment_status' => 'paid', 'status' => 'payment_received'], itemQuantity: 2, productStock: 10);
+        $product = $order->orderItems()->firstOrFail()->product;
 
         $response = $this->actingAs($admin)->patch(route('admin.orders.shipping.update', $order), [
             'courier_name' => 'JNE',
@@ -88,18 +116,20 @@ class AdminOrderTest extends TestCase
             'shipping_status' => 'ready_to_ship',
             'shipping_notes' => 'Siap kirim',
             'total' => 105000,
-            'status' => 'waiting_payment',
+            'payment_status' => 'paid',
+            'status' => 'processing',
         ]);
+        $this->assertSame(8, $product->fresh()->stock_quantity);
+        $this->assertNotNull($order->fresh()->stock_decremented_at);
     }
 
     public function test_payment_update_persists_fields_and_sets_received_timestamp(): void
     {
         $admin = $this->createAdmin();
-        $paymentMethod = $this->createPaymentMethod();
         $order = $this->createOrder();
+        $originalPaymentMethodId = $order->payment_method_id;
 
         $response = $this->actingAs($admin)->patch(route('admin.orders.payment.update', $order), [
-            'payment_method_id' => $paymentMethod->id,
             'payment_status' => 'paid',
             'payment_notes' => 'Lunas',
         ]);
@@ -108,7 +138,7 @@ class AdminOrderTest extends TestCase
 
         $this->assertDatabaseHas('orders', [
             'id' => $order->id,
-            'payment_method_id' => $paymentMethod->id,
+            'payment_method_id' => $originalPaymentMethodId,
             'payment_status' => 'paid',
             'payment_notes' => 'Lunas',
             'status' => 'payment_received',
@@ -179,12 +209,10 @@ class AdminOrderTest extends TestCase
     public function test_payment_update_to_paid_does_not_decrement_stock(): void
     {
         $admin = $this->createAdmin();
-        $paymentMethod = $this->createPaymentMethod();
         $order = $this->createOrder(itemQuantity: 2, productStock: 10);
         $product = $order->orderItems()->firstOrFail()->product;
 
         $response = $this->actingAs($admin)->patch(route('admin.orders.payment.update', $order), [
-            'payment_method_id' => $paymentMethod->id,
             'payment_status' => 'paid',
             'payment_notes' => 'Lunas',
         ]);
@@ -215,7 +243,6 @@ class AdminOrderTest extends TestCase
     public function test_invalid_shipping_payment_and_order_statuses_are_rejected(): void
     {
         $admin = $this->createAdmin();
-        $paymentMethod = $this->createPaymentMethod();
         $order = $this->createOrder();
 
         $this->actingAs($admin)->patch(route('admin.orders.shipping.update', $order), [
@@ -227,7 +254,6 @@ class AdminOrderTest extends TestCase
         ])->assertSessionHasErrors('shipping_status');
 
         $this->actingAs($admin)->patch(route('admin.orders.payment.update', $order), [
-            'payment_method_id' => $paymentMethod->id,
             'payment_status' => 'invalid',
             'payment_notes' => null,
         ])->assertSessionHasErrors('payment_status');
@@ -238,17 +264,77 @@ class AdminOrderTest extends TestCase
         ])->assertSessionHasErrors('status');
     }
 
-    public function test_inactive_payment_method_id_is_rejected(): void
+    public function test_tracking_number_is_rejected_until_shipping_is_ready_to_ship(): void
     {
         $admin = $this->createAdmin();
         $order = $this->createOrder();
-        $paymentMethod = $this->createPaymentMethod(['is_active' => false]);
+
+        $this->actingAs($admin)->patch(route('admin.orders.shipping.update', $order), [
+            'courier_name' => 'JNE',
+            'tracking_number' => 'AWB123',
+            'shipping_cost' => 15000,
+            'shipping_status' => 'shipping_cost_confirmed',
+            'shipping_notes' => 'Ongkir dikonfirmasi',
+        ])->assertSessionHasErrors('tracking_number');
+    }
+
+    public function test_unpaid_order_cannot_be_updated_to_ready_to_ship(): void
+    {
+        $admin = $this->createAdmin();
+        $order = $this->createOrder();
+
+        $this->actingAs($admin)->patch(route('admin.orders.shipping.update', $order), [
+            'courier_name' => 'JNE',
+            'tracking_number' => 'AWB123',
+            'shipping_cost' => 15000,
+            'shipping_status' => 'ready_to_ship',
+            'shipping_notes' => 'Siap kirim',
+        ])->assertSessionHasErrors('shipping_status');
+
+        $this->assertSame('pending_shipping_confirmation', $order->fresh()->shipping_status);
+    }
+
+    public function test_later_shipping_statuses_are_rejected_by_shipping_update(): void
+    {
+        $admin = $this->createAdmin();
+        $order = $this->createOrder(['payment_status' => 'paid', 'status' => 'payment_received']);
+
+        foreach (['shipped', 'delivered', 'cancelled'] as $shippingStatus) {
+            $this->actingAs($admin)->patch(route('admin.orders.shipping.update', $order), [
+                'courier_name' => 'JNE',
+                'tracking_number' => null,
+                'shipping_cost' => 15000,
+                'shipping_status' => $shippingStatus,
+                'shipping_notes' => null,
+            ])->assertSessionHasErrors('shipping_status');
+        }
+    }
+
+    public function test_admin_payment_update_cannot_change_checkout_payment_method(): void
+    {
+        $admin = $this->createAdmin();
+        $order = $this->createOrder();
+        $originalPaymentMethodId = $order->payment_method_id;
+        $otherPaymentMethod = $this->createPaymentMethod(['bank_name' => 'Mandiri']);
 
         $this->actingAs($admin)->patch(route('admin.orders.payment.update', $order), [
-            'payment_method_id' => $paymentMethod->id,
+            'payment_method_id' => $otherPaymentMethod->id,
             'payment_status' => 'paid',
             'payment_notes' => null,
         ])->assertSessionHasErrors('payment_method_id');
+
+        $this->assertSame($originalPaymentMethodId, $order->fresh()->payment_method_id);
+    }
+
+    private function inertiaGet(User $admin, string $url)
+    {
+        $headers = ['X-Inertia' => 'true'];
+
+        if (file_exists(public_path('build/manifest.json'))) {
+            $headers['X-Inertia-Version'] = hash_file('xxh128', public_path('build/manifest.json'));
+        }
+
+        return $this->actingAs($admin)->withHeaders($headers)->get($url);
     }
 
     private function createAdmin(): User
@@ -269,7 +355,7 @@ class AdminOrderTest extends TestCase
         ], $attributes));
     }
 
-    private function createOrder(bool $withRelations = false, int $itemQuantity = 1, int $productStock = 10): Order
+    private function createOrder(array $attributes = [], bool $withRelations = false, int $itemQuantity = 1, int $productStock = 10): Order
     {
         $user = User::factory()->create();
         $profile = CustomerProfile::query()->create([
@@ -291,7 +377,7 @@ class AdminOrderTest extends TestCase
         ]);
         $paymentMethod = $this->createPaymentMethod();
 
-        $order = Order::query()->create([
+        $order = Order::query()->create(array_merge([
             'order_number' => 'ORD-'.Order::query()->count(),
             'user_id' => $user->id,
             'customer_profile_id' => $profile->id,
@@ -307,7 +393,7 @@ class AdminOrderTest extends TestCase
             'shipping_status' => 'pending_shipping_confirmation',
             'payment_status' => 'pending',
             'status' => 'waiting_shipping_confirmation',
-        ]);
+        ], $attributes));
 
         $product = $this->createProduct(['stock_quantity' => $productStock]);
         $order->orderItems()->create([

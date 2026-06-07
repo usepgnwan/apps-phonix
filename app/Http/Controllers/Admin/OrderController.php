@@ -7,9 +7,10 @@ use App\Http\Requests\Admin\UpdateOrderPaymentRequest;
 use App\Http\Requests\Admin\UpdateOrderShippingRequest;
 use App\Http\Requests\Admin\UpdateOrderStatusRequest;
 use App\Models\Order;
-use App\Models\PaymentMethod;
 use App\Services\OrderFulfillmentService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -29,7 +30,7 @@ class OrderController extends Controller
         return Inertia::render('Admin/Orders/Index', [
             'page' => 'admin.orders.index',
             'orders' => Order::query()
-                ->with(['user:id,name,email', 'customerProfile:id,user_id,name,whatsapp_number,primary_address', 'voucher:id,code,name', 'paymentMethod:id,type,bank_name,account_holder_name,is_active'])
+                ->with(['user:id,name,email', 'customerProfile:id,user_id,name,whatsapp_number,primary_address', 'voucher:id,code,name', 'paymentMethod:id,type,bank_name,account_number,account_holder_name,qris_image_path,instructions,is_active'])
                 ->latest()
                 ->get(),
         ]);
@@ -43,7 +44,7 @@ class OrderController extends Controller
             'user:id,name,email',
             'customerProfile:id,user_id,name,whatsapp_number,primary_address,member_status',
             'voucher:id,code,name',
-            'paymentMethod:id,type,bank_name,account_holder_name,is_active',
+            'paymentMethod:id,type,bank_name,account_number,account_holder_name,qris_image_path,instructions,is_active',
             'orderItems.product:id,name,slug,price',
             'voucherRedemption.voucher:id,code,name',
         ]);
@@ -51,31 +52,48 @@ class OrderController extends Controller
         return Inertia::render('Admin/Orders/Show', [
             'page' => 'admin.orders.show',
             'order' => $order,
-            'paymentMethods' => PaymentMethod::query()->where('is_active', true)->orderBy('type')->get(['id', 'type', 'bank_name', 'account_holder_name', 'is_active']),
         ]);
     }
 
-    public function updateShipping(UpdateOrderShippingRequest $request, Order $order): RedirectResponse
+    public function updateShipping(UpdateOrderShippingRequest $request, Order $order, OrderFulfillmentService $fulfillmentService): RedirectResponse
     {
         $validated = $request->validated();
         $shippingStatus = $validated['shipping_status'];
         $status = $order->status;
+        $paymentStatus = $order->payment_status;
 
-        if (in_array($shippingStatus, ['shipping_cost_confirmed', 'ready_to_ship'], true)) {
+        if ($shippingStatus === 'shipping_cost_confirmed') {
             $status = 'waiting_payment';
-        } elseif ($shippingStatus === 'cancelled') {
-            $status = 'cancelled';
+            $paymentStatus = 'waiting_payment';
+        } elseif ($shippingStatus === 'ready_to_ship') {
+            if ($order->payment_status !== 'paid') {
+                throw ValidationException::withMessages([
+                    'shipping_status' => 'Payment harus berstatus paid sebelum shipping siap dikirim.',
+                ]);
+            }
+
+            $status = 'processing';
         }
 
-        $order->update([
-            'courier_name' => $validated['courier_name'] ?? null,
-            'tracking_number' => $validated['tracking_number'] ?? null,
-            'shipping_cost' => $validated['shipping_cost'],
-            'shipping_status' => $shippingStatus,
-            'shipping_notes' => $validated['shipping_notes'] ?? null,
-            'total' => $order->subtotal - $order->voucher_discount_amount + $validated['shipping_cost'],
-            'status' => $status,
-        ]);
+        DB::transaction(function () use ($fulfillmentService, $order, $paymentStatus, $shippingStatus, $status, $validated): void {
+            $order->update([
+                'courier_name' => $validated['courier_name'] ?? null,
+                'tracking_number' => $validated['tracking_number'] ?? null,
+                'shipping_cost' => $validated['shipping_cost'],
+                'shipping_status' => $shippingStatus,
+                'shipping_notes' => $validated['shipping_notes'] ?? null,
+                'total' => $order->subtotal - $order->voucher_discount_amount + $validated['shipping_cost'],
+                'payment_status' => $paymentStatus,
+                'status' => $status,
+            ]);
+
+            if ($status === 'processing') {
+                $fulfillmentService->updateStatus($order->fresh(), [
+                    'status' => 'processing',
+                    'admin_notes' => $order->admin_notes,
+                ]);
+            }
+        });
 
         return redirect()->route('admin.orders.show', $order)->with('success', 'Status pengiriman berhasil diperbarui.');
     }
@@ -97,7 +115,6 @@ class OrderController extends Controller
         }
 
         $order->update([
-            'payment_method_id' => $validated['payment_method_id'] ?? null,
             'payment_status' => $paymentStatus,
             'payment_received_at' => $paymentReceivedAt,
             'payment_notes' => $validated['payment_notes'] ?? null,

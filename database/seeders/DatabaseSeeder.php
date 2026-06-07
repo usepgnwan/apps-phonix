@@ -8,6 +8,7 @@ use App\Models\Event;
 use App\Models\FieldActivity;
 use App\Models\Lead;
 use App\Models\LeadSource;
+use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\Service;
@@ -50,7 +51,7 @@ class DatabaseSeeder extends Seeder
         $customer = User::query()->updateOrCreate(
             ['email' => 'customer@phoenix.test'],
             [
-                'name' => 'Customer Phoenix',
+                'name' => 'Customer Phoenix Member',
                 'password' => Hash::make('password'),
                 'role' => 'customer',
                 'is_active' => true,
@@ -61,11 +62,61 @@ class DatabaseSeeder extends Seeder
         $customerProfile = CustomerProfile::query()->updateOrCreate(
             ['user_id' => $customer->id],
             [
-                'name' => 'Customer Phoenix',
+                'name' => 'Customer Phoenix Member',
                 'whatsapp_number' => '081234567890',
                 'primary_address' => 'Jl. Herbal Sehat No. 10, Jakarta',
                 'member_status' => 'member',
-                'internal_notes' => 'Akun dummy untuk testing dashboard dan flow customer.',
+                'internal_notes' => 'Akun dummy member untuk testing dashboard dan flow customer.',
+            ]
+        );
+
+        $nonMemberCustomer = User::query()->updateOrCreate(
+            ['email' => 'customer.nonmember@phoenix.test'],
+            [
+                'name' => 'Customer Phoenix Non Member',
+                'password' => Hash::make('password'),
+                'role' => 'customer',
+                'is_active' => true,
+                'email_verified_at' => now(),
+            ]
+        );
+
+        CustomerProfile::query()->updateOrCreate(
+            ['user_id' => $nonMemberCustomer->id],
+            [
+                'name' => 'Customer Phoenix Non Member',
+                'whatsapp_number' => '081111222333',
+                'primary_address' => 'Jl. Non Member Phoenix No. 7, Bandung',
+                'member_status' => 'non_member',
+                'internal_notes' => 'Akun dummy non-member untuk testing checkout dan customer profile.',
+            ]
+        );
+
+        PaymentMethod::query()->updateOrCreate(
+            [
+                'type' => 'bank_transfer',
+                'bank_name' => 'BCA',
+                'account_number' => '1234567890',
+            ],
+            [
+                'account_holder_name' => 'PT Phoenix Herbal Indonesia',
+                'qris_image_path' => null,
+                'instructions' => 'Transfer sesuai total order ke rekening BCA Phoenix, lalu konfirmasi pembayaran melalui WhatsApp admin.',
+                'is_active' => true,
+            ]
+        );
+
+        PaymentMethod::query()->updateOrCreate(
+            [
+                'type' => 'qris',
+                'qris_image_path' => 'payment-methods/qris-phoenix-dummy.png',
+            ],
+            [
+                'bank_name' => null,
+                'account_number' => null,
+                'account_holder_name' => 'PT Phoenix Herbal Indonesia',
+                'instructions' => 'Scan QRIS Phoenix sesuai total order, lalu simpan bukti pembayaran untuk konfirmasi admin.',
+                'is_active' => true,
             ]
         );
 
