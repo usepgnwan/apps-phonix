@@ -1172,7 +1172,7 @@ Implementasi admin offline sales saat ini:
   - `line_total`
 - `offline_sales.total` dihitung server-side dari total semua item.
 - Payload `total`, `unit_price`, dan `line_total` dari client tidak dipakai sebagai sumber kebenaran.
-- Stok produk tidak dikurangi pada batch ini karena stock movement masih out of scope.
+- Stok produk dikurangi sesuai quantity item dalam transaksi offline sale yang sama.
 
 Source offline sales yang diterima:
 

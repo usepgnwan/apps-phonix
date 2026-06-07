@@ -67,6 +67,8 @@ class OfflineSaleService
                     'quantity' => $item['quantity'],
                     'line_total' => $item['line_total'],
                 ]);
+
+                $product->decrement('stock_quantity', $item['quantity']);
             }
 
             return $offlineSale->load(['offlineSaleItems.product', 'customerProfile', 'lead', 'fieldStaff', 'event']);

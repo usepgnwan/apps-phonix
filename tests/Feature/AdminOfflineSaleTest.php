@@ -104,8 +104,8 @@ class AdminOfflineSaleTest extends TestCase
 
         $this->assertMatchesRegularExpression('/^OFF-\d{8}-[A-Z0-9]{6}$/', $offlineSale->sale_number);
         $this->assertSame('275000.00', (string) $offlineSale->total);
-        $this->assertSame(10, $productA->fresh()->stock_quantity);
-        $this->assertSame(10, $productB->fresh()->stock_quantity);
+        $this->assertSame(8, $productA->fresh()->stock_quantity);
+        $this->assertSame(9, $productB->fresh()->stock_quantity);
 
         $this->assertDatabaseHas('offline_sales', [
             'id' => $offlineSale->id,

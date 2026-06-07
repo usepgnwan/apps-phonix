@@ -62,6 +62,42 @@ class AuthenticationTest extends TestCase
         $response->assertRedirect(route('field.dashboard.index', absolute: false));
     }
 
+    public function test_dashboard_route_redirects_admin_users_to_admin_dashboard(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'admin',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('dashboard'))
+            ->assertRedirect(route('admin.dashboard.index'));
+    }
+
+    public function test_dashboard_route_redirects_field_staff_users_to_field_dashboard(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'field_staff',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('dashboard'))
+            ->assertRedirect(route('field.dashboard.index'));
+    }
+
+    public function test_dashboard_route_redirects_customer_users_to_customer_dashboard(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'customer',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('dashboard'))
+            ->assertRedirect(route('customer.dashboard.index'));
+    }
+
     public function test_users_can_not_authenticate_with_invalid_password(): void
     {
         $user = User::factory()->create();

@@ -26,8 +26,9 @@ use App\Http\Controllers\Public\HomeController;
 use App\Http\Controllers\Public\ProductController;
 use App\Http\Controllers\Public\ServiceController;
 use App\Http\Controllers\ProfileController;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 Route::get('/', HomeController::class)->name('home');
 Route::get('/products', [ProductController::class, 'index'])->name('products.index');
@@ -41,8 +42,18 @@ Route::delete('/cart/items/{cartItem}', [CartController::class, 'destroy'])->nam
 Route::get('/checkout', [CheckoutController::class, 'show'])->name('checkout.show');
 Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
 
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
+Route::get('/dashboard', function (Request $request): RedirectResponse {
+    $user = $request->user();
+
+    if ($user?->role === 'admin' && $user->is_active) {
+        return redirect()->route('admin.dashboard.index');
+    }
+
+    if ($user?->role === 'field_staff' && $user->is_active) {
+        return redirect()->route('field.dashboard.index');
+    }
+
+    return redirect()->route('customer.dashboard.index');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {

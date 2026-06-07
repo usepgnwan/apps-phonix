@@ -27,6 +27,14 @@ class LeadController extends Controller
         abort_unless($user !== null && $user->role === 'admin' && $user->is_active, 403);
     }
 
+    private function activeFieldStaffQuery()
+    {
+        return User::query()
+            ->where('role', 'field_staff')
+            ->where('is_active', true)
+            ->orderBy('name');
+    }
+
     public function index(): Response
     {
         $this->authorizeAdmin();
@@ -47,7 +55,7 @@ class LeadController extends Controller
         return Inertia::render('Admin/Leads/Create', [
             'page' => 'admin.leads.create',
             'leadSources' => LeadSource::query()->where('is_active', true)->latest()->get(),
-            'users' => User::query()->latest()->get(),
+            'users' => $this->activeFieldStaffQuery()->get(['id', 'name', 'email', 'role', 'is_active']),
             'customerProfiles' => CustomerProfile::query()->latest()->get(),
             'events' => Event::query()->latest()->get(),
             'leadStatuses' => self::LEAD_STATUSES,
@@ -78,7 +86,7 @@ class LeadController extends Controller
             'lead' => $lead,
             'leadStatuses' => self::LEAD_STATUSES,
             'leadSources' => LeadSource::query()->where('is_active', true)->latest()->get(),
-            'users' => User::query()->latest()->get(),
+            'users' => $this->activeFieldStaffQuery()->get(['id', 'name', 'email', 'role', 'is_active']),
             'customerProfiles' => CustomerProfile::query()->latest()->get(),
             'events' => Event::query()->latest()->get(),
         ]);

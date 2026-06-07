@@ -17,7 +17,12 @@ class StoreLeadRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'assigned_staff_id' => ['nullable', 'exists:users,id'],
+            'assigned_staff_id' => [
+                'nullable',
+                Rule::exists('users', 'id')
+                    ->where('role', 'field_staff')
+                    ->where('is_active', true),
+            ],
             'customer_profile_id' => ['nullable', 'exists:customer_profiles,id'],
             'lead_source_id' => ['required', 'exists:lead_sources,id'],
             'event_id' => ['nullable', 'exists:events,id'],

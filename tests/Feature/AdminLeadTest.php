@@ -37,13 +37,18 @@ class AdminLeadTest extends TestCase
     public function test_active_admin_can_view_create_page(): void
     {
         $admin = $this->createAdmin();
-        $this->seedLeadRelations();
+        $relations = $this->seedLeadRelations();
+        User::factory()->create(['role' => 'customer', 'is_active' => true, 'name' => 'Customer User']);
+        User::factory()->create(['role' => 'field_staff', 'is_active' => false, 'name' => 'Inactive Staff']);
 
         $this->inertiaGet($admin, route('admin.leads.create'))
             ->assertOk()
             ->assertJsonPath('component', 'Admin/Leads/Create')
             ->assertJsonPath('props.page', 'admin.leads.create')
-            ->assertJsonPath('props.leadStatuses.0', 'new');
+            ->assertJsonPath('props.leadStatuses.0', 'new')
+            ->assertJsonPath('props.users.0.id', $relations['staffUser']->id)
+            ->assertJsonMissing(['name' => 'Customer User'])
+            ->assertJsonMissing(['name' => 'Inactive Staff']);
     }
 
     public function test_active_admin_can_view_index_with_relations(): void
@@ -100,6 +105,28 @@ class AdminLeadTest extends TestCase
 
             $this->actingAs($admin)->post(route('admin.leads.store'), $invalidPayload)->assertSessionHasErrors($field);
         }
+    }
+
+    public function test_lead_validation_rejects_non_field_staff_assignee(): void
+    {
+        $admin = $this->createAdmin();
+        $payload = $this->leadPayload();
+        $payload['assigned_staff_id'] = User::factory()->create(['role' => 'customer', 'is_active' => true])->id;
+
+        $this->actingAs($admin)
+            ->post(route('admin.leads.store'), $payload)
+            ->assertSessionHasErrors('assigned_staff_id');
+    }
+
+    public function test_lead_validation_rejects_inactive_field_staff_assignee(): void
+    {
+        $admin = $this->createAdmin();
+        $payload = $this->leadPayload();
+        $payload['assigned_staff_id'] = User::factory()->create(['role' => 'field_staff', 'is_active' => false])->id;
+
+        $this->actingAs($admin)
+            ->post(route('admin.leads.store'), $payload)
+            ->assertSessionHasErrors('assigned_staff_id');
     }
 
     public function test_active_admin_can_update_lead_and_view_show_page(): void
@@ -235,7 +262,7 @@ class AdminLeadTest extends TestCase
         $index = LeadSource::query()->count() + 1;
         $leadSource = LeadSource::query()->create(['name' => 'Instagram', 'slug' => 'instagram-'.$index, 'is_active' => true]);
         $customerUser = User::factory()->create();
-        $staffUser = User::factory()->create();
+        $staffUser = User::factory()->create(['role' => 'field_staff', 'is_active' => true]);
         $customerProfile = CustomerProfile::query()->create([
             'user_id' => $customerUser->id,
             'name' => 'Customer A',

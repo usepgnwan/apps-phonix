@@ -488,6 +488,7 @@ Flow:
 5. `OfflineSaleService` menjalankan transaksi untuk membuat `offline_sales` dan `offline_sale_items`.
 6. Harga, line total, dan total dihitung server-side dari harga produk saat ini.
 7. Sale number dibuat dengan format `OFF-YYYYMMDD-XXXXXX`.
+8. Stok produk dikurangi sesuai quantity item dalam transaksi yang sama.
 
 Validasi penting:
 
@@ -499,7 +500,6 @@ Validasi penting:
 Catatan:
 
 - Offline sales saat ini read/create-only.
-- Offline sales belum mengurangi stok.
 - Tidak ada edit/delete offline sale pada MVP saat ini.
 
 ## Flow Examination dan Product Recommendation
