@@ -423,11 +423,8 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
             {/* TopNavBar */}
             <nav className={`fixed top-0 left-0 w-full z-50 border-b backdrop-blur-xl transition-all duration-300 ${isScrolled ? 'bg-white/95 border-[#E5E7EB] shadow-sm' : 'bg-white/80 border-white/70 shadow-none'}`}>
                 <div className="flex h-20 w-full max-w-container-max items-center justify-between px-margin-mobile md:px-margin-desktop mx-auto">
-                    <SmoothAnchor className="rounded-full pr-3 transition-all duration-300 hover:bg-[#F6F7F7]" href="#beranda" onClick={handleAnchorClick} aria-label="Phoenix Terapi & Herbal">
-                        <span className="leading-none">
-                            <span className="block font-headline-md text-xl font-bold tracking-[0.16em] text-[#1E4D3A]">PHOENIX</span>
-                            <span className="mt-1 block font-label-sm text-[9px] font-bold uppercase tracking-[0.22em] text-[#333333]">Terapi &amp; Herbal</span>
-                        </span>
+                    <SmoothAnchor className="rounded-full pr-3 transition-all duration-300 hover:opacity-80" href="#beranda" onClick={handleAnchorClick} aria-label="Phoenix Terapi & Herbal">
+                        <img src="/images/logoo.png" alt="Phoenix Terapi &amp; Herbal" className="h-12 md:h-14 w-auto object-contain" />
                     </SmoothAnchor>
                     <div className="hidden items-center gap-8 md:flex">
                         <SmoothAnchor className="font-body-md text-body-md font-semibold text-[#1E4D3A] transition-colors hover:text-[#6FA788]" href="#beranda" onClick={handleAnchorClick}>Beranda</SmoothAnchor>
@@ -708,40 +705,40 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                         <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-center">
                             {/* Left Content (Video) */}
                             <div className="w-full lg:w-1/2">
-                            <div className="rounded-3xl overflow-hidden shadow-lg border border-outline-variant bg-white aspect-[4/3] relative">
-                                <video 
-                                    className="w-full h-full object-cover"
-                                    autoPlay 
-                                    loop 
-                                    muted 
-                                    playsInline
-                                >
-                                    <source src="/images/video1.mp4" type="video/mp4" />
-                                    Browser Anda tidak mendukung video HTML5.
-                                </video>
+                                <div className="rounded-3xl overflow-hidden shadow-lg border border-outline-variant bg-white aspect-[4/3] relative">
+                                    <video
+                                        className="w-full h-full object-cover"
+                                        autoPlay
+                                        loop
+                                        muted
+                                        playsInline
+                                    >
+                                        <source src="/images/video1.mp4" type="video/mp4" />
+                                        Browser Anda tidak mendukung video HTML5.
+                                    </video>
+                                </div>
                             </div>
-                        </div>
 
-                        {/* Right Content (Before/After Slider) */}
-                        <div className="w-full lg:w-1/2 flex flex-col justify-center gap-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="rounded-3xl overflow-hidden shadow-lg border border-outline-variant bg-white aspect-[4/5] relative">
-                                    <BeforeAfterSlider 
-                                        beforeImage="/images/before_treatment_real.jpg" 
-                                        afterImage="/images/after_treatment_real.jpg" 
-                                        className="w-full h-full"
-                                    />
+                            {/* Right Content (Before/After Slider) */}
+                            <div className="w-full lg:w-1/2 flex flex-col justify-center gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="rounded-3xl overflow-hidden shadow-lg border border-outline-variant bg-white aspect-[4/5] relative">
+                                        <BeforeAfterSlider
+                                            beforeImage="/images/before_treatment_real.jpg"
+                                            afterImage="/images/after_treatment_real.jpg"
+                                            className="w-full h-full"
+                                        />
+                                    </div>
+                                    <div className="rounded-3xl overflow-hidden shadow-lg border border-outline-variant bg-white aspect-[4/5] relative">
+                                        <BeforeAfterSlider
+                                            beforeImage="/images/card2_before.jpg"
+                                            afterImage="/images/card2_after.jpg"
+                                            className="w-full h-full"
+                                        />
+                                    </div>
                                 </div>
-                                <div className="rounded-3xl overflow-hidden shadow-lg border border-outline-variant bg-white aspect-[4/5] relative">
-                                    <BeforeAfterSlider 
-                                        beforeImage="/images/card2_before.jpg" 
-                                        afterImage="/images/card2_after.jpg" 
-                                        className="w-full h-full"
-                                    />
-                                </div>
+                                <p className="text-center mt-2 text-sm text-on-surface-variant italic">Geser slider untuk melihat perbandingan sebelum dan sesudah terapi.</p>
                             </div>
-                            <p className="text-center mt-2 text-sm text-on-surface-variant italic">Geser slider untuk melihat perbandingan sebelum dan sesudah terapi.</p>
-                        </div>
                         </div>
                     </Reveal>
                 </section>
@@ -827,7 +824,7 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                             <p className="font-label-md text-secondary uppercase tracking-widest mb-3">Konsultasi Gratis</p>
                             <h2 className="font-headline-lg text-headline-lg text-primary mb-3">Siap Untuk Hidup Lebih Sehat?</h2>
                             <p className="font-body-md text-body-md text-on-surface-variant mb-8">Tim ahli kami siap membantu Anda menentukan terapi dan produk herbal yang tepat sesuai kebutuhan Anda. Hubungi kami sekarang untuk konsultasi gratis!</p>
-                            <a 
+                            <a
                                 href="https://wa.me/6281234567890?text=Halo%20Phoenix%2C%20saya%20tertarik%20untuk%20konsultasi."
                                 target="_blank"
                                 rel="noopener noreferrer"
@@ -853,7 +850,7 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
             {/* Footer */}
             <footer className="w-full py-16 px-margin-mobile md:px-margin-desktop flex flex-col items-center gap-8 text-center bg-primary text-on-primary">
                 <div className="font-headline-md text-headline-md font-bold text-on-primary">
-                    <img alt="Phoenix Terapi &amp; Herbal" className="h-12 w-auto object-contain brightness-0 invert" src="https://lh3.googleusercontent.com/aida/ADBb0ujPaqtXI-j2UcJPo7FMIYVaftg-h3f_u7kcbryg7t9lMg_D7MNBxUbIbbnM3B6tyhwBrc-cvH4a9oSzp7-VevRK5DX8pPJ6OR2b58Ez6TcBDqHzyTD_HHifZQkdwBHT-AX8QqITIhrpIg-Jn1nR_kWPcC9_KZisexKvhw8wf-yG_x3bBXtxAtHt8TRRZhu9226xMso5M6ZyPOf5Ea_MBT4XiuNdiHIQWisPeGUG0NFsrmJKGchUmcapEa_r" />
+                    <img alt="Phoenix Terapi &amp; Herbal" className="h-14 md:h-16 w-auto object-contain brightness-0 invert" src="/images/logo_phoenix.png" />
                 </div>
                 <div className="flex flex-wrap justify-center gap-x-12 gap-y-4">
                     <a className="font-body-sm text-body-sm text-on-primary/80 hover:text-on-primary transition-opacity" href="mailto:info@phoenixherbal.test">Hubungi Kami</a>
