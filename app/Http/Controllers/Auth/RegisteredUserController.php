@@ -34,6 +34,8 @@ class RegisteredUserController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
+            'whatsapp_number' => ['required', 'string', 'max:30'],
+            'primary_address' => ['required', 'string', 'max:1000'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
@@ -41,6 +43,16 @@ class RegisteredUserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'role' => 'customer',
+            'is_active' => true,
+        ]);
+
+        $user->customerProfile()->create([
+            'name' => $request->name,
+            'whatsapp_number' => $request->whatsapp_number,
+            'primary_address' => $request->primary_address,
+            'member_status' => 'non_member',
+            'internal_notes' => 'Customer mendaftar mandiri melalui halaman registrasi.',
         ]);
 
         event(new Registered($user));

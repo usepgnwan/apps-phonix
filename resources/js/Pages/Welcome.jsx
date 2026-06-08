@@ -513,6 +513,11 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                                 </span>
                             )}
                         </Link>
+                        {!isAuthenticated && (
+                            <Link href={route('register')} className="hidden rounded-full border border-[#1E4D3A]/30 bg-white px-4 py-2.5 font-label-md font-semibold text-[#1E4D3A] shadow-sm transition-all duration-150 hover:border-[#1E4D3A] hover:bg-[#A8C5B3]/20 active:scale-95 sm:inline-flex">
+                                Daftar
+                            </Link>
+                        )}
                         <Link href={accountHref} className="inline-flex rounded-full bg-[#1E4D3A] px-5 py-2.5 font-label-md font-semibold text-white shadow-sm transition-all duration-150 hover:bg-[#163B2C] active:scale-95">
                             {isAuthenticated ? 'Dashboard' : 'Login'}
                         </Link>

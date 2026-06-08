@@ -127,6 +127,16 @@ export default function Login({ status, canResetPassword }) {
                             {processing ? 'Memproses...' : 'Masuk'}
                         </button>
                     </form>
+
+                    <p className="mt-5 text-center font-body-sm text-sm text-on-surface-variant">
+                        Belum punya akun?{' '}
+                        <Link
+                            href={route('register')}
+                            className="font-semibold text-primary-container underline-offset-4 transition hover:text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary-container focus:ring-offset-2"
+                        >
+                            Daftar
+                        </Link>
+                    </p>
                 </section>
             </div>
         </GuestLayout>
