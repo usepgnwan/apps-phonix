@@ -231,6 +231,7 @@ function TestimonialCard({ testimonial }) {
 export default function Welcome({ auth, featuredProducts = [], featuredServices = [], testimonials = [] }) {
     const [isScrolled, setIsScrolled] = useState(false);
     const [flyingProduct, setFlyingProduct] = useState(null);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const cartCount = Number(usePage().props.cartSummary?.count ?? 0);
     const isAuthenticated = Boolean(auth?.user);
     const accountHref = (() => {
@@ -521,8 +522,29 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                         <Link href={accountHref} className="inline-flex rounded-full bg-[#1E4D3A] px-5 py-2.5 font-label-md font-semibold text-white shadow-sm transition-all duration-150 hover:bg-[#163B2C] active:scale-95">
                             {isAuthenticated ? 'Dashboard' : 'Login'}
                         </Link>
+                        <button
+                            type="button"
+                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                            className="md:hidden flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#1E4D3A]/30 bg-white text-[#1E4D3A] transition-all duration-150 hover:bg-[#A8C5B3]/20 active:scale-95"
+                            aria-label="Menu navigasi"
+                        >
+                            <span className="material-symbols-outlined text-xl">{isMobileMenuOpen ? 'close' : 'menu'}</span>
+                        </button>
                     </div>
                 </div>
+
+                {/* Mobile Menu Dropdown */}
+                {isMobileMenuOpen && (
+                    <div className="md:hidden absolute top-20 left-0 w-full bg-white border-b border-[#E5E7EB] shadow-lg flex flex-col px-margin-mobile py-4 gap-4 transition-all duration-300">
+                        <SmoothAnchor className="font-body-md text-body-md font-semibold text-[#1E4D3A]" href="#beranda" onClick={(e) => { setIsMobileMenuOpen(false); handleAnchorClick(e); }}>Beranda</SmoothAnchor>
+                        <SmoothAnchor className="font-body-md text-body-md font-medium text-[#333333]" href="#produk" onClick={(e) => { setIsMobileMenuOpen(false); handleAnchorClick(e); }}>Produk</SmoothAnchor>
+                        <SmoothAnchor className="font-body-md text-body-md font-medium text-[#333333]" href="#layanan" onClick={(e) => { setIsMobileMenuOpen(false); handleAnchorClick(e); }}>Layanan</SmoothAnchor>
+                        <SmoothAnchor className="font-body-md text-body-md font-medium text-[#333333]" href="#tentang-kami" onClick={(e) => { setIsMobileMenuOpen(false); handleAnchorClick(e); }}>Tentang Kami</SmoothAnchor>
+                        {!isAuthenticated && (
+                            <Link href={route('register')} className="w-full text-center rounded-full border border-[#1E4D3A] py-2.5 font-label-md font-semibold text-[#1E4D3A] mt-2 transition-all hover:bg-[#1E4D3A]/5">Daftar Akun</Link>
+                        )}
+                    </div>
+                )}
             </nav>
             <main className="pt-20">
                 {/* Hero Section */}
@@ -772,6 +794,63 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                     </Reveal>
                 </section>
 
+                {/* GenQi Narrative Section */}
+                <section className="py-24 bg-surface px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto relative">
+                    <Reveal delay={80}>
+                        <div className="flex flex-col lg:flex-row gap-10 lg:gap-16 items-center">
+                            {/* Left Content (Image) */}
+                            <div className="w-full lg:w-1/2">
+                                <div className="rounded-3xl overflow-hidden shadow-lg border border-outline-variant bg-white aspect-[4/3] relative">
+                                    <img 
+                                        src="/images/genqi_bioscan.jpg" 
+                                        alt="Terapi GenQi Bio Elektrik" 
+                                        className="w-full h-full object-cover"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Right Content (Narrative) */}
+                            <div className="w-full lg:w-1/2 space-y-6">
+                                <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-2">
+                                    <span className="material-symbols-outlined text-primary text-sm">monitor_heart</span>
+                                    <span className="font-label-sm text-sm font-bold text-primary tracking-wider uppercase">Metode Bio Elektrik</span>
+                                </div>
+                                <h2 className="font-headline-lg text-headline-lg text-primary leading-tight">
+                                    Deteksi Akurat, Terapi Tepat Sasaran
+                                </h2>
+                                <div className="space-y-4 text-on-surface-variant font-body-md leading-relaxed">
+                                    <p>
+                                        <strong className="text-primary">GenQi</strong> adalah terapi pengobatan timur dengan menggunakan metode bio elektrik. Setiap masalah kesehatan dapat terdeteksi melalui alat tersebut dan energi perbaikannya langsung masuk ke bagian jaringan kulit, ligamen, sendi, otot, dan tulang.
+                                    </p>
+                                    <p>
+                                        Praktik GenQi secara efektif menyatukan <strong className="text-primary">Akupuntur, Bekam, dan Pijat</strong> menjadi satu kesatuan terapi yang komprehensif.
+                                    </p>
+                                </div>
+                                
+                                <div className="bg-[#F6F7F7] border border-[#E5E7EB] rounded-2xl p-6 mt-6">
+                                    <h3 className="font-bold text-primary mb-4 flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-[#F08A2B]">health_and_safety</span>
+                                        Manfaat Terapi GenQi
+                                    </h3>
+                                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        {[
+                                            'Membuang toxic tubuh',
+                                            'Melancarkan peredaran darah',
+                                            'Meringankan stroke',
+                                            'Mengurangi selulit & lemak',
+                                        ].map((item, idx) => (
+                                            <li key={idx} className="flex items-start gap-2 text-sm text-on-surface-variant">
+                                                <span className="material-symbols-outlined text-[#6FA788] text-lg shrink-0">check_circle</span>
+                                                {item}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </Reveal>
+                </section>
+
                 {/* Transformasi (Video & Slider) */}
                 <section className="py-24 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto relative">
                     <Reveal delay={80}>
@@ -779,7 +858,7 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                             <h2 className="font-headline-lg text-headline-lg text-primary mb-4">Bukti Nyata Terapi Kami</h2>
                             <p className="font-body-md text-body-md text-on-surface-variant">Lihat langsung proses dan hasil terapi di klinik Phoenix. Kami menggunakan metode yang aman dan efektif.</p>
                         </div>
-                        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-center">
+                        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-center mb-16">
                             {/* Left Content (Video) */}
                             <div className="w-full lg:w-1/2">
                                 <div className="rounded-3xl overflow-hidden shadow-lg border border-outline-variant bg-white aspect-[4/3] relative">
@@ -816,6 +895,22 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                                 </div>
                                 <p className="text-center mt-2 text-sm text-on-surface-variant italic">Geser slider untuk melihat perbandingan sebelum dan sesudah terapi.</p>
                             </div>
+                        </div>
+
+                        {/* Testimonial Videos Slider/Grid */}
+                        <div className="flex overflow-x-auto lg:grid lg:grid-cols-4 gap-4 md:gap-6 pb-4 snap-x snap-mandatory no-scrollbar">
+                            {[1, 2, 3, 4].map((num) => (
+                                <div key={num} className="w-[260px] sm:w-[320px] lg:w-full snap-start rounded-3xl overflow-hidden shadow-sm border border-outline-variant bg-black aspect-[9/16] relative flex-shrink-0">
+                                    <video
+                                        className="w-full h-full object-contain"
+                                        controls
+                                        playsInline
+                                    >
+                                        <source src={`/videos/${num}.mp4`} type="video/mp4" />
+                                        Browser Anda tidak mendukung video HTML5.
+                                    </video>
+                                </div>
+                            ))}
                         </div>
                     </Reveal>
                 </section>
