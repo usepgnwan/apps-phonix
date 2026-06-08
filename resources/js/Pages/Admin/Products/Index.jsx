@@ -60,21 +60,36 @@ function AdminProdukIndex({ products = [] }) {
                     <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
                         {products.map((product) => (
                             <AdminCard className="p-5" key={product.id}>
-                                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                                    <div className="min-w-0">
-                                        <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
-                                            {productKategori(product)?.name ?? 'Tanpa kategori'}
-                                        </p>
-                                        <h2 className="mt-1 font-body-lg text-lg font-extrabold text-[#333333]">
-                                            {product.name}
-                                        </h2>
-                                        <p className="mt-2 line-clamp-2 font-body-sm text-sm leading-6 text-gray-500">
-                                            {product.short_description || 'Deskripsi singkat belum tersedia.'}
+                                <div className="flex gap-4 items-start">
+                                    {/* Thumbnail */}
+                                    <div className="shrink-0 w-20 h-20 rounded-2xl overflow-hidden border border-[#E5E7EB] bg-[#F6F7F7] flex items-center justify-center">
+                                        {product.image_path ? (
+                                            <img
+                                                src={product.image_path}
+                                                alt={product.name}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <Package className="w-8 h-8 text-gray-300" />
+                                        )}
+                                    </div>
+                                    {/* Info */}
+                                    <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1">
+                                        <div className="min-w-0">
+                                            <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
+                                                {productKategori(product)?.name ?? 'Tanpa kategori'}
+                                            </p>
+                                            <h2 className="mt-1 font-body-lg text-lg font-extrabold text-[#333333]">
+                                                {product.name}
+                                            </h2>
+                                            <p className="mt-1 line-clamp-2 font-body-sm text-sm leading-6 text-gray-500">
+                                                {product.short_description || 'Deskripsi singkat belum tersedia.'}
+                                            </p>
+                                        </div>
+                                        <p className="shrink-0 font-body-sm text-base font-extrabold text-[#1E4D3A]">
+                                            {formatCurrency(product.price)}
                                         </p>
                                     </div>
-                                    <p className="shrink-0 font-body-sm text-base font-extrabold text-[#1E4D3A]">
-                                        {formatCurrency(product.price)}
-                                    </p>
                                 </div>
                                 <div className="mt-4 flex flex-wrap gap-2">
                                     <StatusBadge

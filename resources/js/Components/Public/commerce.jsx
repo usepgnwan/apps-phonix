@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Leaf } from 'lucide-react';
+import { ImageIcon, Leaf } from 'lucide-react';
 import { forwardRef } from 'react';
 
 export function formatRupiah(value) {
@@ -136,10 +136,10 @@ export function BotanicalPlaceholder({ className = '' }) {
         <div className={`flex items-center justify-center bg-primary-fixed/25 ${className}`}>
             <div className="text-center text-primary-container">
                 <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-3xl bg-white shadow-sm shadow-primary-container/10">
-                    <Leaf aria-hidden="true" className="h-7 w-7" />
+                    <ImageIcon aria-hidden="true" className="h-7 w-7 text-primary/50" />
                 </span>
                 <span className="mt-3 block font-label-sm text-xs font-bold uppercase tracking-[0.18em]">
-                    Phoenix Herbal
+                    Belum ada foto
                 </span>
             </div>
         </div>
@@ -151,7 +151,11 @@ export function ProductImage({ alt, className = '', imagePath }) {
         return <BotanicalPlaceholder className={className} />;
     }
 
-    return <img alt={alt} className={`object-cover ${className}`} src={`/storage/${imagePath}`} />;
+    // Jika path sudah absolut (dimulai dengan /), gunakan langsung
+    // Jika tidak (path lama dari storage), prefix dengan /storage/
+    const src = imagePath.startsWith('/') ? imagePath : `/storage/${imagePath}`;
+
+    return <img alt={alt} className={`object-cover ${className}`} src={src} />;
 }
 
 export function EmptyState({ action, description, title }) {

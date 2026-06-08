@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\OfflineSale;
 use App\Models\Product;
+use App\Models\Service;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -14,29 +15,53 @@ class OfflineSaleService
     {
         return DB::transaction(function () use ($data): OfflineSale {
             $items = collect($data['items'])->map(function (array $item): array {
-                $product = Product::query()
-                    ->whereKey($item['product_id'])
-                    ->lockForUpdate()
-                    ->first();
+                $type = ! empty($item['product_id']) ? 'product' : 'service';
+                $model = null;
+                $unitPrice = 0;
+                $itemName = '';
 
-                if ($product === null || ! $product->is_active) {
-                    throw ValidationException::withMessages([
-                        'items' => 'Produk tidak valid atau sudah tidak aktif.',
-                    ]);
+                if ($type === 'product') {
+                    $model = Product::query()
+                        ->whereKey($item['product_id'])
+                        ->lockForUpdate()
+                        ->first();
+
+                    if ($model === null || ! $model->is_active) {
+                        throw ValidationException::withMessages([
+                            'items' => 'Produk tidak valid atau sudah tidak aktif.',
+                        ]);
+                    }
+
+                    if ((int) $item['quantity'] > $model->stock_quantity) {
+                        throw ValidationException::withMessages([
+                            'items' => "Stok {$model->name} tidak mencukupi.",
+                        ]);
+                    }
+
+                    $unitPrice = (float) $model->price;
+                    $itemName = $model->name;
+                } else {
+                    $model = Service::query()
+                        ->whereKey($item['service_id'])
+                        ->first();
+
+                    if ($model === null || ! $model->is_active) {
+                        throw ValidationException::withMessages([
+                            'items' => 'Layanan tidak valid atau sudah tidak aktif.',
+                        ]);
+                    }
+
+                    $unitPrice = (float) ($model->price ?? 0);
+                    $itemName = $model->name;
                 }
 
-                if ((int) $item['quantity'] > $product->stock_quantity) {
-                    throw ValidationException::withMessages([
-                        'items' => "Stok {$product->name} tidak mencukupi.",
-                    ]);
-                }
-
-                $unitPrice = (float) $product->price;
                 $quantity = (int) $item['quantity'];
                 $lineTotal = $unitPrice * $quantity;
 
                 return [
-                    'product' => $product,
+                    'type' => $type,
+                    'model' => $model,
+                    'item_name' => $itemName,
                     'quantity' => $quantity,
                     'unit_price' => $unitPrice,
                     'line_total' => $lineTotal,
@@ -58,20 +83,24 @@ class OfflineSaleService
             ]);
 
             foreach ($items as $item) {
-                $product = $item['product'];
+                $model = $item['model'];
+                $isProduct = $item['type'] === 'product';
 
                 $offlineSale->offlineSaleItems()->create([
-                    'product_id' => $product->id,
-                    'product_name' => $product->name,
+                    'product_id' => $isProduct ? $model->id : null,
+                    'service_id' => ! $isProduct ? $model->id : null,
+                    'item_name' => $item['item_name'],
                     'unit_price' => $item['unit_price'],
                     'quantity' => $item['quantity'],
                     'line_total' => $item['line_total'],
                 ]);
 
-                $product->decrement('stock_quantity', $item['quantity']);
+                if ($isProduct) {
+                    $model->decrement('stock_quantity', $item['quantity']);
+                }
             }
 
-            return $offlineSale->load(['offlineSaleItems.product', 'customerProfile', 'lead', 'fieldStaff', 'event']);
+            return $offlineSale->load(['offlineSaleItems.product', 'offlineSaleItems.service', 'customerProfile', 'lead', 'fieldStaff', 'event']);
         });
     }
 

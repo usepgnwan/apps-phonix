@@ -10,7 +10,11 @@ const formatRupiah = (value) => new Intl.NumberFormat('id-ID', {
     style: 'currency',
 }).format(Number(value ?? 0));
 
-const storageImage = (path) => (path ? `/storage/${path}` : null);
+const storageImage = (path) => {
+    if (!path) return null;
+    // Path absolut (dari upload baru) langsung dipakai, path lama prefix /storage/
+    return path.startsWith('/') ? path : `/storage/${path}`;
+};
 
 function BotanicalFallback({ label = 'Phoenix Herbal' }) {
     return (

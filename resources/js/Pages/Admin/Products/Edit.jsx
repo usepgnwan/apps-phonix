@@ -3,6 +3,7 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import AdminCard from '@/Components/Admin/AdminCard';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
 import AdminLayout from '@/Layouts/AdminLayout';
+import ImageUploadField from '@/Components/Admin/ImageUploadField';
 
 function FieldError({ message }) {
     return message ? (
@@ -85,6 +86,7 @@ function CheckboxField({ checked, error, label, onChange }) {
 
 function AdminProdukEdit({ product, productKategori = [] }) {
     const form = useForm({
+        _method: 'patch',
         product_category_id: product.product_category_id ?? product.product_category?.id ?? product.productKategori?.id ?? '',
         name: product.name ?? '',
         slug: product.slug ?? '',
@@ -94,7 +96,7 @@ function AdminProdukEdit({ product, productKategori = [] }) {
         benefits: product.benefits ?? '',
         usage_rules: product.usage_rules ?? '',
         notes: product.notes ?? '',
-        image_path: product.image_path ?? '',
+        thumbnail: null,
         stock_quantity: product.stock_quantity ?? 0,
         low_stock_threshold: product.low_stock_threshold ?? 0,
         is_active: Boolean(product.is_active),
@@ -103,7 +105,7 @@ function AdminProdukEdit({ product, productKategori = [] }) {
 
     function submit(event) {
         event.preventDefault();
-        form.patch(route('admin.products.update', product.id));
+        form.post(route('admin.products.update', product.id));
     }
 
     return (
@@ -172,11 +174,11 @@ function AdminProdukEdit({ product, productKategori = [] }) {
                                 type="number"
                                 value={form.data.low_stock_threshold}
                             />
-                            <TextField
-                                error={form.errors.image_path}
-                                label="Path Gambar"
-                                onChange={(event) => form.setData('image_path', event.target.value)}
-                                value={form.data.image_path}
+                            <ImageUploadField
+                                error={form.errors.thumbnail}
+                                label="Thumbnail Gambar"
+                                onChange={(file) => form.setData('thumbnail', file)}
+                                currentImage={product.image_path}
                             />
                         </div>
                         <TextAreaField

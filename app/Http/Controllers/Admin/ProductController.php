@@ -8,6 +8,10 @@ use App\Http\Requests\Admin\UpdateProductRequest;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\File;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\Encoders\JpegEncoder;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -42,7 +46,12 @@ class ProductController extends Controller
 
     public function store(StoreProductRequest $request): RedirectResponse
     {
-        Product::query()->create($request->validated());
+        $data = $request->validated();
+        if ($request->hasFile('thumbnail')) {
+            $data['image_path'] = $this->processAndSaveThumbnail($request->file('thumbnail'));
+        }
+
+        Product::query()->create($data);
 
         return redirect()
             ->route('admin.products.index')
@@ -76,11 +85,42 @@ class ProductController extends Controller
 
     public function update(UpdateProductRequest $request, Product $product): RedirectResponse
     {
-        $product->update($request->validated());
+        $data = $request->validated();
+        if ($request->hasFile('thumbnail')) {
+            // Hapus gambar lama jika ada
+            if ($product->image_path && File::exists(public_path($product->image_path))) {
+                File::delete(public_path($product->image_path));
+            }
+            $data['image_path'] = $this->processAndSaveThumbnail($request->file('thumbnail'));
+        }
+
+        $product->update($data);
 
         return redirect()
             ->route('admin.products.index')
             ->with('success', 'Produk berhasil diperbarui.');
+    }
+
+    private function processAndSaveThumbnail($file): string
+    {
+        $dir = public_path('images/products');
+        if (!File::isDirectory($dir)) {
+            File::makeDirectory($dir, 0755, true);
+        }
+
+        $filename = time() . '_' . pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME) . '.jpg';
+        $destPath = $dir . '/' . $filename;
+
+        $manager = new ImageManager(new Driver());
+        $image = $manager->decode($file->getRealPath());
+
+        // Kompres: resize jika lebih dari 1200px (maintain aspect ratio)
+        $image->scaleDown(width: 1200);
+
+        // Encode sebagai JPEG kualitas 80% dan simpan
+        $image->encode(new JpegEncoder(quality: 80))->save($destPath);
+
+        return '/images/products/' . $filename;
     }
 
     public function destroy(Product $product): RedirectResponse

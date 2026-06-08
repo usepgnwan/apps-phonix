@@ -8,7 +8,9 @@ use App\Models\CustomerProfile;
 use App\Models\Event;
 use App\Models\Lead;
 use App\Models\OfflineSale;
+use App\Models\PaymentMethod;
 use App\Models\Product;
+use App\Models\Service;
 use App\Models\User;
 use App\Services\OfflineSaleService;
 use Illuminate\Http\RedirectResponse;
@@ -28,17 +30,34 @@ class OfflineSaleController extends Controller
     {
         $this->authorizeAdmin();
 
+        $metricsQuery = OfflineSale::query();
+
         return Inertia::render('Admin/OfflineSales/Index', [
+            'metrics' => [
+                'total' => (clone $metricsQuery)->count(),
+                'revenue' => (clone $metricsQuery)->sum('total'),
+                'events' => (clone $metricsQuery)->where('source', 'event')->count(),
+                'doorToDoor' => (clone $metricsQuery)->where('source', 'door_to_door')->count(),
+            ],
             'offlineSales' => OfflineSale::query()
-                ->with(['customerProfile', 'lead', 'fieldStaff', 'event'])
+                ->with(['customerProfile', 'lead', 'fieldStaff', 'event', 'paymentMethod'])
+                ->when(request('search'), function ($query, $search) {
+                    $query->where('customer_name', 'like', "%{$search}%")
+                          ->orWhere('sale_number', 'like', "%{$search}%");
+                })
                 ->latest()
-                ->get(),
+                ->paginate(10)
+                ->withQueryString(),
+            'filters' => request()->only(['search']),
             'products' => Product::query()->where('is_active', true)->orderBy('name')->get(),
+            'services' => Service::query()->where('is_active', true)->orderBy('name')->get(),
             'customerProfiles' => CustomerProfile::query()->orderBy('name')->get(),
             'leads' => Lead::query()->with(['leadSource', 'assignedStaff', 'customerProfile', 'event'])->latest()->get(),
             'fieldStaff' => User::query()->where('role', 'field_staff')->where('is_active', true)->orderBy('name')->get(['id', 'name', 'email', 'role', 'is_active']),
             'events' => Event::query()->latest()->get(),
             'sources' => ['offline', 'door_to_door', 'event'],
+            'paymentMethods' => PaymentMethod::query()->where('is_active', true)->orderBy('bank_name')->get(),
+            'recentSale' => session('recentSale'),
         ]);
     }
 
@@ -46,14 +65,17 @@ class OfflineSaleController extends Controller
     {
         $offlineSale = $offlineSaleService->create($request->validated());
 
-        return redirect()->route('admin.offline-sales.show', $offlineSale)->with('success', 'Penjualan offline berhasil ditambahkan.');
+        return redirect()->route('admin.offline-sales.index')->with([
+            'success' => 'Penjualan offline berhasil ditambahkan.',
+            'recentSale' => $offlineSale,
+        ]);
     }
 
     public function show(OfflineSale $offlineSale): Response
     {
         $this->authorizeAdmin();
 
-        $offlineSale->load(['offlineSaleItems.product', 'customerProfile', 'lead', 'fieldStaff', 'event']);
+        $offlineSale->load(['offlineSaleItems.product', 'offlineSaleItems.service', 'customerProfile', 'lead', 'fieldStaff', 'event', 'paymentMethod']);
 
         return Inertia::render('Admin/OfflineSales/Show', [
             'offlineSale' => $offlineSale,
