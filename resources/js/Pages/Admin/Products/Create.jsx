@@ -3,6 +3,7 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import AdminCard from '@/Components/Admin/AdminCard';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
 import AdminLayout from '@/Layouts/AdminLayout';
+import ImageUploadField from '@/Components/Admin/ImageUploadField';
 
 function FieldError({ message }) {
     return message ? (
@@ -94,7 +95,7 @@ function AdminProdukTambah({ productKategori = [] }) {
         benefits: '',
         usage_rules: '',
         notes: '',
-        image_path: '',
+        thumbnail: null,
         stock_quantity: 0,
         low_stock_threshold: 0,
         is_active: true,
@@ -172,11 +173,11 @@ function AdminProdukTambah({ productKategori = [] }) {
                                 type="number"
                                 value={form.data.low_stock_threshold}
                             />
-                            <TextField
-                                error={form.errors.image_path}
-                                label="Path Gambar"
-                                onChange={(event) => form.setData('image_path', event.target.value)}
-                                value={form.data.image_path}
+                            <ImageUploadField
+                                error={form.errors.thumbnail}
+                                label="Thumbnail Gambar"
+                                onChange={(file) => form.setData('thumbnail', file)}
+                                currentImage={null}
                             />
                         </div>
                         <TextAreaField

@@ -2379,3 +2379,40 @@ Batch berikutnya yang paling aman adalah salah satu dari dua opsi berikut:
    - Scope lebih besar, jadi sebaiknya dibagi per modul kecil.
 
 Jika ingin menjaga alur customer-facing publik, rekomendasi utama berikutnya adalah menyambungkan newsletter/lead capture karena homepage, produk/cart/checkout, instruksi pembayaran, layanan/booking, CTA homepage, serta customer dashboard/profile sudah memiliki page Inertia nyata.
+
+## Batch 40: Perbaikan UI Admin Offline Sales dan Integrasi Metode Pembayaran
+
+Pekerjaan yang telah diselesaikan:
+
+1. **Perbaikan Tampilan Offline Sales (POS):**
+   - Merombak halaman `Admin/OfflineSales/Index.jsx` dengan menambahkan layout berbasis sistem tab (POS Penjualan dan Riwayat Penjualan).
+   - Layout POS dipecah menjadi 2 kolom: grid produk di kiri beserta pencarian, dan keranjang + form data transaksi di kanan.
+   - Menyempurnakan desain keranjang: menghilangkan foto thumbnail agar lebih ringkas, dan memperbaiki padding/ukuran input qty agar angka tidak terpotong (menyembunyikan panah bawaan browser).
+   - Memperbaiki layout form Data Transaksi agar tersusun dalam grid 2 kolom yang lebih rapi, dan memindahkan tombol submit ke bagian bawah.
+   - Menambahkan efek hover estetik pada card produk dengan tombol `+` melayang di samping nama produk.
+2. **Integrasi Metode Pembayaran pada Offline Sales:**
+   - Membuat migration baru untuk menambahkan kolom `payment_method_id` yang terelasi ke tabel `payment_methods`.
+   - Menyesuaikan model `OfflineSale` untuk memuat relasi `paymentMethod` dan properti fillable.
+   - Memperbarui `OfflineSaleController` agar mengirimkan data `paymentMethods` (hanya yang aktif) ke halaman Inertia.
+   - Memperbarui form Request `StoreOfflineSaleRequest` agar memvalidasi `payment_method_id` yang ada di tabel `payment_methods`.
+   - Mengubah form "Input Data Transaksi" agar menggunakan `<SelectField>` untuk memilih metode pembayaran dinamis dari database (lengkap dengan nama bank dan no rekening).
+   - Memperbarui halaman `Show` dan card Riwayat Penjualan untuk menampilkan detail nama metode pembayaran dari objek relasi terkait.
+3. **Penyempurnaan Product Image Public Component:**
+   - Memperbarui komponen `<ProductImage>` (`resources/js/Components/Public/commerce.jsx`) dan helper `storageImage` (`Welcome.jsx`) untuk menormalisasi path absolut (`/images/...`) dengan path lama (`/storage/...`), dan memunculkan placeholder SVG secara konsisten apabila gambar tidak diunggah.
+4. **Integrasi Layanan (Services) ke Offline Sales (POS):**
+   - Mengubah migration `offline_sale_items` untuk mendukung `service_id` dan mengubah `product_id` menjadi opsional (`nullable`), serta mengganti `product_name` menjadi `item_name`.
+   - Menyesuaikan `OfflineSaleItem` (model), `StoreOfflineSaleRequest` (validasi), dan `OfflineSaleService` (logic pemotongan stok khusus produk).
+   - Menambahkan tombol "Toggle" (Tab Produk / Layanan) di halaman POS Kiri untuk mengganti daftar grid yang ditampilkan.
+   - Menampilkan Badge penanda (Produk / Layanan) di item keranjang dan detail riwayat.
+5. **Modal Konfirmasi Simpan Offline Sale:**
+   - Mengubah flow submit POS agar tidak melempar (`redirect`) pengguna ke halaman "Detail Transaksi" setelah berhasil menyimpan data.
+   - `OfflineSaleController` kini melempar kembali data transaksi yang berhasil dibuat ke halaman `Index` sebagai *flash session*.
+   - Menambahkan Modal Success di halaman `Index.jsx` yang menampilkan rangkuman (resume) item apa saja yang dibeli beserta detail nama pelanggan dan total belanja.
+   - Perbaikan logika reset cart: keranjang otomatis dibersihkan di latar belakang sesaat setelah data sukses disimpan. Tombol tutup pada modal me-reset visual layar agar bersih siap transaksi baru.
+6. **Perubahan Tampilan Riwayat Penjualan:**
+   - Mengubah tampilan tab "Riwayat Penjualan" di POS dari semula berupa *Grid of Cards* menjadi bentuk Tabel (*Table*) yang rapi, responsif, dan mudah dipindai untuk mempercepat pembacaan data transaksi (Invoice, Tanggal, Customer, Sumber, Pembayaran, dan Total Harga).
+7. **Pencarian dan Pagination pada Riwayat Penjualan:**
+   - Mengubah pengambilan data dari *get all* menjadi terpaginasi (*paginate*) 10 data per halaman melalui `OfflineSaleController`.
+   - Melakukan refaktor penghitungan kartu metrik atas ringkasan (Revenue, Jumlah Event, dsb) di *Backend* sehingga tidak terpengaruh oleh *pagination* dan mencerminkan angka global riwayat.
+   - Menambahkan kotak pencarian (search) di pojok kanan atas tabel Riwayat Penjualan, mendukung pencarian berdasarkan Nama Customer maupun Nomor Invoice.
+   - Menambahkan navigasi halaman (Links) di bawah tabel.

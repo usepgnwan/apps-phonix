@@ -28,6 +28,7 @@ class UpdateProductRequest extends FormRequest
             'usage_rules' => ['nullable', 'string'],
             'notes' => ['nullable', 'string'],
             'image_path' => ['nullable', 'string', 'max:255'],
+            'thumbnail' => ['nullable', 'image', 'max:4096'],
             'stock_quantity' => ['required', 'integer', 'min:0'],
             'low_stock_threshold' => ['required', 'integer', 'min:0'],
             'is_active' => ['required', 'boolean'],

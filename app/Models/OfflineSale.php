@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['sale_number', 'customer_profile_id', 'lead_id', 'field_staff_id', 'event_id', 'source', 'customer_name', 'customer_whatsapp_number', 'total', 'notes', 'sold_at'])]
+#[Fillable(['sale_number', 'customer_profile_id', 'lead_id', 'field_staff_id', 'event_id', 'payment_method_id', 'source', 'customer_name', 'customer_whatsapp_number', 'total', 'notes', 'sold_at'])]
 class OfflineSale extends Model
 {
     protected function casts(): array
@@ -41,5 +41,10 @@ class OfflineSale extends Model
     public function offlineSaleItems(): HasMany
     {
         return $this->hasMany(OfflineSaleItem::class);
+    }
+
+    public function paymentMethod(): BelongsTo
+    {
+        return $this->belongsTo(PaymentMethod::class);
     }
 }
