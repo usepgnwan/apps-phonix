@@ -25,7 +25,9 @@ function deleteProductKategori(productKategori) {
     }
 }
 
-function AdminProductKategoriIndex({ productKategori = [] }) {
+function AdminProductKategoriIndex({ productCategories = [] }) {
+    const productKategori = productCategories;
+
     return (
         <>
             <Head title="Admin Kategori Produk" />

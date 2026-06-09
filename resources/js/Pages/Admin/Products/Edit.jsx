@@ -84,7 +84,7 @@ function CheckboxField({ checked, error, label, onChange }) {
     );
 }
 
-function AdminProdukEdit({ product, productKategori = [] }) {
+function AdminProdukEdit({ product, productCategories: productKategori = [] }) {
     const form = useForm({
         _method: 'patch',
         product_category_id: product.product_category_id ?? product.product_category?.id ?? product.productKategori?.id ?? '',

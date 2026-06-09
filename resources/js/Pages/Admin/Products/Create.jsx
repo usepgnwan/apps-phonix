@@ -84,7 +84,7 @@ function CheckboxField({ checked, error, label, onChange }) {
     );
 }
 
-function AdminProdukTambah({ productKategori = [] }) {
+function AdminProdukTambah({ productCategories: productKategori = [] }) {
     const form = useForm({
         product_category_id: '',
         name: '',

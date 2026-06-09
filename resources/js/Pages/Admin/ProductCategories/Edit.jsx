@@ -61,7 +61,7 @@ function CheckboxField({ checked, error, label, onChange }) {
     );
 }
 
-function AdminProductKategoriEdit({ productKategori }) {
+function AdminProductKategoriEdit({ productCategory: productKategori }) {
     const form = useForm({
         name: productKategori.name ?? '',
         slug: productKategori.slug ?? '',

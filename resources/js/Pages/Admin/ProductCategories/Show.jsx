@@ -35,7 +35,7 @@ function deleteProductKategori(productKategori) {
     }
 }
 
-function AdminProductKategoriShow({ productKategori }) {
+function AdminProductKategoriShow({ productCategory: productKategori }) {
     return (
         <>
             <Head title={`Detail ${productKategori.name}`} />
