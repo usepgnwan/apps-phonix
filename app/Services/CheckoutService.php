@@ -104,6 +104,44 @@ class CheckoutService
 
             $cart->cartItems()->delete();
 
+            $receiptEmail = \App\Models\Setting::where('key', 'receipt_email')->value('value');
+            $orderTemplate = \App\Models\Setting::where('key', 'order_template')->value('value');
+
+            if (!empty($receiptEmail) && !empty($orderTemplate)) {
+                $itemsHtml = '<div style="margin: 8px 0;"><table width="100%" cellpadding="0" cellspacing="0" style="font-size: 14px; font-family: Arial, sans-serif;">';
+                foreach ($items as $item) {
+                    $productName = $item['product']->name;
+                    $qty = $item['quantity'];
+                    $unitPrice = number_format($item['unit_price'], 0, ',', '.');
+                    $lineTotal = number_format($item['line_total'], 0, ',', '.');
+                    $itemsHtml .= "<tr><td colspan='3' style='padding-top: 6px; padding-bottom: 2px;'>{$productName}</td></tr>";
+                    $itemsHtml .= "<tr><td width='25%' style='padding-bottom: 6px; color: #4b5563;'>{$qty} x</td><td width='40%' align='right' style='padding-bottom: 6px; color: #4b5563;'>{$unitPrice}</td><td width='35%' align='right' style='padding-bottom: 6px;'>{$lineTotal}</td></tr>";
+                }
+                $itemsHtml .= '</table></div>';
+
+                // Try replacing with <p> wrapper first to prevent extra spacing, then just the tag
+                $parsedHtml = str_replace('<p>[items]</p>', '[items]', $orderTemplate);
+                
+                $parsedHtml = str_replace(
+                    ['[order]', '[tanggal]', '[nama]', '[kasir]', '[items]', '[total]'],
+                    [
+                        $order->order_number,
+                        $order->created_at->format('d-m-Y H:i'),
+                        $order->customer_name ?: 'Umum',
+                        'Sistem',
+                        $itemsHtml,
+                        number_format($order->total, 0, ',', '.')
+                    ],
+                    $parsedHtml
+                );
+
+                try { 
+                    \Illuminate\Support\Facades\Mail::to($receiptEmail)->send(new \App\Mail\OrderReceiptMail($order->order_number, $parsedHtml));
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Failed to send order receipt email: ' . $e->getMessage());
+                }
+            }
+
             return $order->load('orderItems', 'voucherRedemption');
         });
     }

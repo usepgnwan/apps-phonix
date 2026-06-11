@@ -65,6 +65,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard.index');
         Route::get('/reports', [AdminReportController::class, 'index'])->name('reports.index');
 
+        Route::get('/settings', [\App\Http\Controllers\Admin\SettingController::class, 'index'])->name('settings.index');
+        Route::post('/settings', [\App\Http\Controllers\Admin\SettingController::class, 'update'])->name('settings.update');
+
         Route::resource('product-categories', AdminProductCategoryController::class);
         Route::resource('products', AdminProductController::class);
         Route::resource('services', AdminServiceController::class);
@@ -90,6 +93,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/offline-sales', [AdminOfflineSaleController::class, 'index'])->name('offline-sales.index');
         Route::post('/offline-sales', [AdminOfflineSaleController::class, 'store'])->name('offline-sales.store');
         Route::get('/offline-sales/{offlineSale}', [AdminOfflineSaleController::class, 'show'])->name('offline-sales.show');
+        Route::get('/offline-sales/{offlineSale}/print', [AdminOfflineSaleController::class, 'print'])->name('offline-sales.print');
 
         Route::get('/examinations', [AdminExaminationController::class, 'index'])->name('examinations.index');
         Route::get('/examinations/create', [AdminExaminationController::class, 'create'])->name('examinations.create');

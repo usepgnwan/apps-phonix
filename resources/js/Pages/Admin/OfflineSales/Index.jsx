@@ -1,6 +1,6 @@
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import { useState } from 'react';
-import { CheckCircle2, ClipboardList, Minus, Package, Plus, Receipt, Search, ShoppingCart, Trash2, X } from 'lucide-react';
+import { CheckCircle2, ClipboardList, Minus, Package, Plus, Receipt, Search, ShoppingCart, Trash2, X, Printer } from 'lucide-react';
 
 import AdminCard from '@/Components/Admin/AdminCard';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
@@ -427,6 +427,13 @@ function OfflineSalePosForm({ products, services, customerProfiles, leads, field
                         >
                             Tutup & Transaksi Baru
                         </button>
+                        <a
+                            href={route('admin.offline-sales.print', successModalData.id)}
+                            target="_blank"
+                            className="mt-3 flex w-full justify-center items-center rounded-2xl border border-[#1E4D3A] px-5 py-3.5 font-body-sm text-sm font-bold text-[#1E4D3A] transition hover:bg-[#1E4D3A] hover:text-white"
+                        >
+                            Print Struk (Thermal)
+                        </a>
                     </div>
                 )}
             </Modal>
@@ -516,9 +523,14 @@ function OfflineSaleList({ offlineSales, filters }) {
                                     {formatCurrency(sale.total)}
                                 </td>
                                 <td className="px-5 py-4 text-center">
-                                    <Link className="inline-flex items-center justify-center rounded-full bg-gray-100 p-2 text-gray-500 transition hover:bg-[#1E4D3A] hover:text-white" href={route('admin.offline-sales.show', sale.id)} title="Lihat Detail">
-                                        <ClipboardList className="h-4 w-4" />
-                                    </Link>
+                                    <div className="flex items-center justify-center gap-2">
+                                        <a className="inline-flex items-center justify-center rounded-full bg-gray-100 p-2 text-gray-500 transition hover:bg-[#1E4D3A] hover:text-white" href={route('admin.offline-sales.print', sale.id)} target="_blank" rel="noopener noreferrer" title="Print Struk">
+                                            <Printer className="h-4 w-4" />
+                                        </a>
+                                        <Link className="inline-flex items-center justify-center rounded-full bg-gray-100 p-2 text-gray-500 transition hover:bg-[#1E4D3A] hover:text-white" href={route('admin.offline-sales.show', sale.id)} title="Lihat Detail">
+                                            <ClipboardList className="h-4 w-4" />
+                                        </Link>
+                                    </div>
                                 </td>
                             </tr>
                                 ))

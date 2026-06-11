@@ -81,4 +81,15 @@ class OfflineSaleController extends Controller
             'offlineSale' => $offlineSale,
         ]);
     }
+
+    public function print(OfflineSale $offlineSale)
+    {
+        $this->authorizeAdmin();
+
+        $offlineSale->load(['offlineSaleItems.product', 'offlineSaleItems.service', 'paymentMethod']);
+
+        return view('admin.offline_sales.print', [
+            'sale' => $offlineSale,
+        ]);
+    }
 }
