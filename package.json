@@ -27,6 +27,7 @@
         "html-to-jsx": "^0.0.4",
         "jquery": "^4.0.0",
         "lucide-react": "^1.17.0",
+        "react-quill": "^2.0.0",
         "spritespin": "^4.1.0"
     }
 }

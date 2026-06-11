@@ -92,6 +92,10 @@ function AdminProdukTambah({ productCategories: productKategori = [] }) {
         price: '',
         short_description: '',
         full_description: '',
+        composition: '',
+        packaging_type: '',
+        content_amount: '',
+        content_unit: '',
         benefits: '',
         usage_rules: '',
         notes: '',
@@ -192,6 +196,51 @@ function AdminProdukTambah({ productCategories: productKategori = [] }) {
                             onChange={(event) => form.setData('full_description', event.target.value)}
                             value={form.data.full_description}
                         />
+                        <TextAreaField
+                            error={form.errors.composition}
+                            label="Komposisi"
+                            onChange={(event) => form.setData('composition', event.target.value)}
+                            value={form.data.composition}
+                        />
+                        <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+                            <SelectField
+                                error={form.errors.packaging_type}
+                                label="Tipe Kemasan"
+                                onChange={(event) => form.setData('packaging_type', event.target.value)}
+                                value={form.data.packaging_type}
+                            >
+                                <option value="">Pilih Kemasan</option>
+                                <option value="Botol">Botol</option>
+                                <option value="Box">Box</option>
+                                <option value="Pouch">Pouch</option>
+                                <option value="Sachet">Sachet</option>
+                                <option value="Tube">Tube</option>
+                                <option value="Blister">Blister</option>
+                                <option value="Pcs">Pcs</option>
+                            </SelectField>
+                            <TextField
+                                error={form.errors.content_amount}
+                                label="Berat / Jumlah Isi"
+                                onChange={(event) => form.setData('content_amount', event.target.value)}
+                                type="number"
+                                value={form.data.content_amount}
+                            />
+                            <SelectField
+                                error={form.errors.content_unit}
+                                label="Satuan Berat / Isi"
+                                onChange={(event) => form.setData('content_unit', event.target.value)}
+                                value={form.data.content_unit}
+                            >
+                                <option value="">Pilih Satuan</option>
+                                <option value="Gram">Gram</option>
+                                <option value="Kg">Kg</option>
+                                <option value="mg">mg</option>
+                                <option value="ml">ml</option>
+                                <option value="Liter">Liter</option>
+                                <option value="Kapsul">Kapsul</option>
+                                <option value="Tablet">Tablet</option>
+                            </SelectField>
+                        </div>
                         <TextAreaField
                             error={form.errors.benefits}
                             label="Manfaat"

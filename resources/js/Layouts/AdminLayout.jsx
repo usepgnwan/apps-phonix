@@ -11,6 +11,7 @@ import {
     LogOut,
     Menu,
     Package,
+    Settings,
     Sprout,
     Store,
     Tags,
@@ -57,6 +58,12 @@ const navigationGroups = [
             { label: 'Voucher', routeName: 'admin.vouchers.index', pattern: 'admin.vouchers.*', icon: BadgePercent },
             { label: 'Metode Pembayaran', routeName: 'admin.payment-methods.index', pattern: 'admin.payment-methods.*', icon: CreditCard },
             { label: 'Sumber Lead', routeName: 'admin.lead-sources.index', pattern: 'admin.lead-sources.*', icon: Tags },
+        ],
+    },
+    {
+        label: 'Sistem',
+        items: [
+            { label: 'Pengaturan', routeName: 'admin.settings.index', pattern: 'admin.settings.*', icon: Settings },
         ],
     },
 ];
