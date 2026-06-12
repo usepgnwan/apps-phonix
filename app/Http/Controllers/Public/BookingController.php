@@ -32,7 +32,7 @@ class BookingController extends Controller
     public function create(Request $request): Response
     {
         return Inertia::render('Public/Bookings/Create', [
-            'customerProfile' => $request->user()->customerProfile,
+            'customerProfile' => $request->user()?->customerProfile,
             'services' => Service::query()
                 ->where('is_active', true)
                 ->orderBy('name')
@@ -42,27 +42,39 @@ class BookingController extends Controller
 
     public function store(StoreBookingRequest $request): RedirectResponse
     {
-        $customerProfile = CustomerProfile::query()
-            ->where('user_id', $request->user()->id)
-            ->firstOrFail();
         $validated = $request->validated();
+        $user = $request->user();
+        $customerProfile = $user === null
+            ? null
+            : CustomerProfile::query()
+                ->where('user_id', $user->id)
+                ->firstOrFail();
 
         $booking = Booking::query()->create([
             'booking_number' => $this->generateBookingNumber(),
-            'user_id' => $request->user()->id,
-            'customer_profile_id' => $customerProfile->id,
+            'user_id' => $user?->id,
+            'customer_profile_id' => $customerProfile?->id,
             'service_id' => $validated['service_id'],
-            'name' => $customerProfile->name,
-            'whatsapp_number' => $customerProfile->whatsapp_number,
+            'name' => $customerProfile?->name ?? $validated['name'],
+            'whatsapp_number' => $customerProfile?->whatsapp_number ?? $validated['whatsapp_number'],
             'visit_type' => $validated['visit_type'],
             'desired_schedule_at' => $validated['desired_schedule_at'],
             'complaint_notes' => $validated['complaint_notes'],
             'status' => 'waiting_confirmation',
         ]);
+        $whatsappUrl = $this->bookingWhatsappUrl($booking);
+
+        if ($user === null) {
+            return redirect()
+                ->route('services.index')
+                ->with('success', 'Booking berhasil dibuat dan menunggu konfirmasi admin.')
+                ->with('whatsapp_url', $whatsappUrl);
+        }
 
         return redirect()
             ->route('bookings.show', $booking)
-            ->with('success', 'Booking berhasil dibuat dan menunggu konfirmasi admin.');
+            ->with('success', 'Booking berhasil dibuat dan menunggu konfirmasi admin.')
+            ->with('whatsapp_url', $whatsappUrl);
     }
 
     public function show(Request $request, Booking $booking): Response
@@ -83,5 +95,28 @@ class BookingController extends Controller
         } while (Booking::query()->where('booking_number', $bookingNumber)->exists());
 
         return $bookingNumber;
+    }
+
+    private function bookingWhatsappUrl(Booking $booking): string
+    {
+        $booking->loadMissing('service:id,name,price,visit_type');
+        $visitType = [
+            'both' => 'Home visit & klinik',
+            'home_visit' => 'Home visit',
+            'office_visit' => 'Kunjungan klinik',
+        ][$booking->visit_type] ?? $booking->visit_type;
+        $message = implode("\n", [
+            'Halo Phoenix, saya ingin konfirmasi booking layanan.',
+            '',
+            'No Booking: '.$booking->booking_number,
+            'Nama: '.$booking->name,
+            'WhatsApp: '.$booking->whatsapp_number,
+            'Layanan: '.($booking->service?->name ?? '-'),
+            'Tipe Kunjungan: '.$visitType,
+            'Jadwal: '.($booking->desired_schedule_at?->format('d/m/Y H:i') ?? '-'),
+            'Keluhan/Catatan: '.($booking->complaint_notes ?: '-'),
+        ]);
+
+        return 'https://wa.me/6281234567890?text='.rawurlencode($message);
     }
 }

@@ -45,6 +45,8 @@ Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.s
 Route::get('/orders/lookup', [OrderLookupController::class, 'create'])->name('orders.lookup.create');
 Route::post('/orders/lookup', [OrderLookupController::class, 'store'])->middleware('throttle:10,1')->name('orders.lookup.store');
 Route::get('/orders/lookup/{order:order_number}', [OrderLookupController::class, 'show'])->name('orders.lookup.show');
+Route::get('/bookings/create', [BookingController::class, 'create'])->name('bookings.create');
+Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
 
 Route::get('/dashboard', function (Request $request): RedirectResponse {
     $user = $request->user();
@@ -128,8 +130,6 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::get('/bookings', [BookingController::class, 'index'])->name('bookings.index');
-    Route::get('/bookings/create', [BookingController::class, 'create'])->name('bookings.create');
-    Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
     Route::get('/bookings/{booking}', [BookingController::class, 'show'])->name('bookings.show');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

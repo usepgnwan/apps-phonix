@@ -1,6 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import { ImageIcon, Leaf } from 'lucide-react';
-import { forwardRef } from 'react';
+import { forwardRef, useEffect } from 'react';
 
 export function formatRupiah(value) {
     return new Intl.NumberFormat('id-ID', {
@@ -48,7 +48,7 @@ export function serviceVisitOptions(service) {
 }
 
 export function PublicShell({ children, fullWidth = false }) {
-    const { auth, cartSummary } = usePage().props;
+    const { auth, cartSummary, flash } = usePage().props;
     const cartCount = Number(cartSummary?.count ?? 0);
     const isAuthenticated = Boolean(auth?.user);
     const accountHref = (() => {
@@ -69,6 +69,12 @@ export function PublicShell({ children, fullWidth = false }) {
     const mainClassName = fullWidth
         ? 'relative w-full pb-8 pt-28 md:pb-12 md:pt-32'
         : 'relative mx-auto w-full max-w-container-max px-margin-mobile pb-8 pt-28 md:px-margin-desktop md:pb-12 md:pt-32';
+
+    useEffect(() => {
+        if (flash?.whatsappUrl) {
+            window.location.href = flash.whatsappUrl;
+        }
+    }, [flash?.whatsappUrl]);
 
     return (
         <div className="min-h-screen bg-surface font-body-md text-on-surface selection:bg-primary-fixed selection:text-on-primary-fixed">
