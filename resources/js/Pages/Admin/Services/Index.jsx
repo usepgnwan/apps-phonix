@@ -1,6 +1,7 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
 
+import AdminDeleteButton from '@/Components/Admin/AdminDeleteButton';
 import AdminCard from '@/Components/Admin/AdminCard';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
 import EmptyState from '@/Components/Admin/EmptyState';
@@ -27,12 +28,6 @@ function snippet(value) {
     }
 
     return value.length > 140 ? `${value.slice(0, 140)}...` : value;
-}
-
-function deleteLayanan(service) {
-    if (window.confirm(`Hapus layanan ${service.name}?`)) {
-        router.delete(route('admin.services.destroy', service.id));
-    }
 }
 
 function AdminLayananIndex({ services = [] }) {
@@ -103,13 +98,16 @@ function AdminLayananIndex({ services = [] }) {
                                     >
                                         Edit
                                     </Link>
-                                    <button
+                                    <AdminDeleteButton
                                         className="rounded-full border border-red-200 px-3 py-1.5 font-body-sm text-xs font-bold text-red-700 transition hover:bg-red-50"
-                                        onClick={() => deleteLayanan(service)}
-                                        type="button"
+                                        description="Layanan akan dihapus dari katalog admin dan halaman publik terkait."
+                                        itemName={service.name}
+                                        routeName="admin.services.destroy"
+                                        routeParams={service.id}
+                                        title="Hapus layanan?"
                                     >
                                         Hapus
-                                    </button>
+                                    </AdminDeleteButton>
                                 </div>
                             </AdminCard>
                         ))}

@@ -19,8 +19,10 @@ export default function BookingCreate({ customerProfile, services = [] }) {
     const { data, errors, post, processing, setData } = useForm({
         complaint_notes: '',
         desired_schedule_at: '',
+        name: '',
         service_id: initialService?.id ?? '',
         visit_type: initialVisitOptions[0]?.value ?? '',
+        whatsapp_number: '',
     });
     const selectedService = selectedInitialService(services, data.service_id);
     const visitOptions = serviceVisitOptions(selectedService);
@@ -39,10 +41,6 @@ export default function BookingCreate({ customerProfile, services = [] }) {
     function submit(event) {
         event.preventDefault();
 
-        if (!hasProfile) {
-            return;
-        }
-
         post(route('bookings.store'));
     }
 
@@ -56,13 +54,7 @@ export default function BookingCreate({ customerProfile, services = [] }) {
                     <p className="mt-4 max-w-3xl font-body-md text-body-md text-on-surface-variant">Lengkapi pilihan layanan, tipe kunjungan, dan keluhan utama. Tim Phoenix akan mengonfirmasi jadwal melalui WhatsApp.</p>
                 </section>
 
-                {!hasProfile ? (
-                    <EmptyState
-                        action={<PrimaryLink href={route('customer.profile.create')}>Lengkapi Profil Customer</PrimaryLink>}
-                        description="Booking membutuhkan profil customer agar nama, WhatsApp, dan alamat utama tersedia untuk konfirmasi admin. Form booking dikunci sampai profil dibuat."
-                        title="Profil customer belum tersedia."
-                    />
-                ) : services.length === 0 ? (
+                {services.length === 0 ? (
                     <EmptyState action={<SecondaryLink href={route('services.index')}>Lihat Katalog Layanan</SecondaryLink>} description="Belum ada layanan aktif yang dapat dibooking saat ini." title="Layanan belum tersedia." />
                 ) : (
                     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_380px]">
@@ -80,6 +72,22 @@ export default function BookingCreate({ customerProfile, services = [] }) {
                                     </select>
                                     <FieldError message={errors.service_id} />
                                 </label>
+
+                                {!hasProfile && (
+                                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                                        <label className="block">
+                                            <span className="font-label-sm text-xs font-bold uppercase tracking-[0.14em] text-on-surface-variant">Nama Lengkap</span>
+                                            <input className="mt-2 block w-full rounded-2xl border-outline-variant bg-white font-body-sm text-sm text-on-surface shadow-sm focus:border-primary-container focus:ring-primary-container" name="name" onChange={(event) => setData('name', event.target.value)} value={data.name} />
+                                            <FieldError message={errors.name} />
+                                        </label>
+
+                                        <label className="block">
+                                            <span className="font-label-sm text-xs font-bold uppercase tracking-[0.14em] text-on-surface-variant">Nomor WhatsApp</span>
+                                            <input className="mt-2 block w-full rounded-2xl border-outline-variant bg-white font-body-sm text-sm text-on-surface shadow-sm focus:border-primary-container focus:ring-primary-container" name="whatsapp_number" onChange={(event) => setData('whatsapp_number', event.target.value)} placeholder="08xxxxxxxxxx" value={data.whatsapp_number} />
+                                            <FieldError message={errors.whatsapp_number} />
+                                        </label>
+                                    </div>
+                                )}
 
                                 <fieldset>
                                     <legend className="font-label-sm text-xs font-bold uppercase tracking-[0.14em] text-on-surface-variant">Tipe Kunjungan</legend>
@@ -107,7 +115,7 @@ export default function BookingCreate({ customerProfile, services = [] }) {
                                 </label>
 
                                 <FieldError message={errors.customer_profile} />
-                                <button className="inline-flex w-full items-center justify-center rounded-full bg-primary-container px-5 py-3 font-label-md text-sm font-bold text-white shadow-sm shadow-primary-container/20 transition hover:bg-primary disabled:cursor-not-allowed disabled:opacity-60" disabled={processing || !hasProfile} type="submit">
+                                <button className="inline-flex w-full items-center justify-center rounded-full bg-primary-container px-5 py-3 font-label-md text-sm font-bold text-white shadow-sm shadow-primary-container/20 transition hover:bg-primary disabled:cursor-not-allowed disabled:opacity-60" disabled={processing} type="submit">
                                     <CalendarCheck aria-hidden="true" className="mr-2 h-4 w-4" />
                                     Kirim Booking
                                 </button>
@@ -115,19 +123,34 @@ export default function BookingCreate({ customerProfile, services = [] }) {
                         </PublicCard>
 
                         <aside className="space-y-5">
-                            <PublicCard className="p-6">
-                                <div className="flex items-start gap-3">
-                                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary-fixed/35 text-primary-container">
-                                        <UserRound aria-hidden="true" className="h-5 w-5" />
-                                    </span>
-                                    <div>
-                                        <p className="font-label-sm text-xs font-bold uppercase tracking-[0.18em] text-on-surface-variant">Profil Customer</p>
-                                        <h2 className="mt-2 font-headline-md text-headline-md text-primary-container">{customerProfile.name}</h2>
-                                        <p className="mt-2 font-body-sm text-sm text-on-surface-variant">WhatsApp: {customerProfile.whatsapp_number}</p>
-                                        <p className="mt-1 font-body-sm text-sm leading-6 text-on-surface-variant">{customerProfile.primary_address}</p>
+                            {hasProfile ? (
+                                <PublicCard className="p-6">
+                                    <div className="flex items-start gap-3">
+                                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary-fixed/35 text-primary-container">
+                                            <UserRound aria-hidden="true" className="h-5 w-5" />
+                                        </span>
+                                        <div>
+                                            <p className="font-label-sm text-xs font-bold uppercase tracking-[0.18em] text-on-surface-variant">Profil Customer</p>
+                                            <h2 className="mt-2 font-headline-md text-headline-md text-primary-container">{customerProfile.name}</h2>
+                                            <p className="mt-2 font-body-sm text-sm text-on-surface-variant">WhatsApp: {customerProfile.whatsapp_number}</p>
+                                            <p className="mt-1 font-body-sm text-sm leading-6 text-on-surface-variant">{customerProfile.primary_address}</p>
+                                        </div>
                                     </div>
-                                </div>
-                            </PublicCard>
+                                </PublicCard>
+                            ) : (
+                                <PublicCard className="p-6">
+                                    <div className="flex items-start gap-3">
+                                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary-fixed/35 text-primary-container">
+                                            <UserRound aria-hidden="true" className="h-5 w-5" />
+                                        </span>
+                                        <div>
+                                            <p className="font-label-sm text-xs font-bold uppercase tracking-[0.18em] text-on-surface-variant">Booking Guest</p>
+                                            <h2 className="mt-2 font-headline-md text-headline-md text-primary-container">Tanpa akun juga bisa booking.</h2>
+                                            <p className="mt-2 font-body-sm text-sm leading-6 text-on-surface-variant">Isi nama dan WhatsApp pada form. Admin Phoenix akan menghubungi untuk konfirmasi jadwal.</p>
+                                        </div>
+                                    </div>
+                                </PublicCard>
+                            )}
 
                             {selectedService && (
                                 <PublicCard className="overflow-hidden">
@@ -150,7 +173,7 @@ export default function BookingCreate({ customerProfile, services = [] }) {
                             <PublicCard className="bg-primary-fixed/25 p-5">
                                 <div className="flex gap-3">
                                     <Lock aria-hidden="true" className="mt-1 h-5 w-5 shrink-0 text-primary-container" />
-                                    <p className="font-body-sm text-sm leading-6 text-on-surface-variant">Validasi final tetap dilakukan server, termasuk profil customer, layanan aktif, jadwal masa depan, dan tipe kunjungan yang didukung layanan.</p>
+                                    <p className="font-body-sm text-sm leading-6 text-on-surface-variant">Validasi final tetap dilakukan server, termasuk layanan aktif, jadwal masa depan, dan tipe kunjungan yang didukung layanan.</p>
                                 </div>
                             </PublicCard>
                         </aside>

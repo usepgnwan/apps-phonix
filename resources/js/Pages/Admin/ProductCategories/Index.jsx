@@ -1,6 +1,7 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
 
+import AdminDeleteButton from '@/Components/Admin/AdminDeleteButton';
 import AdminCard from '@/Components/Admin/AdminCard';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
 import EmptyState from '@/Components/Admin/EmptyState';
@@ -17,12 +18,6 @@ function formatDate(value) {
         month: 'short',
         year: 'numeric',
     }).format(new Date(value));
-}
-
-function deleteProductKategori(productKategori) {
-    if (window.confirm(`Hapus kategori ${productKategori.name}?`)) {
-        router.delete(route('admin.product-categories.destroy', productKategori.id));
-    }
 }
 
 function AdminProductKategoriIndex({ productCategories = [] }) {
@@ -116,13 +111,16 @@ function AdminProductKategoriIndex({ productCategories = [] }) {
                                                     >
                                                         Edit
                                                     </Link>
-                                                    <button
+                                                    <AdminDeleteButton
                                                         className="rounded-full border border-red-200 px-3 py-1.5 font-body-sm text-xs font-bold text-red-700 transition hover:bg-red-50"
-                                                        onClick={() => deleteProductKategori(productKategori)}
-                                                        type="button"
+                                                        description="Kategori produk akan dihapus dari master katalog admin."
+                                                        itemName={productKategori.name}
+                                                        routeName="admin.product-categories.destroy"
+                                                        routeParams={productKategori.id}
+                                                        title="Hapus kategori produk?"
                                                     >
                                                         Hapus
-                                                    </button>
+                                                    </AdminDeleteButton>
                                                 </div>
                                             </td>
                                         </tr>

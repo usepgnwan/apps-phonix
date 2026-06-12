@@ -1,5 +1,6 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 
+import AdminDeleteButton from '@/Components/Admin/AdminDeleteButton';
 import AdminCard from '@/Components/Admin/AdminCard';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
 import StatusBadge from '@/Components/Admin/StatusBadge';
@@ -29,12 +30,6 @@ function DetailRow({ children, label }) {
     );
 }
 
-function deleteProductKategori(productKategori) {
-    if (window.confirm(`Hapus kategori ${productKategori.name}?`)) {
-        router.delete(route('admin.product-categories.destroy', productKategori.id));
-    }
-}
-
 function AdminProductKategoriShow({ productCategory: productKategori }) {
     return (
         <>
@@ -56,13 +51,16 @@ function AdminProductKategoriShow({ productCategory: productKategori }) {
                             >
                                 Edit
                             </Link>
-                            <button
+                            <AdminDeleteButton
                                 className="rounded-full border border-red-200 px-4 py-2 font-body-sm text-sm font-bold text-red-700 transition hover:bg-red-50"
-                                onClick={() => deleteProductKategori(productKategori)}
-                                type="button"
+                                description="Kategori produk akan dihapus dari master katalog admin."
+                                itemName={productKategori.name}
+                                routeName="admin.product-categories.destroy"
+                                routeParams={productKategori.id}
+                                title="Hapus kategori produk?"
                             >
                                 Hapus
-                            </button>
+                            </AdminDeleteButton>
                         </div>
                     )}
                     description="Detail kategori produk dan status publikasinya."

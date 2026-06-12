@@ -12,13 +12,15 @@ class StoreBookingRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user() !== null;
+        return true;
     }
 
     public function rules(): array
     {
         return [
             'service_id' => ['required', 'integer', 'exists:services,id'],
+            'name' => [$this->user() === null ? 'required' : 'nullable', 'string', 'max:255'],
+            'whatsapp_number' => [$this->user() === null ? 'required' : 'nullable', 'string', 'max:30'],
             'visit_type' => ['required', Rule::in(['home_visit', 'office_visit'])],
             'desired_schedule_at' => ['required', 'date', 'after:now'],
             'complaint_notes' => ['required', 'string', 'max:2000'],

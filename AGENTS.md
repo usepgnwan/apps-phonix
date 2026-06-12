@@ -20,6 +20,8 @@ Panduan ini berlaku untuk seluruh file di repository ini. Ikuti instruksi ini sa
 ## Prinsip Kerja
 
 - Jangan mengubah file tanpa membaca konteks terkait terlebih dahulu.
+- Untuk task yang jelas dan relatif kecil, langsung kerjakan setelah membaca file terkait; jangan consult plan agent/sub-agent hanya untuk membuat rencana.
+- Gunakan plan agent/sub-agent hanya jika scope ambigu, arsitektural, berisiko tinggi, atau membutuhkan keputusan lintas sistem yang tidak jelas dari konteks lokal.
 - Jangan melakukan refactor besar jika user hanya meminta fix kecil.
 - Jangan mengubah dependency tanpa alasan jelas dan tanpa menjelaskan dampaknya.
 - Jangan commit, push, merge, atau membuat branch kecuali diminta eksplisit oleh user.

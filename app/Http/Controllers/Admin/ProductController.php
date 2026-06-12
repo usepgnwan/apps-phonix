@@ -127,6 +127,12 @@ class ProductController extends Controller
     {
         $this->authorizeAdmin();
 
+        if ($product->orderItems()->exists() || $product->offlineSaleItems()->exists() || $product->productRecommendations()->exists()) {
+            return redirect()
+                ->route('admin.products.index')
+                ->with('error', 'Produk tidak dapat dihapus karena sudah dipakai pada transaksi atau rekomendasi. Nonaktifkan produk jika tidak ingin ditampilkan.');
+        }
+
         $product->delete();
 
         return redirect()

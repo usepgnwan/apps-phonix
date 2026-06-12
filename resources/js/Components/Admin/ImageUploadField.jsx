@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 
 function FieldError({ message }) {
     return message ? (
@@ -7,6 +7,7 @@ function FieldError({ message }) {
 }
 
 export default function ImageUploadField({ error, label, onChange, currentImage }) {
+    const inputId = useId();
     const [preview, setPreview] = useState(currentImage || null);
     const [isCompressing, setIsCompressing] = useState(false);
 
@@ -68,23 +69,35 @@ export default function ImageUploadField({ error, label, onChange, currentImage 
     };
 
     return (
-        <label className="block">
+        <div className="block">
             <span className="font-label-sm text-xs font-bold uppercase tracking-[0.12em] text-gray-500">
                 {label} {isCompressing && <span className="text-[#F08A2B] ml-2 lowercase normal-case tracking-normal font-normal">(Sedang mengompres...)</span>}
             </span>
             <input
+                id={inputId}
                 type="file"
                 accept="image/*"
-                className="mt-2 block w-full text-sm text-[#333333] file:mr-4 file:rounded-full file:border-0 file:bg-[#1E4D3A]/10 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-[#1E4D3A] hover:file:bg-[#1E4D3A]/20"
+                className="sr-only"
                 onChange={handleFileChange}
-                disabled={isCompressing}
             />
+            <label
+                htmlFor={isCompressing ? undefined : inputId}
+                aria-disabled={isCompressing}
+                className={`mt-2 flex w-full items-center justify-between gap-4 rounded-2xl border border-dashed border-[#1E4D3A]/40 bg-[#1E4D3A]/5 px-4 py-3 text-left font-body-sm text-sm text-[#333333] transition hover:border-[#1E4D3A] hover:bg-[#1E4D3A]/10 focus-within:ring-2 focus-within:ring-[#1E4D3A] focus-within:ring-offset-2 ${
+                    isCompressing ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                }`}
+            >
+                <span>{preview ? 'Ganti gambar thumbnail' : 'Pilih gambar thumbnail'}</span>
+                <span className="rounded-full bg-[#1E4D3A] px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] text-white">
+                    Pilih File
+                </span>
+            </label>
             {preview && (
                 <div className="mt-3">
                     <img src={preview} alt="Preview" className="h-32 w-32 object-cover rounded-xl border border-[#E5E7EB] shadow-sm" />
                 </div>
             )}
             <FieldError message={error} />
-        </label>
+        </div>
     );
 }

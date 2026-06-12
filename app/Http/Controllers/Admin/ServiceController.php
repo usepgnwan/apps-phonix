@@ -7,6 +7,10 @@ use App\Http\Requests\Admin\StoreServiceRequest;
 use App\Http\Requests\Admin\UpdateServiceRequest;
 use App\Models\Service;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\File;
+use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\Encoders\JpegEncoder;
+use Intervention\Image\ImageManager;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -40,7 +44,14 @@ class ServiceController extends Controller
 
     public function store(StoreServiceRequest $request): RedirectResponse
     {
-        Service::query()->create($request->validated());
+        $data = $request->validated();
+
+        if ($request->hasFile('thumbnail')) {
+            $data['image_path'] = $this->processAndSaveThumbnail($request->file('thumbnail'));
+        }
+        unset($data['thumbnail']);
+
+        Service::query()->create($data);
 
         return redirect()
             ->route('admin.services.index')
@@ -69,11 +80,40 @@ class ServiceController extends Controller
 
     public function update(UpdateServiceRequest $request, Service $service): RedirectResponse
     {
-        $service->update($request->validated());
+        $data = $request->validated();
+
+        if ($request->hasFile('thumbnail')) {
+            if ($service->image_path && File::exists(public_path($service->image_path))) {
+                File::delete(public_path($service->image_path));
+            }
+
+            $data['image_path'] = $this->processAndSaveThumbnail($request->file('thumbnail'));
+        }
+        unset($data['thumbnail']);
+
+        $service->update($data);
 
         return redirect()
             ->route('admin.services.index')
             ->with('success', 'Layanan berhasil diperbarui.');
+    }
+
+    private function processAndSaveThumbnail($file): string
+    {
+        $dir = public_path('images/services');
+        if (!File::isDirectory($dir)) {
+            File::makeDirectory($dir, 0755, true);
+        }
+
+        $filename = time() . '_' . pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME) . '.jpg';
+        $destPath = $dir . '/' . $filename;
+
+        $manager = new ImageManager(new Driver());
+        $image = $manager->decode($file->getRealPath());
+        $image->scaleDown(width: 1200);
+        $image->encode(new JpegEncoder(quality: 80))->save($destPath);
+
+        return '/images/services/' . $filename;
     }
 
     public function destroy(Service $service): RedirectResponse

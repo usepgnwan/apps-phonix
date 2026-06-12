@@ -2,6 +2,7 @@ import { Head, Link, useForm } from '@inertiajs/react';
 
 import AdminCard from '@/Components/Admin/AdminCard';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
+import ImageUploadField from '@/Components/Admin/ImageUploadField';
 import AdminLayout from '@/Layouts/AdminLayout';
 
 const visitTipeOptions = ['home_visit', 'office_visit', 'both'];
@@ -88,19 +89,22 @@ function CheckboxField({ checked, error, label, onChange }) {
 
 function AdminLayananEdit({ service }) {
     const form = useForm({
+        _method: 'patch',
         name: service.name ?? '',
         slug: service.slug ?? '',
         description: service.description ?? '',
         price: service.price ?? '',
         visit_type: service.visit_type ?? 'both',
-        image_path: service.image_path ?? '',
+        thumbnail: null,
         is_active: Boolean(service.is_active),
         is_featured: Boolean(service.is_featured),
     });
 
     function submit(event) {
         event.preventDefault();
-        form.patch(route('admin.services.update', service.id));
+        form.post(route('admin.services.update', service.id), {
+            forceFormData: true,
+        });
     }
 
     return (
@@ -154,11 +158,11 @@ function AdminLayananEdit({ service }) {
                                     </option>
                                 ))}
                             </SelectField>
-                            <TextField
-                                error={form.errors.image_path}
-                                label="Path Gambar"
-                                onChange={(event) => form.setData('image_path', event.target.value)}
-                                value={form.data.image_path}
+                            <ImageUploadField
+                                currentImage={service.image_path}
+                                error={form.errors.thumbnail}
+                                label="Thumbnail Gambar"
+                                onChange={(file) => form.setData('thumbnail', file)}
                             />
                         </div>
                         <TextAreaField

@@ -42,6 +42,11 @@ class HandleInertiaRequests extends Middleware
             'cartSummary' => fn (): array => [
                 'count' => (int) ($this->cartResolver->existing($request)?->cartItems()->sum('quantity') ?? 0),
             ],
+            'flash' => [
+                'success' => fn () => $request->session()->get('success'),
+                'error' => fn () => $request->session()->get('error'),
+                'whatsappUrl' => fn () => $request->session()->get('whatsapp_url'),
+            ],
         ];
     }
 }

@@ -1,6 +1,7 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
 
+import AdminDeleteButton from '@/Components/Admin/AdminDeleteButton';
 import AdminCard from '@/Components/Admin/AdminCard';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
 import EmptyState from '@/Components/Admin/EmptyState';
@@ -42,12 +43,6 @@ function discountDisplay(voucher) {
 
 function validityWindow(voucher) {
     return `${formatDate(voucher.starts_at)} - ${formatDate(voucher.ends_at)}`;
-}
-
-function deleteVoucher(voucher) {
-    if (window.confirm(`Hapus voucher ${voucher.code}?`)) {
-        router.delete(route('admin.vouchers.destroy', voucher.id));
-    }
 }
 
 function AdminVoucherIndex({ vouchers = [] }) {
@@ -208,13 +203,16 @@ function AdminVoucherIndex({ vouchers = [] }) {
                                     >
                                         Penukaran
                                     </Link>
-                                    <button
+                                    <AdminDeleteButton
                                         className="rounded-full border border-red-200 px-3 py-1.5 font-body-sm text-xs font-bold text-red-700 transition hover:bg-red-50"
-                                        onClick={() => deleteVoucher(voucher)}
-                                        type="button"
+                                        description="Voucher akan dihapus dari admin dan tidak bisa digunakan untuk order baru."
+                                        itemName={voucher.code}
+                                        routeName="admin.vouchers.destroy"
+                                        routeParams={voucher.id}
+                                        title="Hapus voucher?"
                                     >
                                         Hapus
-                                    </button>
+                                    </AdminDeleteButton>
                                 </div>
                             </AdminCard>
                         ))}

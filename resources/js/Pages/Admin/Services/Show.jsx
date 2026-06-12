@@ -1,5 +1,6 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 
+import AdminDeleteButton from '@/Components/Admin/AdminDeleteButton';
 import AdminCard from '@/Components/Admin/AdminCard';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
 import StatusBadge from '@/Components/Admin/StatusBadge';
@@ -32,12 +33,6 @@ function DetailRow({ children, label }) {
     );
 }
 
-function deleteLayanan(service) {
-    if (window.confirm(`Hapus layanan ${service.name}?`)) {
-        router.delete(route('admin.services.destroy', service.id));
-    }
-}
-
 function AdminLayananShow({ service }) {
     return (
         <>
@@ -58,13 +53,16 @@ function AdminLayananShow({ service }) {
                             >
                                 Edit
                             </Link>
-                            <button
+                            <AdminDeleteButton
                                 className="rounded-full border border-red-200 px-4 py-2 font-body-sm text-sm font-bold text-red-700 transition hover:bg-red-50"
-                                onClick={() => deleteLayanan(service)}
-                                type="button"
+                                description="Layanan akan dihapus dari katalog admin dan halaman publik terkait."
+                                itemName={service.name}
+                                routeName="admin.services.destroy"
+                                routeParams={service.id}
+                                title="Hapus layanan?"
                             >
                                 Hapus
-                            </button>
+                            </AdminDeleteButton>
                         </div>
                     )}
                     description="Detail layanan, harga, tipe kunjungan, dan status publikasi."
