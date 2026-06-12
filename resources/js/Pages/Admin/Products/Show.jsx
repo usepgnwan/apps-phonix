@@ -1,5 +1,6 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 
+import AdminDeleteButton from '@/Components/Admin/AdminDeleteButton';
 import AdminCard from '@/Components/Admin/AdminCard';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
 import StatusBadge from '@/Components/Admin/StatusBadge';
@@ -34,12 +35,6 @@ function DetailRow({ children, label }) {
     );
 }
 
-function deleteProduct(product) {
-    if (window.confirm(`Hapus produk ${product.name}?`)) {
-        router.delete(route('admin.products.destroy', product.id));
-    }
-}
-
 function AdminProdukShow({ product }) {
     const category = productKategori(product);
 
@@ -62,13 +57,16 @@ function AdminProdukShow({ product }) {
                             >
                                 Edit
                             </Link>
-                            <button
+                            <AdminDeleteButton
                                 className="rounded-full border border-red-200 px-4 py-2 font-body-sm text-sm font-bold text-red-700 transition hover:bg-red-50"
-                                onClick={() => deleteProduct(product)}
-                                type="button"
+                                description="Produk akan dihapus dari katalog admin dan tidak bisa dipulihkan lewat panel ini."
+                                itemName={product.name}
+                                routeName="admin.products.destroy"
+                                routeParams={product.id}
+                                title="Hapus produk?"
                             >
                                 Hapus
-                            </button>
+                            </AdminDeleteButton>
                         </div>
                     )}
                     description="Detail produk, stok, harga, dan informasi katalog."
@@ -108,6 +106,9 @@ function AdminProdukShow({ product }) {
                             <DetailRow label="Slug">{product.slug}</DetailRow>
                             <DetailRow label="Deskripsi Singkat">{product.short_description || '-'}</DetailRow>
                             <DetailRow label="Deskripsi Lengkap">{product.full_description || '-'}</DetailRow>
+                            <DetailRow label="Komposisi">{product.composition || '-'}</DetailRow>
+                            <DetailRow label="Tipe Kemasan">{product.packaging_type || '-'}</DetailRow>
+                            <DetailRow label="Berat / Jumlah Isi">{product.content_amount ? `${product.content_amount} ${product.content_unit || ''}` : '-'}</DetailRow>
                             <DetailRow label="Manfaat">{product.benefits || '-'}</DetailRow>
                             <DetailRow label="Aturan Pakai">{product.usage_rules || '-'}</DetailRow>
                             <DetailRow label="Catatan">{product.notes || '-'}</DetailRow>

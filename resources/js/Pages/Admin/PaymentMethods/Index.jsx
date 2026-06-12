@@ -1,6 +1,7 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
 
+import AdminDeleteButton from '@/Components/Admin/AdminDeleteButton';
 import AdminCard from '@/Components/Admin/AdminCard';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
 import EmptyState from '@/Components/Admin/EmptyState';
@@ -32,12 +33,6 @@ function detailSummary(paymentMethod) {
     return [paymentMethod.account_number, paymentMethod.account_holder_name]
         .filter(Boolean)
         .join(' / ') || 'Detail rekening belum diisi.';
-}
-
-function deletePaymentMethod(paymentMethod) {
-    if (window.confirm(`Hapus metode pembayaran ${methodTitle(paymentMethod)}?`)) {
-        router.delete(route('admin.payment-methods.destroy', paymentMethod.id));
-    }
 }
 
 function AdminPaymentMethodsIndex({ paymentMethods = [] }) {
@@ -182,13 +177,16 @@ function AdminPaymentMethodsIndex({ paymentMethods = [] }) {
                                     >
                                         Edit
                                     </Link>
-                                    <button
+                                    <AdminDeleteButton
                                         className="rounded-full border border-red-200 px-3 py-1.5 font-body-sm text-xs font-bold text-red-700 transition hover:bg-red-50"
-                                        onClick={() => deletePaymentMethod(paymentMethod)}
-                                        type="button"
+                                        description="Metode pembayaran akan dihapus dari daftar metode pembayaran admin."
+                                        itemName={methodTitle(paymentMethod)}
+                                        routeName="admin.payment-methods.destroy"
+                                        routeParams={paymentMethod.id}
+                                        title="Hapus metode pembayaran?"
                                     >
                                         Hapus
-                                    </button>
+                                    </AdminDeleteButton>
                                 </div>
                             </AdminCard>
                         ))}

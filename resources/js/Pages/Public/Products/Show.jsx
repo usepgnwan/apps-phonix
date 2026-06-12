@@ -21,6 +21,7 @@ function RelatedProduct({ product }) {
 
 export default function ProductShow({ product, relatedProducts = [] }) {
     const category = productCategory(product);
+    const packageContent = [product.content_amount, product.content_unit].filter(Boolean).join(' ');
     const productImageRef = useRef(null);
     const [flyingProduct, setFlyingProduct] = useState(null);
     const { data, errors, post, processing, setData } = useForm({ product_id: product.id, quantity: 1 });
@@ -175,6 +176,29 @@ export default function ProductShow({ product, relatedProducts = [] }) {
                         <h2 className="font-headline-lg text-headline-lg text-primary-container">Detail Produk</h2>
                         <p className="mt-4 whitespace-pre-line font-body-md text-body-md leading-7 text-on-surface-variant">{product.full_description}</p>
                     </PublicCard>
+                )}
+
+                {(product.composition || product.packaging_type || packageContent) && (
+                    <section className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                        {product.composition && (
+                            <PublicCard className="p-6 md:p-8">
+                                <p className="font-label-sm text-xs font-bold uppercase tracking-[0.22em] text-on-surface-variant">Informasi Produk</p>
+                                <h2 className="mt-2 font-headline-lg text-headline-lg text-primary-container">Komposisi</h2>
+                                <p className="mt-4 whitespace-pre-line font-body-md text-body-md leading-7 text-on-surface-variant">{product.composition}</p>
+                            </PublicCard>
+                        )}
+
+                        {(product.packaging_type || packageContent) && (
+                            <PublicCard className="p-6 md:p-8">
+                                <p className="font-label-sm text-xs font-bold uppercase tracking-[0.22em] text-on-surface-variant">Kemasan</p>
+                                <h2 className="mt-2 font-headline-lg text-headline-lg text-primary-container">Berat Produk / Isi Kemasan</h2>
+                                <div className="mt-4 space-y-2 font-body-md text-body-md leading-7 text-on-surface-variant">
+                                    {product.packaging_type && <p>Tipe kemasan: <span className="font-bold text-primary-container">{product.packaging_type}</span></p>}
+                                    {packageContent && <p>Isi kemasan: <span className="font-bold text-primary-container">{packageContent}</span></p>}
+                                </div>
+                            </PublicCard>
+                        )}
+                    </section>
                 )}
 
                 {relatedProducts.length > 0 && (

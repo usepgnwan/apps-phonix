@@ -2,6 +2,7 @@ import { Head, Link, useForm } from '@inertiajs/react';
 
 import AdminCard from '@/Components/Admin/AdminCard';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
+import ImageUploadField from '@/Components/Admin/ImageUploadField';
 import AdminLayout from '@/Layouts/AdminLayout';
 
 const visitTipeOptions = ['home_visit', 'office_visit', 'both'];
@@ -93,7 +94,7 @@ function AdminLayananTambah() {
         description: '',
         price: '',
         visit_type: 'both',
-        image_path: '',
+        thumbnail: null,
         is_active: true,
         is_featured: false,
     });
@@ -154,11 +155,11 @@ function AdminLayananTambah() {
                                     </option>
                                 ))}
                             </SelectField>
-                            <TextField
-                                error={form.errors.image_path}
-                                label="Path Gambar"
-                                onChange={(event) => form.setData('image_path', event.target.value)}
-                                value={form.data.image_path}
+                            <ImageUploadField
+                                currentImage={null}
+                                error={form.errors.thumbnail}
+                                label="Thumbnail Gambar"
+                                onChange={(file) => form.setData('thumbnail', file)}
                             />
                         </div>
                         <TextAreaField

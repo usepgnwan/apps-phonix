@@ -166,7 +166,8 @@ function MenuIcon({ open }) {
 }
 
 export default function AdminLayout({ children }) {
-    const user = usePage().props.auth.user;
+    const { auth, flash } = usePage().props;
+    const user = auth.user;
     const [mobileOpen, setMobileOpen] = useState(false);
 
     return (
@@ -261,7 +262,19 @@ export default function AdminLayout({ children }) {
                 </header>
 
                 <main className="px-4 py-8 sm:px-6 lg:px-8">
-                    <div className="mx-auto max-w-7xl">{children}</div>
+                    <div className="mx-auto max-w-7xl space-y-5">
+                        {flash?.success && (
+                            <div className="rounded-3xl border border-[#A8C5B3] bg-[#A8C5B3]/20 px-5 py-4 font-body-sm text-sm font-bold text-[#1E4D3A]">
+                                {flash.success}
+                            </div>
+                        )}
+                        {flash?.error && (
+                            <div className="rounded-3xl border border-red-200 bg-red-50 px-5 py-4 font-body-sm text-sm font-bold text-red-700">
+                                {flash.error}
+                            </div>
+                        )}
+                        {children}
+                    </div>
                 </main>
             </div>
         </div>

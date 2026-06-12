@@ -1,5 +1,6 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 
+import AdminDeleteButton from '@/Components/Admin/AdminDeleteButton';
 import AdminCard from '@/Components/Admin/AdminCard';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
 import MetricCard from '@/Components/Admin/MetricCard';
@@ -35,12 +36,6 @@ function DetailRow({ children, label }) {
     );
 }
 
-function deletePaymentMethod(paymentMethod) {
-    if (window.confirm(`Hapus metode pembayaran ${methodTitle(paymentMethod)}?`)) {
-        router.delete(route('admin.payment-methods.destroy', paymentMethod.id));
-    }
-}
-
 function AdminPaymentMethodsShow({ paymentMethod }) {
     return (
         <>
@@ -61,13 +56,16 @@ function AdminPaymentMethodsShow({ paymentMethod }) {
                             >
                                 Edit
                             </Link>
-                            <button
+                            <AdminDeleteButton
                                 className="rounded-full border border-red-200 px-4 py-2 font-body-sm text-sm font-bold text-red-700 transition hover:bg-red-50"
-                                onClick={() => deletePaymentMethod(paymentMethod)}
-                                type="button"
+                                description="Metode pembayaran akan dihapus dari daftar metode pembayaran admin."
+                                itemName={methodTitle(paymentMethod)}
+                                routeName="admin.payment-methods.destroy"
+                                routeParams={paymentMethod.id}
+                                title="Hapus metode pembayaran?"
                             >
                                 Hapus
-                            </button>
+                            </AdminDeleteButton>
                         </div>
                     )}
                     description="Detail field metode pembayaran, status aktif, instruksi, dan jumlah order terkait."

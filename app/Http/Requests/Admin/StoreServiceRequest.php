@@ -22,6 +22,7 @@ class StoreServiceRequest extends FormRequest
             'price' => ['nullable', 'numeric', 'min:0'],
             'visit_type' => ['required', 'in:home_visit,office_visit,both'],
             'image_path' => ['nullable', 'string', 'max:255'],
+            'thumbnail' => ['nullable', 'image', 'max:4096'],
             'is_active' => ['required', 'boolean'],
             'is_featured' => ['required', 'boolean'],
         ];
