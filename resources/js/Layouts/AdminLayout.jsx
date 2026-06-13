@@ -20,8 +20,9 @@ import {
     Video,
     WalletCards,
     X,
+    Download,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import Dropdown from '@/Components/Dropdown';
 
@@ -171,6 +172,29 @@ export default function AdminLayout({ children }) {
     const { auth, flash } = usePage().props;
     const user = auth.user;
     const [mobileOpen, setMobileOpen] = useState(false);
+    const [deferredPrompt, setDeferredPrompt] = useState(null);
+
+    useEffect(() => {
+        const handleBeforeInstallPrompt = (e) => {
+            e.preventDefault();
+            setDeferredPrompt(e);
+        };
+
+        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+        return () => {
+            window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+        };
+    }, []);
+
+    const handleInstallClick = async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            setDeferredPrompt(null);
+        }
+    };
 
     return (
         <div className="min-h-screen bg-[#F6F7F7] font-body-md text-[#333333]">
@@ -217,6 +241,15 @@ export default function AdminLayout({ children }) {
                         </div>
 
                         <div className="flex items-center gap-3">
+                            {deferredPrompt && (
+                                <button
+                                    onClick={handleInstallClick}
+                                    className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-[#1E4D3A] px-4 py-1.5 font-body-sm text-xs font-bold text-white shadow-sm hover:bg-[#163B2C] transition-colors"
+                                >
+                                    <Download aria-hidden="true" className="h-4 w-4" />
+                                    Install App
+                                </button>
+                            )}
                             <div className="hidden rounded-full border border-[#E5E7EB] px-3 py-1.5 font-body-sm text-xs font-semibold text-gray-500 sm:block">
                                 <span className="inline-flex items-center gap-1.5">
                                     <Leaf aria-hidden="true" className="h-4 w-4 text-[#1E4D3A]" />

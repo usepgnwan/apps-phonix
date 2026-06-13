@@ -62,3 +62,15 @@ Dokumen ini mencatat seluruh perubahan teknis dan fungsionalitas yang ditambahka
   - Menyesuaikan instruksi panduan penggunaan tag dinamis agar memasukkan elemen `[whatsapp]` dan `[email]`.
 - **Database**:
   - Menjalankan migrasi manual untuk menimpa format template struk default di database agar sistem otomatis memuat *layout* baru tersebut.
+
+## 6. Integrasi Progressive Web App (PWA)
+
+- **Manifest & Service Worker (`public/`)**:
+  - Membuat `manifest.json` yang mendefinisikan informasi aplikasi, skema warna (`#1E4D3A`), serta konfigurasi logo untuk _homescreen_.
+  - Menambahkan _Service Worker_ dasar (`sw.js`) untuk memenuhi syarat standar PWA dari browser modern.
+- **Template Induk (`app.blade.php`)**:
+  - Menyisipkan meta tag PWA (`theme-color` dan link ke `manifest.json`).
+  - Menambahkan script pendaftaran _Service Worker_ pada siklus `window.onload`.
+- **Notifikasi Install (Admin Panel)**:
+  - Mengubah `AdminLayout.jsx` untuk mendeteksi *event* `beforeinstallprompt`.
+  - Menambahkan tombol "Install App" (lengkap dengan icon *Download*) di sudut kanan atas panel admin. Tombol ini otomatis muncul hanya pada browser yang belum meng-_install_ PWA tersebut dan akan memicu dialog konfirmasi native sistem ketika diklik.
