@@ -1,4 +1,5 @@
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { useEffect } from 'react';
 
 import AdminCard from '@/Components/Admin/AdminCard';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
@@ -236,6 +237,16 @@ function AdminOrderShow({ order }) {
     const orderItem = order.order_items ?? [];
     const voucher = order.voucher_redemption?.voucher ?? order.voucher;
     const title = order.order_number ?? `Order #${order.id}`;
+    const { props } = usePage();
+    const whatsappUrl = props?.flash?.whatsappUrl;
+
+    useEffect(() => {
+        if (!whatsappUrl) {
+            return;
+        }
+
+        window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+    }, [whatsappUrl]);
     const shippingForm = useForm({
         courier_name: order.courier_name ?? '',
         tracking_number: order.tracking_number ?? '',

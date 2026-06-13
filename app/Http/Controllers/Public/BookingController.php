@@ -7,6 +7,7 @@ use App\Http\Requests\Public\StoreBookingRequest;
 use App\Models\Booking;
 use App\Models\CustomerProfile;
 use App\Models\Service;
+use App\Models\Setting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -117,6 +118,8 @@ class BookingController extends Controller
             'Keluhan/Catatan: '.($booking->complaint_notes ?: '-'),
         ]);
 
-        return 'https://wa.me/6281234567890?text='.rawurlencode($message);
+        $whatsappNumber = Setting::query()->where('key', 'whatsapp_number')->value('value') ?: '6281234567890';
+
+        return 'https://wa.me/'.$whatsappNumber.'?text='.rawurlencode($message);
     }
 }

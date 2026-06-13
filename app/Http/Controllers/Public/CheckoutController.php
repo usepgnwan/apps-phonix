@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Public\StoreCheckoutRequest;
 use App\Models\Order;
 use App\Models\PaymentMethod;
+use App\Models\Setting;
 use App\Services\CartResolver;
 use App\Services\CheckoutService;
 use Illuminate\Http\RedirectResponse;
@@ -69,6 +70,36 @@ class CheckoutController extends Controller
         return redirect()
             ->route('orders.lookup.show', ['order' => $order->order_number])
             ->with('success', 'Order berhasil dibuat dan menunggu konfirmasi ongkir admin.')
-            ->with('order_number', $order->order_number);
+            ->with('order_number', $order->order_number)
+            ->with('whatsapp_url', $this->orderWhatsappUrl($order));
+    }
+
+    private function orderWhatsappUrl(Order $order): string
+    {
+        $order->loadMissing('orderItems');
+
+        $itemLines = $order->orderItems->map(
+            fn ($item): string => '- '.$item->product_name.' x '.$item->quantity,
+        )->all();
+
+        $messageLines = [
+            'Halo Admin Phoenix, saya ingin konfirmasi pesanan dan minta info ongkir.',
+            '',
+            'No. Order: '.$order->order_number,
+            'Nama: '.$order->customer_name,
+            'WhatsApp: '.$order->customer_whatsapp_number,
+            'Alamat: '.$order->shipping_address,
+            '',
+            'Item:',
+            ...$itemLines,
+            '',
+            'Subtotal: Rp '.number_format((float) $order->subtotal, 0, ',', '.'),
+            '',
+            'Mohon dibantu konfirmasi biaya pengiriman ke alamat di atas. Terima kasih.',
+        ];
+
+        $whatsappNumber = Setting::query()->where('key', 'whatsapp_number')->value('value') ?: '6281234567890';
+
+        return 'https://wa.me/'.$whatsappNumber.'?text='.rawurlencode(implode("\n", $messageLines));
     }
 }

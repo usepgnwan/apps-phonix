@@ -72,7 +72,7 @@ export function PublicShell({ children, fullWidth = false }) {
 
     useEffect(() => {
         if (flash?.whatsappUrl) {
-            window.location.href = flash.whatsappUrl;
+            window.open(flash.whatsappUrl, '_blank', 'noopener,noreferrer');
         }
     }, [flash?.whatsappUrl]);
 

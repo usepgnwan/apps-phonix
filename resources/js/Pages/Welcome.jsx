@@ -1001,7 +1001,7 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                             <h2 className="font-headline-lg text-headline-lg text-primary mb-3">Siap Untuk Hidup Lebih Sehat?</h2>
                             <p className="font-body-md text-body-md text-on-surface-variant mb-8">Tim ahli kami siap membantu Anda menentukan terapi dan produk herbal yang tepat sesuai kebutuhan Anda. Hubungi kami sekarang untuk konsultasi gratis!</p>
                             <a
-                                href="https://wa.me/6281234567890?text=Halo%20Phoenix%2C%20saya%20tertarik%20untuk%20konsultasi."
+                                href={`https://wa.me/${usePage().props.siteSettings?.whatsappNumber || '6281234567890'}?text=${encodeURIComponent('Halo Phoenix, saya tertarik untuk konsultasi.')}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-2 bg-[#25D366] text-white px-8 py-4 rounded-full font-label-md hover:bg-[#20bd5a] transition-all active:scale-95 shadow-md hover:shadow-lg whitespace-nowrap w-fit"
@@ -1050,7 +1050,7 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                 </p>
             </footer>
 
-            <FloatingWhatsApp phoneNumber="6281234567890" />
+            <FloatingWhatsApp phoneNumber={usePage().props.siteSettings?.whatsappNumber || '6281234567890'} />
         </div>
     );
 }

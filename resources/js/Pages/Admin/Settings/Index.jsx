@@ -33,6 +33,7 @@ export default function Index({ settings }) {
     const form = useForm({
         order_template: settings.order_template || defaultOrderTemplate,
         receipt_email: settings.receipt_email || '',
+        whatsapp_number: settings.whatsapp_number || '',
     });
 
     function submit(e) {
@@ -77,6 +78,25 @@ export default function Index({ settings }) {
                                 placeholder="contoh: struk@phoenix.local"
                             />
                             <FieldError message={form.errors.receipt_email} />
+                        </div>
+
+                        <div className="mb-4 max-w-xl">
+                            <label htmlFor="whatsapp_number" className="block text-sm font-semibold text-gray-700 mb-1">
+                                Nomor WhatsApp (Tombol Floating)
+                            </label>
+                            <input
+                                id="whatsapp_number"
+                                type="text"
+                                inputMode="tel"
+                                value={form.data.whatsapp_number}
+                                onChange={(e) => form.setData('whatsapp_number', e.target.value)}
+                                className="block w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 font-body-sm text-sm transition focus:border-[#1E4D3A] focus:ring-[#1E4D3A]"
+                                placeholder="contoh: 6281234567890"
+                            />
+                            <p className="mt-1 text-xs text-gray-500">
+                                Gunakan format internasional tanpa tanda <code className="bg-gray-100 px-1 py-0.5 rounded text-[#1E4D3A] font-mono">+</code>. Awalan <code className="bg-gray-100 px-1 py-0.5 rounded text-[#1E4D3A] font-mono">0</code> akan otomatis diganti dengan <code className="bg-gray-100 px-1 py-0.5 rounded text-[#1E4D3A] font-mono">62</code>.
+                            </p>
+                            <FieldError message={form.errors.whatsapp_number} />
                         </div>
                     </AdminCard>
 
