@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\LeadSourceController as AdminLeadSourceController
 use App\Http\Controllers\Admin\OfflineSaleController as AdminOfflineSaleController;
 use App\Http\Controllers\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Admin\ServiceController as AdminServiceController;
+use App\Http\Controllers\Admin\VideoController as AdminVideoController;
 use App\Http\Controllers\Admin\VoucherController as AdminVoucherController;
 use App\Http\Controllers\Public\BookingController;
 use App\Http\Controllers\Public\CartController;
@@ -26,12 +27,14 @@ use App\Http\Controllers\Public\HomeController;
 use App\Http\Controllers\Public\OrderLookupController;
 use App\Http\Controllers\Public\ProductController;
 use App\Http\Controllers\Public\ServiceController;
+use App\Http\Controllers\Public\SitemapController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
+Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
 Route::get('/products', [ProductController::class, 'index'])->name('products.index');
 Route::get('/products/{product:slug}', [ProductController::class, 'show'])->name('products.show');
 Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
@@ -75,6 +78,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('services', AdminServiceController::class);
         Route::resource('events', AdminEventController::class);
         Route::resource('payment-methods', AdminPaymentMethodController::class);
+        Route::resource('videos', AdminVideoController::class);
         Route::resource('lead-sources', AdminLeadSourceController::class);
         Route::get('/leads', [AdminLeadController::class, 'index'])->name('leads.index');
         Route::get('/leads/create', [AdminLeadController::class, 'create'])->name('leads.create');

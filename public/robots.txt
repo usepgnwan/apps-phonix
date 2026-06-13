@@ -1,2 +1,8 @@
 User-agent: *
-Disallow:
+Disallow: /admin/
+Disallow: /customer/
+Disallow: /field/
+Disallow: /api/
+Allow: /
+
+Sitemap: /sitemap.xml

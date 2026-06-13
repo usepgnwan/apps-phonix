@@ -97,6 +97,9 @@ export function PublicShell({ children, fullWidth = false }) {
                         <Link className="font-body-md text-body-md font-medium text-[#333333] transition-colors hover:text-[#1E4D3A]" href={`${route('home')}#tentang-kami`}>
                             Tentang Kami
                         </Link>
+                        <Link className="font-body-md text-body-md font-medium text-[#333333] transition-colors hover:text-[#1E4D3A]" href={route('orders.lookup.create')}>
+                            Cek Pesanan
+                        </Link>
                     </nav>
 
                     <div className="flex items-center gap-2 sm:gap-3">

@@ -12,21 +12,20 @@ function FieldError({ message }) {
 }
 
 const defaultOrderTemplate = `
-<p class="ql-align-center"><strong>Phoenix Herbal</strong></p>
-<p class="ql-align-center">Struk Penjualan</p>
+<p class="ql-align-center"><strong>Form Pembelian Phoenix Herbal</strong></p>
 <p><br></p>
 <p>No. Nota : [order]</p>
 <p>Tanggal : [tanggal]</p>
 <p>Pelanggan : [nama]</p>
-<p>Kasir : [kasir]</p>
+<p>no whatsapps: [whatsapp]</p>
+<p>email : [email]</p>
 <p><br></p>
 <p>[items]</p>
 <p><br></p>
 <p><strong>TOTAL Rp [total]</strong></p>
 <p><br></p>
 <p class="ql-align-center">Terima Kasih</p>
-<p class="ql-align-center">Barang yang sudah dibeli</p>
-<p class="ql-align-center">tidak dapat dikembalikan.</p>
+<p class="ql-align-center">Barang yang sudah dibeli tidak dapat dikembalikan.</p>
 `;
 
 export default function Index({ settings }) {
@@ -34,6 +33,7 @@ export default function Index({ settings }) {
         order_template: settings.order_template || defaultOrderTemplate,
         receipt_email: settings.receipt_email || '',
         whatsapp_number: settings.whatsapp_number || '',
+        alamat: settings.alamat || '',
     });
 
     function submit(e) {
@@ -98,12 +98,27 @@ export default function Index({ settings }) {
                             </p>
                             <FieldError message={form.errors.whatsapp_number} />
                         </div>
+
+                        <div className="mb-4 max-w-xl">
+                            <label htmlFor="alamat" className="block text-sm font-semibold text-gray-700 mb-1">
+                                Alamat Klinik / Perusahaan
+                            </label>
+                            <textarea
+                                id="alamat"
+                                rows="3"
+                                value={form.data.alamat}
+                                onChange={(e) => form.setData('alamat', e.target.value)}
+                                className="block w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 font-body-sm text-sm transition focus:border-[#1E4D3A] focus:ring-[#1E4D3A]"
+                                placeholder="Masukkan alamat lengkap..."
+                            ></textarea>
+                            <FieldError message={form.errors.alamat} />
+                        </div>
                     </AdminCard>
 
                     <AdminCard className="p-6">
                         <h3 className="text-lg font-bold text-gray-900 mb-2">Template Pesanan / Struk</h3>
                         <p className="text-sm text-gray-500 mb-4">
-                            Gunakan tag dinamis seperti <code className="bg-gray-100 px-1 py-0.5 rounded text-[#1E4D3A] font-mono">[order]</code>, <code className="bg-gray-100 px-1 py-0.5 rounded text-[#1E4D3A] font-mono">[tanggal]</code>, <code className="bg-gray-100 px-1 py-0.5 rounded text-[#1E4D3A] font-mono">[nama]</code>, <code className="bg-gray-100 px-1 py-0.5 rounded text-[#1E4D3A] font-mono">[kasir]</code>, <code className="bg-gray-100 px-1 py-0.5 rounded text-[#1E4D3A] font-mono">[items]</code>, dan <code className="bg-gray-100 px-1 py-0.5 rounded text-[#1E4D3A] font-mono">[total]</code> yang akan otomatis diubah oleh sistem.
+                            Gunakan tag dinamis seperti <code className="bg-gray-100 px-1 py-0.5 rounded text-[#1E4D3A] font-mono">[order]</code>, <code className="bg-gray-100 px-1 py-0.5 rounded text-[#1E4D3A] font-mono">[tanggal]</code>, <code className="bg-gray-100 px-1 py-0.5 rounded text-[#1E4D3A] font-mono">[nama]</code>, <code className="bg-gray-100 px-1 py-0.5 rounded text-[#1E4D3A] font-mono">[whatsapp]</code>, <code className="bg-gray-100 px-1 py-0.5 rounded text-[#1E4D3A] font-mono">[email]</code>, <code className="bg-gray-100 px-1 py-0.5 rounded text-[#1E4D3A] font-mono">[kasir]</code>, <code className="bg-gray-100 px-1 py-0.5 rounded text-[#1E4D3A] font-mono">[items]</code>, dan <code className="bg-gray-100 px-1 py-0.5 rounded text-[#1E4D3A] font-mono">[total]</code> yang akan otomatis diubah oleh sistem.
                         </p>
                         
                         <div className="mb-4">

@@ -17,6 +17,7 @@ import {
     Tags,
     UserRound,
     UsersRound,
+    Video,
     WalletCards,
     X,
 } from 'lucide-react';
@@ -58,6 +59,7 @@ const navigationGroups = [
             { label: 'Voucher', routeName: 'admin.vouchers.index', pattern: 'admin.vouchers.*', icon: BadgePercent },
             { label: 'Metode Pembayaran', routeName: 'admin.payment-methods.index', pattern: 'admin.payment-methods.*', icon: CreditCard },
             { label: 'Sumber Lead', routeName: 'admin.lead-sources.index', pattern: 'admin.lead-sources.*', icon: Tags },
+            { label: 'Video', routeName: 'admin.videos.index', pattern: 'admin.videos.*', icon: Video },
         ],
     },
     {
