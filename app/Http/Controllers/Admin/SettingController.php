@@ -35,7 +35,12 @@ class SettingController extends Controller
         $data = $request->validate([
             'order_template' => ['nullable', 'string'],
             'receipt_email' => ['nullable', 'email'],
+            'whatsapp_number' => ['nullable', 'string', 'max:20'],
         ]);
+
+        if (array_key_exists('whatsapp_number', $data)) {
+            $data['whatsapp_number'] = $this->normalizeWhatsappNumber($data['whatsapp_number']);
+        }
 
         foreach ($data as $key => $value) {
             Setting::query()->updateOrCreate(
@@ -45,5 +50,34 @@ class SettingController extends Controller
         }
 
         return redirect()->back()->with('success', 'Pengaturan berhasil diperbarui.');
+    }
+
+    /**
+     * Normalisasi nomor WhatsApp ke format wa.me (digit only, prefix 62).
+     * Contoh:
+     *  - "08123456789"   -> "628123456789"
+     *  - "+628123456789" -> "628123456789"
+     *  - "8123456789"    -> "628123456789"
+     *  - ""              -> null
+     */
+    private function normalizeWhatsappNumber(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $digits = preg_replace('/\D+/', '', $value);
+
+        if ($digits === null || $digits === '') {
+            return null;
+        }
+
+        if (str_starts_with($digits, '0')) {
+            $digits = '62' . ltrim($digits, '0');
+        } elseif (! str_starts_with($digits, '62')) {
+            $digits = '62' . $digits;
+        }
+
+        return $digits;
     }
 }

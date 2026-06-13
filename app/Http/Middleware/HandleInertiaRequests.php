@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Setting;
 use App\Services\CartResolver;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -41,6 +42,9 @@ class HandleInertiaRequests extends Middleware
             ],
             'cartSummary' => fn (): array => [
                 'count' => (int) ($this->cartResolver->existing($request)?->cartItems()->sum('quantity') ?? 0),
+            ],
+            'siteSettings' => fn (): array => [
+                'whatsappNumber' => Setting::query()->where('key', 'whatsapp_number')->value('value') ?: '6281234567890',
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),

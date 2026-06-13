@@ -1,4 +1,5 @@
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
+import { useEffect } from 'react';
 
 import { formatRupiah, PrimaryLink, ProductImage, PublicCard, PublicShell, SecondaryLink } from '@/Components/Public/commerce.jsx';
 
@@ -97,6 +98,16 @@ function orderGuidance(order) {
 export default function OrderShow({ order }) {
     const items = order?.order_items ?? [];
     const paymentMethod = order?.payment_method;
+    const { props } = usePage();
+    const whatsappUrl = props?.flash?.whatsappUrl;
+
+    useEffect(() => {
+        if (!whatsappUrl) {
+            return;
+        }
+
+        window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+    }, [whatsappUrl]);
 
     return (
         <>
