@@ -45,6 +45,7 @@ class HandleInertiaRequests extends Middleware
             ],
             'siteSettings' => fn (): array => [
                 'whatsappNumber' => Setting::query()->where('key', 'whatsapp_number')->value('value') ?: '6281234567890',
+                'alamat' => Setting::query()->where('key', 'alamat')->value('value') ?: '',
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),

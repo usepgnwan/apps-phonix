@@ -36,6 +36,7 @@ class SettingController extends Controller
             'order_template' => ['nullable', 'string'],
             'receipt_email' => ['nullable', 'email'],
             'whatsapp_number' => ['nullable', 'string', 'max:20'],
+            'alamat' => ['nullable', 'string'],
         ]);
 
         if (array_key_exists('whatsapp_number', $data)) {

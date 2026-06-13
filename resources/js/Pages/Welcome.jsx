@@ -232,7 +232,39 @@ function TestimonialCard({ testimonial }) {
     );
 }
 
-export default function Welcome({ auth, featuredProducts = [], featuredServices = [], testimonials = [] }) {
+function getYouTubeId(url) {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+}
+
+function DynamicVideoPlayer({ url, title }) {
+    const isYouTube = url?.includes('youtube.com') || url?.includes('youtu.be');
+    
+    if (isYouTube) {
+        const videoId = getYouTubeId(url);
+        if (videoId) {
+            return (
+                <iframe 
+                    src={`https://www.youtube.com/embed/${videoId}?rel=0`} 
+                    title={title || "Video Testimoni"}
+                    className="w-full h-full absolute inset-0"
+                    allowFullScreen
+                    style={{ border: 0 }}
+                ></iframe>
+            );
+        }
+    }
+
+    return (
+        <video className="w-full h-full object-contain absolute inset-0" controls playsInline>
+            <source src={url} />
+            Browser Anda tidak mendukung video HTML5.
+        </video>
+    );
+}
+
+export default function Welcome({ auth, featuredProducts = [], featuredServices = [], testimonials = [], videos = [] }) {
     const [isScrolled, setIsScrolled] = useState(false);
     const [flyingProduct, setFlyingProduct] = useState(null);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -416,7 +448,11 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
 
     return (
         <div className="bg-surface text-on-surface selection:bg-primary-fixed selection:text-on-primary-fixed min-h-screen">
-            <Head title="Phoenix Terapi & Herbal" />
+            <Head>
+                <title>Phoenix Terapi & Herbal | Layanan Bio Elektrik & Obat Herbal Bandung</title>
+                <meta name="description" content="Phoenix Terapi & Herbal memberikan layanan bio elektrik dan obat herbal murah di Bandung. Deteksi akurat, terapi tepat sasaran menggunakan terapi GenQi." />
+                <meta name="keywords" content="phoenix layanan bio electrik, obat herbal, Deteksi Akurat, Terapi Tepat Sasaran terapi genqi, obat herbal bandung, obat herbal murah dibandung" />
+            </Head>
 
             <style>{`
                 .reveal-on-scroll {
@@ -508,6 +544,7 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                         <SmoothAnchor className="font-body-md text-body-md font-medium text-[#333333] transition-colors hover:text-[#1E4D3A]" href="#produk" onClick={handleAnchorClick}>Produk</SmoothAnchor>
                         <SmoothAnchor className="font-body-md text-body-md font-medium text-[#333333] transition-colors hover:text-[#1E4D3A]" href="#layanan" onClick={handleAnchorClick}>Layanan</SmoothAnchor>
                         <SmoothAnchor className="font-body-md text-body-md font-medium text-[#333333] transition-colors hover:text-[#1E4D3A]" href="#tentang-kami" onClick={handleAnchorClick}>Tentang Kami</SmoothAnchor>
+                        <Link className="font-body-md text-body-md font-medium text-[#333333] transition-colors hover:text-[#1E4D3A]" href={route('orders.lookup.create')}>Cek Pesanan</Link>
                     </div>
                     <div className="flex items-center gap-2 sm:gap-3">
                         <Link href={route('cart.index')} className="relative flex h-11 w-11 items-center justify-center rounded-full border border-[#1E4D3A]/30 bg-white text-[#1E4D3A] transition-all duration-150 hover:border-[#1E4D3A] hover:bg-[#A8C5B3]/20 active:scale-95" aria-label="Keranjang belanja" data-cart-link>
@@ -544,6 +581,7 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                         <SmoothAnchor className="font-body-md text-body-md font-medium text-[#333333]" href="#produk" onClick={(e) => { setIsMobileMenuOpen(false); handleAnchorClick(e); }}>Produk</SmoothAnchor>
                         <SmoothAnchor className="font-body-md text-body-md font-medium text-[#333333]" href="#layanan" onClick={(e) => { setIsMobileMenuOpen(false); handleAnchorClick(e); }}>Layanan</SmoothAnchor>
                         <SmoothAnchor className="font-body-md text-body-md font-medium text-[#333333]" href="#tentang-kami" onClick={(e) => { setIsMobileMenuOpen(false); handleAnchorClick(e); }}>Tentang Kami</SmoothAnchor>
+                        <Link className="font-body-md text-body-md font-medium text-[#333333]" href={route('orders.lookup.create')}>Cek Pesanan</Link>
                         {!isAuthenticated && (
                             <Link href={route('register')} className="w-full text-center rounded-full border border-[#1E4D3A] py-2.5 font-label-md font-semibold text-[#1E4D3A] mt-2 transition-all hover:bg-[#1E4D3A]/5">Daftar Akun</Link>
                         )}
@@ -868,9 +906,8 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                                 <div className="rounded-3xl overflow-hidden shadow-lg border border-outline-variant bg-white aspect-[4/3] relative">
                                     <video
                                         className="w-full h-full object-cover"
-                                        autoPlay
-                                        loop
-                                        muted
+                                        controls
+                                        preload="none"
                                         playsInline
                                     >
                                         <source src="/images/video1.mp4" type="video/mp4" />
@@ -902,20 +939,30 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                         </div>
 
                         {/* Testimonial Videos Slider/Grid */}
-                        <div className="flex overflow-x-auto lg:grid lg:grid-cols-4 gap-4 md:gap-6 pb-4 snap-x snap-mandatory no-scrollbar">
-                            {[1, 2, 3, 4].map((num) => (
-                                <div key={num} className="w-[260px] sm:w-[320px] lg:w-full snap-start rounded-3xl overflow-hidden shadow-sm border border-outline-variant bg-black aspect-[9/16] relative flex-shrink-0">
-                                    <video
-                                        className="w-full h-full object-contain"
-                                        controls
-                                        playsInline
-                                    >
-                                        <source src={`/videos/${num}.mp4`} type="video/mp4" />
-                                        Browser Anda tidak mendukung video HTML5.
-                                    </video>
-                                </div>
-                            ))}
-                        </div>
+                        {videos.length > 0 ? (
+                            <div className="flex overflow-x-auto lg:grid lg:grid-cols-4 gap-4 md:gap-6 pb-4 snap-x snap-mandatory no-scrollbar">
+                                {videos.map((video) => (
+                                    <div key={video.id} className="w-[260px] sm:w-[320px] lg:w-full snap-start rounded-3xl overflow-hidden shadow-sm border border-outline-variant bg-black aspect-[9/16] relative flex-shrink-0">
+                                        <DynamicVideoPlayer url={video.video_link} title={video.title} />
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="flex overflow-x-auto lg:grid lg:grid-cols-4 gap-4 md:gap-6 pb-4 snap-x snap-mandatory no-scrollbar">
+                                {[1, 2, 3, 4].map((num) => (
+                                    <div key={num} className="w-[260px] sm:w-[320px] lg:w-full snap-start rounded-3xl overflow-hidden shadow-sm border border-outline-variant bg-black aspect-[9/16] relative flex-shrink-0">
+                                        <video
+                                            className="w-full h-full object-contain absolute inset-0"
+                                            controls
+                                            playsInline
+                                        >
+                                            <source src={`/videos/${num}.mp4`} type="video/mp4" />
+                                            Browser Anda tidak mendukung video HTML5.
+                                        </video>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </Reveal>
                 </section>
                 {/* Kategori Produk & Layanan (Carousel Section) */}
@@ -999,7 +1046,15 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                         <div className="flex-1 px-10 py-12 md:py-14">
                             <p className="font-label-md text-secondary uppercase tracking-widest mb-3">Konsultasi Gratis</p>
                             <h2 className="font-headline-lg text-headline-lg text-primary mb-3">Siap Untuk Hidup Lebih Sehat?</h2>
-                            <p className="font-body-md text-body-md text-on-surface-variant mb-8">Tim ahli kami siap membantu Anda menentukan terapi dan produk herbal yang tepat sesuai kebutuhan Anda. Hubungi kami sekarang untuk konsultasi gratis!</p>
+                            <p className="font-body-md text-body-md text-on-surface-variant mb-6">Tim ahli kami siap membantu Anda menentukan terapi dan produk herbal yang tepat sesuai kebutuhan Anda. Hubungi kami sekarang untuk konsultasi gratis!</p>
+                            
+                            {usePage().props.siteSettings?.alamat && (
+                                <div className="mb-8 flex items-start gap-3 text-on-surface-variant">
+                                    <span className="material-symbols-outlined text-primary shrink-0 mt-0.5">location_on</span>
+                                    <p className="font-body-sm text-sm whitespace-pre-line">{usePage().props.siteSettings.alamat}</p>
+                                </div>
+                            )}
+
                             <a
                                 href={`https://wa.me/${usePage().props.siteSettings?.whatsappNumber || '6281234567890'}?text=${encodeURIComponent('Halo Phoenix, saya tertarik untuk konsultasi.')}`}
                                 target="_blank"

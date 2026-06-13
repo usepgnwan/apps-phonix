@@ -123,11 +123,13 @@ class CheckoutService
                 $parsedHtml = str_replace('<p>[items]</p>', '[items]', $orderTemplate);
                 
                 $parsedHtml = str_replace(
-                    ['[order]', '[tanggal]', '[nama]', '[kasir]', '[items]', '[total]'],
+                    ['[order]', '[tanggal]', '[nama]', '[whatsapp]', '[email]', '[kasir]', '[items]', '[total]'],
                     [
                         $order->order_number,
                         $order->created_at->format('d-m-Y H:i'),
                         $order->customer_name ?: 'Umum',
+                        $order->customer_whatsapp_number ?: '-',
+                        $order->customer_email ?: '-',
                         'Sistem',
                         $itemsHtml,
                         number_format($order->total, 0, ',', '.')

@@ -14,6 +14,10 @@
         <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
 
+        <!-- PWA Meta Tags -->
+        <link rel="manifest" href="/manifest.json">
+        <meta name="theme-color" content="#1E4D3A">
+
         <!-- Scripts -->
         @routes
         @viteReactRefresh
@@ -22,5 +26,13 @@
     </head>
     <body class="font-sans antialiased">
         @inertia
+        
+        <script>
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('/sw.js');
+                });
+            }
+        </script>
     </body>
 </html>

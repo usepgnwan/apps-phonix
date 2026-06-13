@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Service;
 use App\Models\Testimonial;
+use App\Models\Video;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -38,6 +39,11 @@ class HomeController extends Controller
                 ->latest()
                 ->limit(6)
                 ->get(['id', 'customer_name', 'content', 'photo_path']),
+            'videos' => Video::query()
+                ->where('is_pinned', true)
+                ->inRandomOrder()
+                ->limit(8)
+                ->get(['id', 'title', 'video_link']),
         ]);
     }
 }
