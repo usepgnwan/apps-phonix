@@ -10,6 +10,7 @@ import {
     Leaf,
     LogOut,
     Menu,
+    MessageSquare,
     Package,
     Settings,
     Sprout,
@@ -61,6 +62,7 @@ const navigationGroups = [
             { label: 'Metode Pembayaran', routeName: 'admin.payment-methods.index', pattern: 'admin.payment-methods.*', icon: CreditCard },
             { label: 'Sumber Lead', routeName: 'admin.lead-sources.index', pattern: 'admin.lead-sources.*', icon: Tags },
             { label: 'Video', routeName: 'admin.videos.index', pattern: 'admin.videos.*', icon: Video },
+            { label: 'Testimoni', routeName: 'admin.testimonials.index', pattern: 'admin.testimonials.*', icon: MessageSquare },
         ],
     },
     {
