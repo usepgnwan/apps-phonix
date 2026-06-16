@@ -11,18 +11,44 @@ class OrderFulfillmentService
 {
     public function updateStatus(Order $order, array $data): Order
     {
-        if ($data['status'] !== 'processing') {
-            $order->update($data);
+        $order->update($data);
 
-            return $order->fresh();
+        if ($data['status'] === 'cancelled') {
+            $this->restoreStock($order->fresh());
         }
 
-        return $this->markProcessing($order, $data['admin_notes'] ?? null);
+        return $order->fresh();
     }
 
-    private function markProcessing(Order $order, ?string $adminNotes): Order
+    public function processPayment(Order $order, string $paymentStatus, ?string $paymentNotes = null, ?string $paymentReceivedAt = null): Order
     {
-        return DB::transaction(function () use ($order, $adminNotes): Order {
+        $status = $order->status;
+        
+        if ($paymentStatus === 'paid') {
+            $status = 'payment_received';
+            $paymentReceivedAt = $paymentReceivedAt ?? now();
+            // Mengurangi stok saat paid
+            $this->decrementStock($order);
+        } elseif ($paymentStatus === 'waiting_payment') {
+            $status = 'waiting_payment';
+        } elseif ($paymentStatus === 'cancelled') {
+            $status = 'cancelled';
+            $this->restoreStock($order);
+        }
+
+        $order->update([
+            'payment_status' => $paymentStatus,
+            'payment_received_at' => $paymentReceivedAt,
+            'payment_notes' => $paymentNotes,
+            'status' => $status,
+        ]);
+
+        return $order->fresh();
+    }
+
+    private function decrementStock(Order $order): void
+    {
+        DB::transaction(function () use ($order) {
             $lockedOrder = Order::query()
                 ->whereKey($order->id)
                 ->with('orderItems')
@@ -38,7 +64,7 @@ class OrderFulfillmentService
 
                     if ($product->stock_quantity < $item->quantity) {
                         throw ValidationException::withMessages([
-                            'status' => "Stok {$product->name} tidak mencukupi untuk memproses order.",
+                            'payment_status' => "Stok {$product->name} tidak mencukupi untuk memproses pembayaran.",
                         ]);
                     }
 
@@ -46,13 +72,33 @@ class OrderFulfillmentService
                 }
 
                 $lockedOrder->stock_decremented_at = now();
+                $lockedOrder->save();
             }
+        });
+    }
 
-            $lockedOrder->status = 'processing';
-            $lockedOrder->admin_notes = $adminNotes;
-            $lockedOrder->save();
+    private function restoreStock(Order $order): void
+    {
+        DB::transaction(function () use ($order) {
+            $lockedOrder = Order::query()
+                ->whereKey($order->id)
+                ->with('orderItems')
+                ->lockForUpdate()
+                ->firstOrFail();
 
-            return $lockedOrder->fresh();
+            if ($lockedOrder->stock_decremented_at !== null) {
+                foreach ($lockedOrder->orderItems as $item) {
+                    $product = Product::query()
+                        ->whereKey($item->product_id)
+                        ->lockForUpdate()
+                        ->firstOrFail();
+
+                    $product->increment('stock_quantity', $item->quantity);
+                }
+
+                $lockedOrder->stock_decremented_at = null;
+                $lockedOrder->save();
+            }
         });
     }
 }

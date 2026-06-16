@@ -302,6 +302,14 @@ function AdminOrderShow({ order }) {
                             >
                                 Edit Status Order
                             </a>
+                            <a
+                                className="rounded-full border border-[#1E4D3A] px-4 py-2 font-body-sm text-sm font-bold text-[#1E4D3A] transition hover:bg-[#1E4D3A] hover:text-white"
+                                href={route('admin.orders.invoice', order.id)}
+                                rel="noopener noreferrer"
+                                target="_blank"
+                            >
+                                Download Invoice PDF
+                            </a>
                             <Link
                                 className="rounded-full border border-[#1E4D3A] px-4 py-2 font-body-sm text-sm font-bold text-[#1E4D3A] transition hover:bg-[#1E4D3A] hover:text-white"
                                 href={route('admin.orders.index')}
@@ -315,10 +323,97 @@ function AdminOrderShow({ order }) {
                     title={title}
                 />
 
-                <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                <div className="grid grid-cols-1 gap-6 scroll-mt-24 xl:grid-cols-3" id="form-update-status-order">
+                    <div className="space-y-6">
+                        {canUpdateShipping ? (
+                            <AdminCard className="p-5">
+                                <SectionHeader eyebrow="Shipping" title="Perbarui Shipping" />
+                                <form className="space-y-4" onSubmit={submitShipping}>
+                                    <SelectField
+                                        error={shippingForm.errors.shipping_status}
+                                        label="Shipping Status"
+                                        name="shipping_status"
+                                        onChange={(event) => {
+                                            const nextStatus = event.target.value;
+
+                                            shippingForm.setData((currentData) => ({
+                                                ...currentData,
+                                                shipping_status: nextStatus,
+                                                tracking_number: nextStatus === 'ready_to_ship' ? currentData.tracking_number : '',
+                                            }));
+                                        }}
+                                        value={shippingForm.data.shipping_status}
+                                    >
+                                        <option value="">Pilih aksi shipping</option>
+                                        {shippingOptions.map((option) => (
+                                            <option key={option} value={option}>{readableLabel(option)}</option>
+                                        ))}
+                                    </SelectField>
+                                    <TextField disabled={isPaymentPaid} error={shippingForm.errors.courier_name} label="Courier Nama" name="courier_name" onChange={(event) => shippingForm.setData('courier_name', event.target.value)} value={shippingForm.data.courier_name} />
+                                    {shippingForm.data.shipping_status === 'ready_to_ship' ? (
+                                        <TextField error={shippingForm.errors.tracking_number} label="Tracking Number" name="tracking_number" onChange={(event) => shippingForm.setData('tracking_number', event.target.value)} value={shippingForm.data.tracking_number} />
+                                    ) : null}
+                                    <TextField disabled={isPaymentPaid} error={shippingForm.errors.shipping_cost} label="Ongkir" name="shipping_cost" onChange={(event) => shippingForm.setData('shipping_cost', event.target.value)} type="number" value={shippingForm.data.shipping_cost} />
+                                    <TextAreaField error={shippingForm.errors.shipping_notes} label="Shipping Catatan" name="shipping_notes" onChange={(event) => shippingForm.setData('shipping_notes', event.target.value)} value={shippingForm.data.shipping_notes} />
+                                    <PrimarySubmitButton disabled={shippingForm.processing || !shippingForm.data.shipping_status}>Simpan Shipping</PrimarySubmitButton>
+                                </form>
+                            </AdminCard>
+                        ) : null}
+
+                        {canUpdatePayment ? (
+                            <AdminCard className="p-5">
+                                <SectionHeader eyebrow="Payment" title="Perbarui Payment" />
+                                <form className="space-y-4" onSubmit={submitPayment}>
+                                    <SelectField error={paymentForm.errors.payment_status} label="Payment Status" name="payment_status" onChange={(event) => paymentForm.setData('payment_status', event.target.value)} value={paymentForm.data.payment_status}>
+                                        <option value="">Pilih aksi payment</option>
+                                        {paymentOptions.map((option) => (
+                                            <option key={option} value={option}>{readableLabel(option)}</option>
+                                        ))}
+                                    </SelectField>
+                                    <TextField error={paymentForm.errors.payment_received_at} label="Payment Received At" name="payment_received_at" onChange={(event) => paymentForm.setData('payment_received_at', event.target.value)} type="datetime-local" value={paymentForm.data.payment_received_at} />
+                                    <TextAreaField error={paymentForm.errors.payment_notes} label="Payment Catatan" name="payment_notes" onChange={(event) => paymentForm.setData('payment_notes', event.target.value)} value={paymentForm.data.payment_notes} />
+                                    <PrimarySubmitButton disabled={paymentForm.processing || !paymentForm.data.payment_status}>Simpan Payment</PrimarySubmitButton>
+                                </form>
+                            </AdminCard>
+                        ) : null}
+
+                        {canUpdateOrderStatus ? (
+                            <AdminCard className="p-5">
+                                <SectionHeader eyebrow="Order" title="Perbarui Status Order" />
+                                {statusUpdateMayProcessStock ? (
+                                    <div className="mb-4 rounded-2xl border border-[#F08A2B]/20 bg-[#F08A2B]/10 px-4 py-3">
+                                        <p className="font-body-sm text-xs leading-5 text-[#B57A2E]">
+                                            Setting status ke processing akan mengurangi stok satu kali. Backend akan menolak jika stok tidak cukup.
+                                            {order.stock_decremented_at && ` Stok sudah dikurangi pada ${formatDateTime(order.stock_decremented_at)}.`}
+                                        </p>
+                                    </div>
+                                ) : null}
+                                <form className="space-y-4" onSubmit={submitStatus}>
+                                    <SelectField error={statusForm.errors.status} label="Status Order" name="status" onChange={(event) => statusForm.setData('status', event.target.value)} value={statusForm.data.status}>
+                                        <option value="">Pilih aksi order</option>
+                                        {orderOptions.map((option) => (
+                                            <option key={option} value={option}>{readableLabel(option)}</option>
+                                        ))}
+                                    </SelectField>
+                                    <TextAreaField error={statusForm.errors.admin_notes} label="Catatan Admin" name="admin_notes" onChange={(event) => statusForm.setData('admin_notes', event.target.value)} value={statusForm.data.admin_notes} />
+                                    <PrimarySubmitButton disabled={statusForm.processing || !statusForm.data.status}>Simpan Status</PrimarySubmitButton>
+                                </form>
+                            </AdminCard>
+                        ) : null}
+
+                        {!hasAvailableActions ? (
+                            <AdminCard className="p-5">
+                                <EmptyState
+                                    description="Status order saat ini tidak membutuhkan update admin."
+                                    title="Tidak ada aksi."
+                                />
+                            </AdminCard>
+                        ) : null}
+                    </div>
+
                     <AdminCard className="p-5">
                         <SectionHeader eyebrow="Order" title="Ringkasan Order" />
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div className="grid grid-cols-1 gap-3">
                             <DetailRow label="Nomor Order">{title}</DetailRow>
                             <DetailRow label="Status Order"><StatusBadge status={order.status} /></DetailRow>
                             <DetailRow label="Subtotal">{formatCurrency(order.subtotal)}</DetailRow>
@@ -326,7 +421,7 @@ function AdminOrderShow({ order }) {
                             <DetailRow label="Ongkir">{formatCurrency(order.shipping_cost)}</DetailRow>
                             <DetailRow label="Total">{formatCurrency(order.total)}</DetailRow>
                             <DetailRow label="Stok Dikurangi Pada">{formatDateTime(order.stock_decremented_at)}</DetailRow>
-                            <div className="sm:col-span-2">
+                            <div className="col-span-1">
                                 <DetailRow label="Catatan Admin">{order.admin_notes || '-'}</DetailRow>
                             </div>
                         </div>
@@ -334,12 +429,12 @@ function AdminOrderShow({ order }) {
 
                     <AdminCard className="p-5">
                         <SectionHeader eyebrow="Customer" title="Customer" />
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div className="grid grid-cols-1 gap-3">
                             <DetailRow label="Nama Customer">{customerName(order)}</DetailRow>
                             <DetailRow label="WhatsApp">{order.customer_profile?.whatsapp_number ?? order.customer_whatsapp_number ?? '-'}</DetailRow>
                             <DetailRow label="Email User">{order.user?.email ?? '-'}</DetailRow>
                             <DetailRow label="Status Member">{order.customer_profile?.member_status ?? order.member_status ?? '-'}</DetailRow>
-                            <div className="sm:col-span-2">
+                            <div className="col-span-1">
                                 <DetailRow label="Alamat Pengiriman">{order.shipping_address ?? '-'}</DetailRow>
                             </div>
                         </div>
@@ -436,93 +531,6 @@ function AdminOrderShow({ order }) {
                             <DetailRow label="Catatan">{order.payment_notes ?? '-'}</DetailRow>
                         </div>
                     </AdminCard>
-                </div>
-
-                <div className="grid grid-cols-1 gap-6 scroll-mt-24 xl:grid-cols-3" id="form-update-status-order">
-                    {canUpdateShipping ? (
-                        <AdminCard className="p-5">
-                            <SectionHeader eyebrow="Shipping" title="Perbarui Shipping" />
-                            <form className="space-y-4" onSubmit={submitShipping}>
-                                <SelectField
-                                    error={shippingForm.errors.shipping_status}
-                                    label="Shipping Status"
-                                    name="shipping_status"
-                                    onChange={(event) => {
-                                        const nextStatus = event.target.value;
-
-                                        shippingForm.setData((currentData) => ({
-                                            ...currentData,
-                                            shipping_status: nextStatus,
-                                            tracking_number: nextStatus === 'ready_to_ship' ? currentData.tracking_number : '',
-                                        }));
-                                    }}
-                                    value={shippingForm.data.shipping_status}
-                                >
-                                    <option value="">Pilih aksi shipping</option>
-                                    {shippingOptions.map((option) => (
-                                        <option key={option} value={option}>{readableLabel(option)}</option>
-                                    ))}
-                                </SelectField>
-                                <TextField disabled={isPaymentPaid} error={shippingForm.errors.courier_name} label="Courier Nama" name="courier_name" onChange={(event) => shippingForm.setData('courier_name', event.target.value)} value={shippingForm.data.courier_name} />
-                                {shippingForm.data.shipping_status === 'ready_to_ship' ? (
-                                    <TextField error={shippingForm.errors.tracking_number} label="Tracking Number" name="tracking_number" onChange={(event) => shippingForm.setData('tracking_number', event.target.value)} value={shippingForm.data.tracking_number} />
-                                ) : null}
-                                <TextField disabled={isPaymentPaid} error={shippingForm.errors.shipping_cost} label="Ongkir" name="shipping_cost" onChange={(event) => shippingForm.setData('shipping_cost', event.target.value)} type="number" value={shippingForm.data.shipping_cost} />
-                                <TextAreaField error={shippingForm.errors.shipping_notes} label="Shipping Catatan" name="shipping_notes" onChange={(event) => shippingForm.setData('shipping_notes', event.target.value)} value={shippingForm.data.shipping_notes} />
-                                <PrimarySubmitButton disabled={shippingForm.processing || !shippingForm.data.shipping_status}>Simpan Shipping</PrimarySubmitButton>
-                            </form>
-                        </AdminCard>
-                    ) : null}
-
-                    {canUpdatePayment ? (
-                        <AdminCard className="p-5">
-                            <SectionHeader eyebrow="Payment" title="Perbarui Payment" />
-                            <form className="space-y-4" onSubmit={submitPayment}>
-                                <SelectField error={paymentForm.errors.payment_status} label="Payment Status" name="payment_status" onChange={(event) => paymentForm.setData('payment_status', event.target.value)} value={paymentForm.data.payment_status}>
-                                    <option value="">Pilih aksi payment</option>
-                                    {paymentOptions.map((option) => (
-                                        <option key={option} value={option}>{readableLabel(option)}</option>
-                                    ))}
-                                </SelectField>
-                                <TextField error={paymentForm.errors.payment_received_at} label="Payment Received At" name="payment_received_at" onChange={(event) => paymentForm.setData('payment_received_at', event.target.value)} type="datetime-local" value={paymentForm.data.payment_received_at} />
-                                <TextAreaField error={paymentForm.errors.payment_notes} label="Payment Catatan" name="payment_notes" onChange={(event) => paymentForm.setData('payment_notes', event.target.value)} value={paymentForm.data.payment_notes} />
-                                <PrimarySubmitButton disabled={paymentForm.processing || !paymentForm.data.payment_status}>Simpan Payment</PrimarySubmitButton>
-                            </form>
-                        </AdminCard>
-                    ) : null}
-
-                    {canUpdateOrderStatus ? (
-                        <AdminCard className="p-5">
-                            <SectionHeader eyebrow="Order" title="Perbarui Status Order" />
-                            {statusUpdateMayProcessStock ? (
-                                <div className="mb-4 rounded-2xl border border-[#F08A2B]/20 bg-[#F08A2B]/10 px-4 py-3">
-                                    <p className="font-body-sm text-xs leading-5 text-[#B57A2E]">
-                                        Setting status ke processing akan mengurangi stok satu kali. Backend akan menolak jika stok tidak cukup.
-                                        {order.stock_decremented_at && ` Stok sudah dikurangi pada ${formatDateTime(order.stock_decremented_at)}.`}
-                                    </p>
-                                </div>
-                            ) : null}
-                            <form className="space-y-4" onSubmit={submitStatus}>
-                                <SelectField error={statusForm.errors.status} label="Status Order" name="status" onChange={(event) => statusForm.setData('status', event.target.value)} value={statusForm.data.status}>
-                                    <option value="">Pilih aksi order</option>
-                                    {orderOptions.map((option) => (
-                                        <option key={option} value={option}>{readableLabel(option)}</option>
-                                    ))}
-                                </SelectField>
-                                <TextAreaField error={statusForm.errors.admin_notes} label="Catatan Admin" name="admin_notes" onChange={(event) => statusForm.setData('admin_notes', event.target.value)} value={statusForm.data.admin_notes} />
-                                <PrimarySubmitButton disabled={statusForm.processing || !statusForm.data.status}>Simpan Status</PrimarySubmitButton>
-                            </form>
-                        </AdminCard>
-                    ) : null}
-
-                    {!hasAvailableActions ? (
-                        <AdminCard className="p-5 xl:col-span-3">
-                            <EmptyState
-                                description="Status order, shipping, dan payment saat ini tidak membutuhkan update admin. Lanjutkan pemantauan sampai ada perubahan dari customer atau proses berikutnya tersedia."
-                                title="Tidak ada aksi yang perlu dilakukan."
-                            />
-                        </AdminCard>
-                    ) : null}
                 </div>
             </div>
         </>

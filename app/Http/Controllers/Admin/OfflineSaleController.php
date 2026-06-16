@@ -16,6 +16,7 @@ use App\Services\OfflineSaleService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class OfflineSaleController extends Controller
 {
@@ -91,5 +92,24 @@ class OfflineSaleController extends Controller
         return view('admin.offline_sales.print', [
             'sale' => $offlineSale,
         ]);
+    }
+
+    public function invoice(OfflineSale $offlineSale)
+    {
+        $this->authorizeAdmin();
+
+        $offlineSale->load([
+            'offlineSaleItems.product', 
+            'offlineSaleItems.service', 
+            'customerProfile', 
+            'fieldStaff', 
+            'paymentMethod'
+        ]);
+
+        $pdf = Pdf::loadView('admin.offline_sales.invoice', [
+            'sale' => $offlineSale,
+        ]);
+
+        return $pdf->stream('Invoice-Offline-' . $offlineSale->sale_number . '.pdf');
     }
 }

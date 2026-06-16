@@ -11,12 +11,31 @@ class ServiceController extends Controller
 {
     public function index(): Response
     {
+        $query = Service::query()
+            ->where('is_active', true);
+
+        if ($search = request('search')) {
+            $query->where('name', 'ilike', '%' . $search . '%');
+        }
+
+        $sort = request('sort', 'latest');
+        if ($sort === 'name') {
+            $query->orderBy('name');
+        } elseif ($sort === 'price_low') {
+            $query->orderBy('price', 'asc');
+        } elseif ($sort === 'price_high') {
+            $query->orderBy('price', 'desc');
+        } else {
+            $query->orderByDesc('is_featured')->latest();
+        }
+
+        $perPage = request('perPage', 12);
+        if (!in_array($perPage, [12, 24, 36])) {
+            $perPage = 12;
+        }
+
         return Inertia::render('Public/Services/Index', [
-            'services' => Service::query()
-                ->where('is_active', true)
-                ->latest()
-                ->paginate(12)
-                ->withQueryString(),
+            'services' => $query->paginate($perPage)->withQueryString(),
         ]);
     }
 
@@ -31,7 +50,7 @@ class ServiceController extends Controller
                 ->whereKeyNot($service->id)
                 ->latest()
                 ->limit(4)
-                ->get(['id', 'name', 'slug', 'description', 'price', 'visit_type', 'image_path']),
+                ->get(['id', 'name', 'slug', 'description', 'price', 'visit_type', 'image_path', 'is_featured']),
         ]);
     }
 }

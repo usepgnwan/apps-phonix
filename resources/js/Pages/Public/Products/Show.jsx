@@ -1,5 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft, ArrowRight, Package, ShoppingBag, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Package, ShoppingBag, Sparkles, Star } from 'lucide-react';
 import { useRef, useState } from 'react';
 
 import { formatRupiah, PrimaryLink, ProductImage, productCategory, PublicCard, PublicShell, SecondaryLink } from '@/Components/Public/commerce.jsx';
@@ -18,7 +18,7 @@ function RelatedProduct({ product }) {
             <div className="p-5">
                 <h3 className="font-headline-md text-headline-md text-primary-container">{product.name}</h3>
                 <p className="mt-3 line-clamp-2 font-body-sm text-sm leading-6 text-on-surface-variant">
-                    {product.short_description || 'Produk botanical Phoenix untuk ritual perawatan harian.'}
+                    {product.short_description || 'Produk botanical Phoenix untuk suplemen perawatan harian.'}
                 </p>
                 <div className="mt-5 flex items-center justify-between gap-3 border-t border-outline-variant/70 pt-4">
                     <p className="font-body-lg text-base font-extrabold text-primary-container">{formatRupiah(product.price)}</p>
@@ -62,7 +62,7 @@ function ProductInfoSections({ packageContent, product }) {
                 content: <p className="whitespace-pre-line">{product.full_description}</p>,
                 key: 'detail',
                 label: 'Detail',
-                title: 'Ritual botanical Phoenix',
+                title: 'Phoenix',
             }
             : null,
         product.composition
@@ -73,17 +73,18 @@ function ProductInfoSections({ packageContent, product }) {
                 title: 'Komposisi',
             }
             : null,
-        product.packaging_type || packageContent
+        product.packaging_type || packageContent || product.bpom_number
             ? {
                 content: (
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <MetadataPill label="Tipe kemasan" value={product.packaging_type} />
                         <MetadataPill label="Isi kemasan" value={packageContent} />
+                        <MetadataPill label="No. BPOM" value={product.bpom_number} />
                     </div>
                 ),
                 key: 'package',
-                label: 'Kemasan',
-                title: 'Isi dan presentasi',
+                label: 'Informasi',
+                title: 'Informasi Produk',
             }
             : null,
         product.usage_rules
@@ -285,6 +286,12 @@ export default function ProductShow({ product, relatedProducts = [] }) {
                                 <Sparkles aria-hidden="true" className="h-3.5 w-3.5" />
                                 {category?.name ?? 'Herbal Phoenix'}
                             </span>
+                            {product.is_featured && (
+                                <span className="flex items-center gap-1.5 rounded-full border border-transparent bg-[#F08A2B] pl-3 pr-4 py-2 font-label-sm text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-sm">
+                                    <Star className="h-3.5 w-3.5 fill-current" />
+                                    Produk Unggulan
+                                </span>
+                            )}
                             <span className="rounded-full border border-outline-variant bg-white px-4 py-2 font-label-sm text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">
                                 Luxury botanical
                             </span>
@@ -337,7 +344,7 @@ export default function ProductShow({ product, relatedProducts = [] }) {
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                             <div>
                                 <p className="font-label-sm text-xs font-bold uppercase tracking-[0.22em] text-on-surface-variant">Rekomendasi</p>
-                                <h2 className="mt-2 font-headline-lg text-headline-lg text-primary-container">Ritual Phoenix lainnya</h2>
+                                <h2 className="mt-2 font-headline-lg text-headline-lg text-primary-container">Suplemen Phoenix lainnya</h2>
                             </div>
                             <PrimaryLink href={route('products.index')}>Lihat semua</PrimaryLink>
                         </div>

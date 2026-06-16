@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft, CalendarCheck, Clock, MapPin } from 'lucide-react';
+import { ArrowLeft, CalendarCheck, Clock, MapPin, Star } from 'lucide-react';
 
 import { formatRupiah, PrimaryLink, ProductImage, PublicCard, PublicShell, SecondaryLink, visitTypeLabel } from '@/Components/Public/commerce.jsx';
 
@@ -35,7 +35,15 @@ export default function ServiceShow({ relatedServices = [], service }) {
                     </PublicCard>
 
                     <PublicCard className="p-6 md:p-8">
-                        <p className="font-label-sm text-xs font-bold uppercase tracking-[0.22em] text-on-surface-variant">Layanan Phoenix</p>
+                        <div className="flex flex-wrap items-center gap-3">
+                            <p className="font-label-sm text-xs font-bold uppercase tracking-[0.22em] text-on-surface-variant">Layanan Phoenix</p>
+                            {service.is_featured && (
+                                <span className="flex items-center gap-1.5 rounded-full border border-transparent bg-[#F08A2B] pl-3 pr-4 py-2 font-label-sm text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-sm">
+                                    <Star className="h-3.5 w-3.5 fill-current" />
+                                    Layanan Unggulan
+                                </span>
+                            )}
+                        </div>
                         <h1 className="mt-3 font-headline-xl text-4xl font-bold leading-tight text-primary-container md:text-5xl">{service.name}</h1>
                         <p className="mt-5 whitespace-pre-line font-body-lg text-body-lg text-on-surface-variant">
                             {service.description || 'Layanan terapi Phoenix dengan pendekatan botanical, hangat, dan profesional.'}

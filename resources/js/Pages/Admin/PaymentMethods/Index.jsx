@@ -14,14 +14,18 @@ function formatNumber(value) {
 }
 
 function typeLabel(type) {
-    return type === 'qris' ? 'QRIS' : 'Bank Transfer';
+    if (type === 'qris') return 'QRIS';
+    if (type === 'cash') return 'Cash / Tunai';
+    return 'Bank Transfer';
 }
 
 function methodTitle(paymentMethod) {
     if (paymentMethod.type === 'qris') {
         return paymentMethod.qris_image_path || 'QRIS';
     }
-
+    if (paymentMethod.type === 'cash') {
+        return paymentMethod.bank_name || 'Pembayaran Tunai';
+    }
     return paymentMethod.bank_name || 'Bank Transfer';
 }
 
@@ -29,7 +33,9 @@ function detailSummary(paymentMethod) {
     if (paymentMethod.type === 'qris') {
         return paymentMethod.qris_image_path || 'Path QRIS belum diisi.';
     }
-
+    if (paymentMethod.type === 'cash') {
+        return 'Pembayaran dilakukan secara langsung.';
+    }
     return [paymentMethod.account_number, paymentMethod.account_holder_name]
         .filter(Boolean)
         .join(' / ') || 'Detail rekening belum diisi.';
@@ -41,6 +47,7 @@ function AdminPaymentMethodsIndex({ paymentMethods = [] }) {
         active: paymentMethods.filter((paymentMethod) => paymentMethod.is_active).length,
         bankTransfer: paymentMethods.filter((paymentMethod) => paymentMethod.type === 'bank_transfer').length,
         qris: paymentMethods.filter((paymentMethod) => paymentMethod.type === 'qris').length,
+        cash: paymentMethods.filter((paymentMethod) => paymentMethod.type === 'cash').length,
         orders: paymentMethods.reduce(
             (total, paymentMethod) => total + Number(paymentMethod.orders_count ?? 0),
             0,
@@ -62,12 +69,12 @@ function AdminPaymentMethodsIndex({ paymentMethods = [] }) {
                             Tambah Metode
                         </Link>
                     )}
-                    description="Kelola rekening bank dan path QRIS yang tersedia untuk pembayaran order Phoenix."
+                    description="Kelola metode pembayaran yang tersedia untuk pembayaran order Phoenix."
                     eyebrow="Commerce / Metode Pembayaran"
                     title="Metode Pembayaran"
                 />
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
                     <MetricCard
                         helper="Seluruh metode admin"
                         icon="P"
@@ -97,10 +104,17 @@ function AdminPaymentMethodsIndex({ paymentMethods = [] }) {
                         value={formatNumber(metrics.qris)}
                     />
                     <MetricCard
+                        helper="Metode tunai"
+                        icon="C"
+                        label="Cash / Tunai"
+                        tone="orange"
+                        value={formatNumber(metrics.cash)}
+                    />
+                    <MetricCard
                         helper="Order terkait"
                         icon="O"
                         label="Order"
-                        tone="orange"
+                        tone="forest"
                         value={formatNumber(metrics.orders)}
                     />
                 </div>
