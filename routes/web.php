@@ -18,6 +18,7 @@ use App\Http\Controllers\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Admin\ServiceController as AdminServiceController;
 use App\Http\Controllers\Admin\VideoController as AdminVideoController;
 use App\Http\Controllers\Admin\VoucherController as AdminVoucherController;
+use App\Http\Controllers\Admin\TestimonialController as AdminTestimonialController;
 use App\Http\Controllers\Public\BookingController;
 use App\Http\Controllers\Public\CartController;
 use App\Http\Controllers\Public\CheckoutController;
@@ -79,6 +80,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('events', AdminEventController::class);
         Route::resource('payment-methods', AdminPaymentMethodController::class);
         Route::resource('videos', AdminVideoController::class);
+        Route::resource('testimonials', AdminTestimonialController::class);
         Route::resource('lead-sources', AdminLeadSourceController::class);
         Route::get('/leads', [AdminLeadController::class, 'index'])->name('leads.index');
         Route::get('/leads/create', [AdminLeadController::class, 'create'])->name('leads.create');
