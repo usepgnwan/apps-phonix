@@ -27,13 +27,13 @@ class HomeController extends Controller
                 ->where('is_featured', true)
                 ->latest()
                 ->limit(6)
-                ->get(['id', 'product_category_id', 'name', 'slug', 'price', 'short_description', 'image_path']),
+                ->get(['id', 'product_category_id', 'name', 'slug', 'price', 'short_description', 'image_path', 'is_featured']),
             'featuredServices' => Service::query()
                 ->where('is_active', true)
                 ->where('is_featured', true)
                 ->latest()
                 ->limit(3)
-                ->get(['id', 'name', 'slug', 'description', 'price', 'visit_type', 'image_path']),
+                ->get(['id', 'name', 'slug', 'description', 'price', 'visit_type', 'image_path', 'is_featured']),
             'testimonials' => Testimonial::query()
                 ->where('is_active', true)
                 ->latest()

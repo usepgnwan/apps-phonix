@@ -1,5 +1,5 @@
-import { Head, Link } from '@inertiajs/react';
-import { CheckCircle2, Clock3, CreditCard, Eye, PackageCheck, ReceiptText } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { CheckCircle2, Clock3, CreditCard, Eye, PackageCheck, ReceiptText, Truck, XCircle, FileText, Search } from 'lucide-react';
 
 import AdminCard from '@/Components/Admin/AdminCard';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
@@ -7,6 +7,7 @@ import EmptyState from '@/Components/Admin/EmptyState';
 import MetricCard from '@/Components/Admin/MetricCard';
 import StatusBadge from '@/Components/Admin/StatusBadge';
 import AdminLayout from '@/Layouts/AdminLayout';
+import Pagination from '@/Components/Admin/Pagination';
 
 const shippingStatusMap = {
     pending_shipping_confirmation: ['Menunggu Konfirmasi Ongkir', 'orange'],
@@ -65,13 +66,70 @@ function ShippingBadge({ status }) {
     return <StatusBadge label={mapped[0]} tone={mapped[1]} />;
 }
 
-function AdminOrderIndex({ orders = [] }) {
-    const metrics = {
-        totalOrder: orders.length,
-        waitingPayment: orders.filter((order) => order.status === 'waiting_payment').length,
-        paymentReceived: orders.filter((order) => order.status === 'payment_received').length,
-        processing: orders.filter((order) => order.status === 'processing').length,
-        completed: orders.filter((order) => order.status === 'completed').length,
+function LifecycleCard({ label, count, tone, icon: IconComponent, isActive, onClick }) {
+    const toneStyles = {
+        white: 'bg-white border-[#E5E7EB]',
+        yellow: 'bg-[#FDF6E3] border-[#F08A2B]/20',
+        sage: 'bg-[#EAF2ED] border-[#A8C5B3]/40',
+        brown: 'bg-[#F5EFE6] border-[#B57A2E]/20',
+        blue: 'bg-[#E8F0FE] border-[#1F3B63]/20',
+        green: 'bg-[#E6F4EA] border-[#1E4D3A]/20',
+        red: 'bg-[#FCE8E8] border-[#DC2626]/20 bg-[url("data:image/svg+xml,%3Csvg width=\'20\' height=\'20\' viewBox=\'0 0 20 20\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23dc2626\' fill-opacity=\'0.05\' fill-rule=\'evenodd\'%3E%3Ccircle cx=\'3\' cy=\'3\' r=\'3\'/%3E%3Ccircle cx=\'13\' cy=\'13\' r=\'3\'/%3E%3C/g%3E%3C/svg%3E")]',
+    };
+
+    const iconBgStyles = {
+        white: 'bg-[#F6F7F7] text-[#333333]',
+        yellow: 'bg-[#F08A2B]/10 text-[#F08A2B]',
+        sage: 'bg-[#A8C5B3]/20 text-[#1E4D3A]',
+        brown: 'bg-[#B57A2E]/10 text-[#B57A2E]',
+        blue: 'bg-[#1F3B63]/10 text-[#1F3B63]',
+        green: 'bg-[#1E4D3A]/10 text-[#1E4D3A]',
+        red: 'bg-[#DC2626]/10 text-[#DC2626]',
+    };
+
+    const baseBorder = isActive ? 'border-[#1E4D3A] ring-2 ring-[#1E4D3A]/20' : 'border-transparent';
+    const cursorClass = 'cursor-pointer hover:-translate-y-1 hover:shadow-md transition-all duration-200';
+
+    return (
+        <div 
+            onClick={onClick}
+            className={`relative overflow-hidden rounded-2xl border ${baseBorder} ${cursorClass} ${toneStyles[tone]} p-4 shadow-sm flex flex-col justify-between h-full min-h-[120px]`}
+        >
+            <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${iconBgStyles[tone]} mb-4`}>
+                <IconComponent aria-hidden="true" className="h-4 w-4" />
+            </div>
+            <div>
+                <span className="block font-body-lg text-2xl font-extrabold text-[#333333]">
+                    {count}
+                </span>
+                <span className="block mt-1 font-body-sm text-xs font-bold text-gray-600">
+                    {label}
+                </span>
+            </div>
+        </div>
+    );
+}
+
+function AdminOrderIndex({ orders = {}, filters = {}, metrics = {} }) {
+
+    const lifecycleCards = [
+        { id: 'all', label: 'Total Order', count: metrics.totalOrder, tone: 'white', icon: ReceiptText },
+        { id: 'pending', label: 'Waiting Confirmation', count: metrics.waitingConfirmation, tone: 'yellow', icon: Clock3 },
+        { id: 'received', label: 'Received', count: metrics.received, tone: 'sage', icon: CreditCard },
+        { id: 'processing', label: 'Processing', count: metrics.processing, tone: 'brown', icon: PackageCheck },
+        { id: 'shipped', label: 'Shipped', count: metrics.shipped, tone: 'blue', icon: Truck },
+        { id: 'completed', label: 'Selesai', count: metrics.completed, tone: 'green', icon: CheckCircle2 },
+        { id: 'cancelled', label: 'Cancelled', count: metrics.cancelled, tone: 'red', icon: XCircle },
+    ];
+
+    const currentStatus = filters.status || 'all';
+
+    const handleStatusClick = (status) => {
+        router.get(
+            route('admin.orders.index'),
+            { ...filters, status: status === 'all' ? null : status, page: 1 },
+            { preserveState: true, preserveScroll: true }
+        );
     };
 
     return (
@@ -85,42 +143,18 @@ function AdminOrderIndex({ orders = [] }) {
                     title="Order"
                 />
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-                    <MetricCard
-                        helper="Seluruh order website"
-                        icon={<ReceiptText aria-hidden="true" className="h-5 w-5" />}
-                        label="Total Order"
-                        tone="forest"
-                        value={formatNumber(metrics.totalOrder)}
-                    />
-                    <MetricCard
-                        helper="Menunggu pembayaran customer"
-                        icon={<Clock3 aria-hidden="true" className="h-5 w-5" />}
-                        label="Menunggu Payment"
-                        tone="brown"
-                        value={formatNumber(metrics.waitingPayment)}
-                    />
-                    <MetricCard
-                        helper="Pembayaran sudah diterima"
-                        icon={<CreditCard aria-hidden="true" className="h-5 w-5" />}
-                        label="Payment Received"
-                        tone="blue"
-                        value={formatNumber(metrics.paymentReceived)}
-                    />
-                    <MetricCard
-                        helper="Order sedang diproses"
-                        icon={<PackageCheck aria-hidden="true" className="h-5 w-5" />}
-                        label="Processing"
-                        tone="sage"
-                        value={formatNumber(metrics.processing)}
-                    />
-                    <MetricCard
-                        helper="Order selesai"
-                        icon={<CheckCircle2 aria-hidden="true" className="h-5 w-5" />}
-                        label="Selesai"
-                        tone="forest"
-                        value={formatNumber(metrics.completed)}
-                    />
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-7">
+                    {lifecycleCards.map((card, idx) => (
+                        <LifecycleCard 
+                            key={idx}
+                            label={card.label}
+                            count={formatNumber(card.count)}
+                            tone={card.tone}
+                            icon={card.icon}
+                            isActive={currentStatus === card.id}
+                            onClick={() => handleStatusClick(card.id)}
+                        />
+                    ))}
                 </div>
 
                 <AdminCard className="overflow-hidden">
@@ -133,11 +167,50 @@ function AdminOrderIndex({ orders = [] }) {
                         </h2>
                     </div>
 
-                    {orders.length === 0 ? (
-                        <div className="p-5">
+                    <div className="flex flex-col gap-4 p-5 md:flex-row md:items-center">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                            <input
+                                type="text"
+                                placeholder="Cari no. order atau nama customer..."
+                                className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 focus:border-[#1E4D3A] focus:outline-none focus:ring-1 focus:ring-[#1E4D3A]"
+                                defaultValue={filters.search}
+                                onBlur={(e) => {
+                                    router.get(route('admin.orders.index'), { ...filters, search: e.target.value }, { preserveState: true, preserveScroll: true });
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        router.get(route('admin.orders.index'), { ...filters, search: e.target.value }, { preserveState: true, preserveScroll: true });
+                                    }
+                                }}
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="date"
+                                className="rounded-lg border border-gray-300 px-3 py-2 focus:border-[#1E4D3A] focus:outline-none focus:ring-1 focus:ring-[#1E4D3A]"
+                                defaultValue={filters.start_date}
+                                onChange={(e) => {
+                                    router.get(route('admin.orders.index'), { ...filters, start_date: e.target.value }, { preserveState: true, preserveScroll: true });
+                                }}
+                            />
+                            <span className="text-gray-500">-</span>
+                            <input
+                                type="date"
+                                className="rounded-lg border border-gray-300 px-3 py-2 focus:border-[#1E4D3A] focus:outline-none focus:ring-1 focus:ring-[#1E4D3A]"
+                                defaultValue={filters.end_date}
+                                onChange={(e) => {
+                                    router.get(route('admin.orders.index'), { ...filters, end_date: e.target.value }, { preserveState: true, preserveScroll: true });
+                                }}
+                            />
+                        </div>
+                    </div>
+
+                    {!orders.data || orders.data.length === 0 ? (
+                        <div className="p-5 border-t border-[#E5E7EB]">
                             <EmptyState
-                                description="Order dari checkout customer akan tampil di sini setelah tersedia."
-                                title="Belum ada order."
+                                description="Data order tidak ditemukan dengan filter yang diberikan."
+                                title="Data kosong."
                             />
                         </div>
                     ) : (
@@ -167,7 +240,7 @@ function AdminOrderIndex({ orders = [] }) {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-[#E5E7EB] bg-white">
-                                    {orders.map((order) => (
+                                    {orders.data.map((order) => (
                                         <tr
                                             className="transition hover:bg-[#A8C5B3]/10"
                                             key={order.id}
@@ -196,7 +269,7 @@ function AdminOrderIndex({ orders = [] }) {
                                             <td className="whitespace-nowrap px-4 py-4 font-body-sm text-sm text-gray-600">
                                                 {formatDate(order.created_at)}
                                             </td>
-                                            <td className="whitespace-nowrap px-4 py-4">
+                                            <td className="whitespace-nowrap px-4 py-4 flex gap-2">
                                                 <Link
                                                     className="group inline-flex items-center gap-2 rounded-full border border-[#1E4D3A] px-3 py-1.5 font-body-sm text-xs font-bold text-[#1E4D3A] transition hover:bg-[#1E4D3A] hover:text-white"
                                                     href={route('admin.orders.show', order.id)}
@@ -206,6 +279,18 @@ function AdminOrderIndex({ orders = [] }) {
                                                     </span>
                                                     Detail
                                                 </Link>
+                                                <a
+                                                    className="group inline-flex items-center gap-2 rounded-full border border-gray-300 px-3 py-1.5 font-body-sm text-xs font-bold text-gray-700 transition hover:bg-gray-100"
+                                                    href={route('admin.orders.invoice', order.id)}
+                                                    rel="noopener noreferrer"
+                                                    target="_blank"
+                                                    title="Download Invoice PDF"
+                                                >
+                                                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-200 transition group-hover:bg-gray-300">
+                                                        <FileText aria-hidden="true" className="h-3.5 w-3.5" />
+                                                    </span>
+                                                    PDF
+                                                </a>
                                             </td>
                                         </tr>
                                     ))}
@@ -213,6 +298,8 @@ function AdminOrderIndex({ orders = [] }) {
                             </table>
                         </div>
                     )}
+                    
+                    {orders.links && <div className="p-5 border-t border-[#E5E7EB]"><Pagination links={orders.links} /></div>}
                 </AdminCard>
             </div>
         </>

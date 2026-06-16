@@ -21,6 +21,7 @@ class UpdateProductRequest extends FormRequest
             'product_category_id' => ['required', 'integer', 'exists:product_categories,id'],
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', 'unique:products,slug,'.$product->id],
+            'bpom_number' => ['nullable', 'string', 'max:255'],
             'price' => ['required', 'numeric', 'min:0'],
             'short_description' => ['required', 'string'],
             'full_description' => ['required', 'string'],

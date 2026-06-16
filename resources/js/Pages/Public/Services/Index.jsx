@@ -1,5 +1,5 @@
-import { Head, Link } from '@inertiajs/react';
-import { ArrowRight, CalendarCheck, ChevronDown, MapPin, Search } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { ArrowRight, CalendarCheck, ChevronDown, MapPin, Search, Star } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import { EmptyState, formatRupiah, PrimaryLink, ProductImage, PublicCard, PublicShell, visitTypeLabel } from '@/Components/Public/commerce.jsx';
@@ -98,7 +98,15 @@ function ToolbarDropdown({ label, name, onChange, openDropdown, options, selecte
 function ServiceCard({ service }) {
     return (
         <PublicCard className="overflow-hidden">
-            <ProductImage alt={service.name} className="h-56 w-full" imagePath={service.image_path} />
+            <div className="relative">
+                <ProductImage alt={service.name} className="h-56 w-full" imagePath={service.image_path} />
+                {service.is_featured && (
+                    <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-[#F08A2B] pl-2 pr-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white shadow-sm">
+                        <Star className="h-3 w-3 fill-current" />
+                        Unggulan
+                    </span>
+                )}
+            </div>
             <div className="p-5">
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-primary-fixed-dim bg-primary-fixed/25 px-3 py-1.5 font-body-sm text-xs font-bold text-primary-container">
                     <MapPin aria-hidden="true" className="h-3.5 w-3.5" />
@@ -126,12 +134,35 @@ function ServiceCard({ service }) {
 
 export default function ServiceIndex({ services }) {
     const serviceList = services?.data ?? [];
+    const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
     const [toolbarValues, setToolbarValues] = useState({
         perPage: String(services?.per_page ?? 12),
-        search: '',
-        sort: 'latest',
+        search: searchParams?.get('search') ?? '',
+        sort: searchParams?.get('sort') ?? 'latest',
     });
     const [openDropdown, setOpenDropdown] = useState(null);
+    const isFirstRender = useRef(true);
+
+    useEffect(() => {
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            return;
+        }
+
+        const timeoutId = setTimeout(() => {
+            router.get(
+                route('services.index'),
+                {
+                    search: toolbarValues.search || undefined,
+                    sort: toolbarValues.sort !== 'latest' ? toolbarValues.sort : undefined,
+                    perPage: toolbarValues.perPage !== '12' ? toolbarValues.perPage : undefined,
+                },
+                { preserveState: true, preserveScroll: true, replace: true }
+            );
+        }, 300);
+
+        return () => clearTimeout(timeoutId);
+    }, [toolbarValues]);
 
     function updateToolbarValue(key, value) {
         setToolbarValues((currentValues) => ({
@@ -156,7 +187,7 @@ export default function ServiceIndex({ services }) {
                     </div>
                 </section>
 
-                <section aria-label="Toolbar katalog layanan" className="relative z-10 w-full max-w-none border-b border-outline-variant/70 bg-[#F3F4F6] px-margin-mobile py-4 shadow-sm shadow-primary-container/5 md:px-margin-desktop md:py-5">
+                <section aria-label="Toolbar katalog layanan" className="relative z-20 w-full max-w-none border-b border-outline-variant/70 bg-[#F3F4F6] px-margin-mobile py-4 shadow-sm shadow-primary-container/5 md:px-margin-desktop md:py-5">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                             <label className="block sm:w-80 lg:w-90">

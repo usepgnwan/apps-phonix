@@ -1,6 +1,6 @@
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import { useState } from 'react';
-import { CheckCircle2, ClipboardList, Minus, Package, Plus, Receipt, Search, ShoppingCart, Trash2, X, Printer } from 'lucide-react';
+import { CheckCircle2, ClipboardList, Minus, Package, Plus, Receipt, Search, ShoppingCart, Trash2, X, Printer, FileText } from 'lucide-react';
 
 import AdminCard from '@/Components/Admin/AdminCard';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
@@ -523,13 +523,40 @@ function OfflineSaleList({ offlineSales, filters }) {
                                     {formatCurrency(sale.total)}
                                 </td>
                                 <td className="px-5 py-4 text-center">
-                                    <div className="flex items-center justify-center gap-2">
-                                        <a className="inline-flex items-center justify-center rounded-full bg-gray-100 p-2 text-gray-500 transition hover:bg-[#1E4D3A] hover:text-white" href={route('admin.offline-sales.print', sale.id)} target="_blank" rel="noopener noreferrer" title="Print Struk">
-                                            <Printer className="h-4 w-4" />
-                                        </a>
-                                        <Link className="inline-flex items-center justify-center rounded-full bg-gray-100 p-2 text-gray-500 transition hover:bg-[#1E4D3A] hover:text-white" href={route('admin.offline-sales.show', sale.id)} title="Lihat Detail">
-                                            <ClipboardList className="h-4 w-4" />
+                                    <div className="flex flex-wrap items-center justify-center gap-2">
+                                        <Link
+                                            className="group inline-flex items-center gap-2 rounded-full border border-[#1E4D3A] px-3 py-1.5 font-body-sm text-xs font-bold text-[#1E4D3A] transition hover:bg-[#1E4D3A] hover:text-white"
+                                            href={route('admin.offline-sales.show', sale.id)}
+                                        >
+                                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#A8C5B3]/25 transition group-hover:bg-white/15">
+                                                <ClipboardList aria-hidden="true" className="h-3.5 w-3.5" />
+                                            </span>
+                                            Detail
                                         </Link>
+                                        <a
+                                            className="group inline-flex items-center gap-2 rounded-full border border-gray-300 px-3 py-1.5 font-body-sm text-xs font-bold text-gray-700 transition hover:bg-gray-100"
+                                            href={route('admin.offline-sales.invoice', sale.id)}
+                                            rel="noopener noreferrer"
+                                            target="_blank"
+                                            title="Download Invoice PDF"
+                                        >
+                                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-200 transition group-hover:bg-gray-300">
+                                                <FileText aria-hidden="true" className="h-3.5 w-3.5" />
+                                            </span>
+                                            PDF
+                                        </a>
+                                        <a
+                                            className="group inline-flex items-center gap-2 rounded-full border border-blue-200 px-3 py-1.5 font-body-sm text-xs font-bold text-blue-700 transition hover:bg-blue-50"
+                                            href={route('admin.offline-sales.print', sale.id)}
+                                            rel="noopener noreferrer"
+                                            target="_blank"
+                                            title="Print Struk Thermal"
+                                        >
+                                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 transition group-hover:bg-blue-200">
+                                                <Printer aria-hidden="true" className="h-3.5 w-3.5" />
+                                            </span>
+                                            Struk
+                                        </a>
                                     </div>
                                 </td>
                             </tr>

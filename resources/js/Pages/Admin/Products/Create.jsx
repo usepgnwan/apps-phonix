@@ -89,6 +89,7 @@ function AdminProdukTambah({ productCategories: productKategori = [] }) {
         product_category_id: '',
         name: '',
         slug: '',
+        bpom_number: '',
         price: '',
         short_description: '',
         full_description: '',
@@ -155,6 +156,12 @@ function AdminProdukTambah({ productCategories: productKategori = [] }) {
                                 label="Slug"
                                 onChange={(event) => form.setData('slug', event.target.value)}
                                 value={form.data.slug}
+                            />
+                            <TextField
+                                error={form.errors.bpom_number}
+                                label="No. BPOM"
+                                onChange={(event) => form.setData('bpom_number', event.target.value)}
+                                value={form.data.bpom_number}
                             />
                             <TextField
                                 error={form.errors.price}

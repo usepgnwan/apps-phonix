@@ -126,6 +126,7 @@ function AdminPaymentMethodsTambah() {
                         >
                             <option value="bank_transfer">Bank Transfer</option>
                             <option value="qris">QRIS</option>
+                            <option value="cash">Cash / Tunai</option>
                         </SelectField>
 
                         {form.data.type === 'bank_transfer' && (

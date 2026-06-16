@@ -92,14 +92,16 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
         Route::get('/orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
-        Route::patch('/orders/{order}/shipping', [AdminOrderController::class, 'updateShipping'])->name('orders.shipping.update');
-        Route::patch('/orders/{order}/payment', [AdminOrderController::class, 'updatePayment'])->name('orders.payment.update');
-        Route::patch('/orders/{order}/status', [AdminOrderController::class, 'updateStatus'])->name('orders.status.update');
+        Route::patch('orders/{order}/shipping', [AdminOrderController::class, 'updateShipping'])->name('orders.shipping.update');
+        Route::patch('orders/{order}/payment', [AdminOrderController::class, 'updatePayment'])->name('orders.payment.update');
+        Route::patch('orders/{order}/status', [AdminOrderController::class, 'updateStatus'])->name('orders.status.update');
+        Route::get('orders/{order}/invoice', [AdminOrderController::class, 'invoice'])->name('orders.invoice');
 
         Route::get('/offline-sales', [AdminOfflineSaleController::class, 'index'])->name('offline-sales.index');
         Route::post('/offline-sales', [AdminOfflineSaleController::class, 'store'])->name('offline-sales.store');
         Route::get('/offline-sales/{offlineSale}', [AdminOfflineSaleController::class, 'show'])->name('offline-sales.show');
         Route::get('/offline-sales/{offlineSale}/print', [AdminOfflineSaleController::class, 'print'])->name('offline-sales.print');
+        Route::get('/offline-sales/{offlineSale}/invoice', [AdminOfflineSaleController::class, 'invoice'])->name('offline-sales.invoice');
 
         Route::get('/examinations', [AdminExaminationController::class, 'index'])->name('examinations.index');
         Route::get('/examinations/create', [AdminExaminationController::class, 'create'])->name('examinations.create');

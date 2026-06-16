@@ -14,6 +14,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class OrderController extends Controller
 {
@@ -28,12 +29,75 @@ class OrderController extends Controller
     {
         $this->authorizeAdmin();
 
+        $search = request('search');
+        $startDate = request('start_date');
+        $endDate = request('end_date');
+
+        $status = request('status');
+
+        $query = Order::query()
+            ->with(['user:id,name,email', 'customerProfile:id,user_id,name,whatsapp_number,primary_address', 'voucher:id,code,name', 'paymentMethod:id,type,bank_name,account_number,account_holder_name,qris_image_path,instructions,is_active']);
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('order_number', 'ILIKE', '%' . $search . '%')
+                  ->orWhere('customer_name', 'ILIKE', '%' . $search . '%')
+                  ->orWhereHas('customerProfile', function ($q2) use ($search) {
+                      $q2->where('name', 'ILIKE', '%' . $search . '%');
+                  })
+                  ->orWhereHas('user', function ($q2) use ($search) {
+                      $q2->where('name', 'ILIKE', '%' . $search . '%');
+                  });
+            });
+        }
+
+        if ($startDate) {
+            $query->whereDate('created_at', '>=', $startDate);
+        }
+
+        if ($endDate) {
+            $query->whereDate('created_at', '<=', $endDate);
+        }
+
+        if ($status && $status !== 'all') {
+            if ($status === 'received') {
+                $query->where(function($q) {
+                    $q->where('status', 'payment_received')
+                      ->orWhere('payment_status', 'paid');
+                });
+            } elseif ($status === 'shipped') {
+                $query->where(function($q) {
+                    $q->where('status', 'shipped')
+                      ->orWhere('shipping_status', 'shipped');
+                });
+            } else {
+                $query->where('status', $status);
+            }
+        }
+
+        $orders = $query->latest()->paginate(15)->withQueryString();
+
+        $allOrders = Order::select('status', 'payment_status', 'shipping_status')->get();
+        $metrics = [
+            'totalOrder' => $allOrders->count(),
+            'waitingConfirmation' => $allOrders->where('status', 'pending')->count(),
+            'received' => $allOrders->filter(fn($o) => $o->status === 'payment_received' || $o->payment_status === 'paid')->count(),
+            'processing' => $allOrders->where('status', 'processing')->count(),
+            'shipped' => $allOrders->filter(fn($o) => $o->status === 'shipped' || $o->shipping_status === 'shipped')->count(),
+            'completed' => $allOrders->where('status', 'completed')->count(),
+            'cancelled' => $allOrders->where('status', 'cancelled')->count(),
+        ];
+
         return Inertia::render('Admin/Orders/Index', [
             'page' => 'admin.orders.index',
-            'orders' => Order::query()
-                ->with(['user:id,name,email', 'customerProfile:id,user_id,name,whatsapp_number,primary_address', 'voucher:id,code,name', 'paymentMethod:id,type,bank_name,account_number,account_holder_name,qris_image_path,instructions,is_active'])
-                ->latest()
-                ->get(),
+            'orders' => $orders,
+            'metrics' => $metrics,
+            'filters' => [
+                'search' => $search,
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'status' => $status,
+            ],
         ]);
     }
 
@@ -106,28 +170,14 @@ class OrderController extends Controller
         return $redirect;
     }
 
-    public function updatePayment(UpdateOrderPaymentRequest $request, Order $order): RedirectResponse
+    public function updatePayment(UpdateOrderPaymentRequest $request, Order $order, OrderFulfillmentService $fulfillmentService): RedirectResponse
     {
         $validated = $request->validated();
         $paymentStatus = $validated['payment_status'];
-        $status = $order->status;
         $paymentReceivedAt = $validated['payment_received_at'] ?? null;
+        $paymentNotes = $validated['payment_notes'] ?? null;
 
-        if ($paymentStatus === 'paid') {
-            $status = 'payment_received';
-            $paymentReceivedAt = $paymentReceivedAt ?? now();
-        } elseif ($paymentStatus === 'waiting_payment') {
-            $status = 'waiting_payment';
-        } elseif ($paymentStatus === 'cancelled') {
-            $status = 'cancelled';
-        }
-
-        $order->update([
-            'payment_status' => $paymentStatus,
-            'payment_received_at' => $paymentReceivedAt,
-            'payment_notes' => $validated['payment_notes'] ?? null,
-            'status' => $status,
-        ]);
+        $fulfillmentService->processPayment($order, $paymentStatus, $paymentNotes, $paymentReceivedAt);
 
         $redirect = redirect()->route('admin.orders.show', $order)->with('success', 'Status pembayaran berhasil diperbarui.');
         $whatsappUrl = $this->customerWhatsappUrl($order->fresh(), 'payment_'.$paymentStatus);
@@ -264,5 +314,23 @@ class OrderController extends Controller
         }
 
         return $digits;
+    }
+
+    public function invoice(Order $order)
+    {
+        $this->authorizeAdmin();
+
+        $order->load([
+            'user',
+            'customerProfile',
+            'orderItems.product',
+            'paymentMethod',
+        ]);
+
+        $pdf = Pdf::loadView('admin.orders.invoice', [
+            'order' => $order,
+        ]);
+
+        return $pdf->stream('Invoice-' . $order->order_number . '.pdf');
     }
 }

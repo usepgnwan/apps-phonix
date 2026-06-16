@@ -1,9 +1,11 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import {
     ArrowRight,
     CalendarCheck,
+    ChevronDown,
     ClipboardPlus,
     Leaf,
+    MapPin,
     Package,
     ReceiptText,
     Store,
@@ -18,16 +20,18 @@ import MetricCard from '@/Components/Admin/MetricCard';
 import StatusBadge from '@/Components/Admin/StatusBadge';
 import AdminLayout from '@/Layouts/AdminLayout';
 
-const metrics = [
-    ['Produk', 'products', 'Produk aktif dan nonaktif', Package, 'sage'],
-    ['Layanan', 'services', 'Layanan konsultasi', Leaf, 'sage'],
-    ['Order', 'orders', 'Order website', ReceiptText, 'forest'],
-    ['Booking', 'bookings', 'Booking layanan', CalendarCheck, 'blue'],
-    ['Lead', 'leads', 'CRM dan follow-up', UserRound, 'brown'],
-    ['Customer', 'customerProfiles', 'Profil customer', UsersRound, 'sage'],
-    ['Aktivitas Lapangan', 'fieldActivities', 'Aktivitas lapangan', ClipboardPlus, 'blue'],
-    ['Penjualan Offline', 'offlineSales', 'Penjualan offline', Store, 'orange'],
-    ['Pemeriksaan', 'examinations', 'Pemeriksaan internal', ClipboardPlus, 'forest'],
+const mainMetrics = [
+    ['Produk & Layanan', 'productsAndServices', 'Produk trend data', Package, 'sage', 'bar'],
+    ['Booking', 'bookings', 'Rsing-trend data', CalendarCheck, 'blue', 'line'],
+    ['Order Website', 'ordersRevenue', 'Order-trend data', ReceiptText, 'forest', 'line'],
+    ['Lead', 'leads', 'Lead', UserRound, 'brown', 'line'],
+    ['Customer', 'customerProfiles', 'Customer', UsersRound, 'sage', 'bar'],
+];
+
+const secondaryMetrics = [
+    ['Aktivitas lapangan', 'fieldActivities', ClipboardPlus],
+    ['Penjualan offline', 'offlineSales', Store],
+    ['Pemeriksaan internal', 'examinations', ClipboardPlus],
 ];
 
 function formatNumber(value) {
@@ -269,28 +273,82 @@ function LowStockProducts({ products = [] }) {
     );
 }
 
-function AdminDashboard({ summary = {}, recent = {}, lowStockProducts = [] }) {
+function AdminDashboard({ summary = {}, recent = {}, lowStockProducts = [], trends = {}, filters = {} }) {
+    const handleDateRangeChange = (e, type) => {
+        const newFilters = { ...filters, [type]: e.target.value };
+        router.get(
+            route('admin.dashboard.index'),
+            newFilters,
+            { preserveState: true, preserveScroll: true }
+        );
+    };
+
     return (
         <>
             <Head title="Dashboard Admin" />
 
             <div className="space-y-8">
                 <AdminPageHeader
+                    action={
+                        <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 shadow-sm">
+                                <MapPin aria-hidden="true" className="h-4 w-4 text-[#333333]" />
+                                <span className="font-body-sm text-sm font-medium text-[#333333]">Semua Cabang</span>
+                                <ChevronDown aria-hidden="true" className="h-4 w-4 text-gray-400" />
+                            </div>
+                            <div className="flex items-center gap-1.5 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 shadow-sm focus-within:ring-2 focus-within:ring-[#1E4D3A]">
+                                <CalendarCheck aria-hidden="true" className="h-4 w-4 text-[#333333]" />
+                                <input 
+                                    type="date" 
+                                    value={filters.start_date || ''} 
+                                    onChange={(e) => handleDateRangeChange(e, 'start_date')}
+                                    className="border-none bg-transparent p-0 font-body-sm text-sm text-[#333333] focus:ring-0" 
+                                />
+                                <span className="text-gray-400">-</span>
+                                <input 
+                                    type="date" 
+                                    value={filters.end_date || ''} 
+                                    onChange={(e) => handleDateRangeChange(e, 'end_date')}
+                                    className="border-none bg-transparent p-0 font-body-sm text-sm text-[#333333] focus:ring-0" 
+                                />
+                            </div>
+                        </div>
+                    }
                     description="Pantau ringkasan commerce, booking, lead, aktivitas lapangan, dan stok Phoenix."
                     eyebrow="Panel Admin"
                     title="Dashboard"
                 />
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                    {metrics.map(([label, key, helper, IconComponent, tone]) => (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                    {mainMetrics.map(([label, key, helper, IconComponent, tone, chartType]) => (
                         <MetricCard
+                            chartType={chartType}
                             helper={helper}
                             icon={<IconComponent aria-hidden="true" className="h-5 w-5" />}
                             key={key}
                             label={label}
                             tone={tone}
-                            value={formatNumber(summary[key])}
+                            trend={trends[key]}
+                            value={key === 'ordersRevenue' ? formatCurrency(summary[key]) : formatNumber(summary[key]) + (key === 'productsAndServices' ? ' Item Aktif' : key === 'bookings' ? ' Kunjungan' : key === 'leads' ? ' Lead' : key === 'customerProfiles' ? ' Customer' : '')}
                         />
+                    ))}
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    {secondaryMetrics.map(([label, key, IconComponent]) => (
+                        <AdminCard className="flex items-center justify-between p-4" key={key}>
+                            <div className="flex flex-col">
+                                <span className="font-body-lg text-2xl font-extrabold text-[#333333]">
+                                    {formatNumber(summary[key])}
+                                </span>
+                                <span className="font-body-sm text-xs font-medium text-gray-500 mt-1">
+                                    {label}
+                                </span>
+                            </div>
+                            <button className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-400 hover:text-gray-600">
+                                <span className="text-xl leading-none">+</span>
+                            </button>
+                        </AdminCard>
                     ))}
                 </div>
 
@@ -311,3 +369,4 @@ function AdminDashboard({ summary = {}, recent = {}, lowStockProducts = [] }) {
 AdminDashboard.layout = (page) => <AdminLayout>{page}</AdminLayout>;
 
 export default AdminDashboard;
+

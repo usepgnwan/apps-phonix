@@ -1,5 +1,5 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { ShoppingBag } from 'lucide-react';
+import { ShoppingBag, Star } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import BeforeAfterSlider from '@/Components/BeforeAfterSlider';
 import FloatingWhatsApp from '@/Components/FloatingWhatsApp';
@@ -12,6 +12,7 @@ const formatRupiah = (value) => new Intl.NumberFormat('id-ID', {
 
 const storageImage = (path) => {
     if (!path) return null;
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
     // Path absolut (dari upload baru) langsung dipakai, path lama prefix /storage/
     return path.startsWith('/') ? path : `/storage/${path}`;
 };
@@ -134,15 +135,25 @@ function ProductCard({ onAddedToCart, product }) {
 
     return (
         <div className="min-w-[280px] md:min-w-[calc(25%-18px)] snap-start overflow-hidden rounded-2xl border border-outline-variant bg-white shadow-sm group/card cursor-pointer" style={{ opacity: '1', transform: 'translateY(0px)', transition: '0.6s ease-out' }}>
-            <div className="h-48 overflow-hidden bg-[#F6F7F7]" ref={imageRef}>
+            <div className="relative h-48 overflow-hidden bg-[#F6F7F7]" ref={imageRef}>
                 {imageSrc ? (
                     <img className="h-full w-full object-cover transition-transform duration-500 group-hover/card:scale-105" src={imageSrc} alt={product.name} />
                 ) : (
                     <BotanicalFallback label={productCategoryLabel(product)} />
                 )}
+                {product.is_featured && (
+                    <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-[#F08A2B] pl-2 pr-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white shadow-sm">
+                        <Star className="h-3 w-3 fill-current" />
+                        Unggulan
+                    </span>
+                )}
             </div>
             <div className="p-5">
-                <span className="inline-flex mb-3 rounded-full bg-[#1E4D3A] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white">{productCategoryLabel(product)}</span>
+                <div className="mb-3 flex flex-wrap gap-2">
+                    <span className="inline-flex rounded-full bg-[#1E4D3A] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white">
+                        {productCategoryLabel(product)}
+                    </span>
+                </div>
                 <p className="font-bold text-primary font-body-md mb-2">{product.name}</p>
                 <p className="text-[#1E4D3A] font-label-md">{formatRupiah(product.price)}</p>
                 {product.short_description && <p className="mt-3 line-clamp-2 text-sm text-on-surface-variant">{product.short_description}</p>}
@@ -163,15 +174,25 @@ function ServiceCard({ service, consultationHref }) {
 
     return (
         <div className="min-w-[280px] md:min-w-[calc(25%-18px)] snap-start overflow-hidden rounded-2xl border border-outline-variant bg-white shadow-sm group/card cursor-pointer" style={{ opacity: '1', transform: 'translateY(0px)', transition: '0.6s ease-out' }}>
-            <div className="h-48 overflow-hidden bg-[#F6F7F7]">
+            <div className="relative h-48 overflow-hidden bg-[#F6F7F7]">
                 {imageSrc ? (
                     <img className="h-full w-full object-cover transition-transform duration-500 group-hover/card:scale-105" src={imageSrc} alt={service.name} />
                 ) : (
                     <BotanicalFallback label="Layanan Phoenix" />
                 )}
+                {service.is_featured && (
+                    <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-[#F08A2B] pl-2 pr-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white shadow-sm">
+                        <Star className="h-3 w-3 fill-current" />
+                        Unggulan
+                    </span>
+                )}
             </div>
             <div className="p-5">
-                <span className="inline-flex mb-3 rounded-full bg-[#6FA788] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white">{visitTypeLabel(service.visit_type)}</span>
+                <div className="mb-3 flex flex-wrap gap-2">
+                    <span className="inline-flex rounded-full bg-[#6FA788] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white">
+                        {visitTypeLabel(service.visit_type)}
+                    </span>
+                </div>
                 <p className="font-bold text-primary font-body-md mb-2">{service.name}</p>
                 <p className="text-[#1E4D3A] font-label-md">{formatRupiah(service.price)}</p>
                 {service.description && <p className="mt-3 line-clamp-2 text-sm text-on-surface-variant">{service.description}</p>}
@@ -233,7 +254,7 @@ function TestimonialCard({ testimonial }) {
 }
 
 function getYouTubeId(url) {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|shorts\/)([^#\&\?]*).*/;
     const match = url.match(regExp);
     return (match && match[2].length === 11) ? match[2] : null;
 }
@@ -256,9 +277,11 @@ function DynamicVideoPlayer({ url, title }) {
         }
     }
 
+    const videoSrc = storageImage(url);
+
     return (
-        <video className="w-full h-full object-contain absolute inset-0" controls playsInline>
-            <source src={url} />
+        <video className="w-full h-full object-contain absolute inset-0" controls playsInline preload="metadata">
+            <source src={`${videoSrc}#t=0.001`} />
             Browser Anda tidak mendukung video HTML5.
         </video>
     );
@@ -907,10 +930,10 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                                     <video
                                         className="w-full h-full object-cover"
                                         controls
-                                        preload="none"
+                                        preload="metadata"
                                         playsInline
                                     >
-                                        <source src="/images/video1.mp4" type="video/mp4" />
+                                        <source src="/images/video1.mp4#t=0.001" type="video/mp4" />
                                         Browser Anda tidak mendukung video HTML5.
                                     </video>
                                 </div>
@@ -954,9 +977,10 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                                         <video
                                             className="w-full h-full object-contain absolute inset-0"
                                             controls
+                                            preload="metadata"
                                             playsInline
                                         >
-                                            <source src={`/videos/${num}.mp4`} type="video/mp4" />
+                                            <source src={`/videos/${num}.mp4#t=0.001`} type="video/mp4" />
                                             Browser Anda tidak mendukung video HTML5.
                                         </video>
                                     </div>

@@ -17,7 +17,7 @@ class StorePaymentMethodRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'type' => ['required', Rule::in(['bank_transfer', 'qris'])],
+            'type' => ['required', Rule::in(['bank_transfer', 'qris', 'cash'])],
             'bank_name' => ['required_if:type,bank_transfer', 'nullable', 'string', 'max:255'],
             'account_number' => ['required_if:type,bank_transfer', 'nullable', 'string', 'max:255'],
             'account_holder_name' => ['required_if:type,bank_transfer', 'nullable', 'string', 'max:255'],

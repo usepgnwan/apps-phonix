@@ -1,5 +1,5 @@
-import { Head, Link } from '@inertiajs/react';
-import { ArrowRight, ChevronDown, Search } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { ArrowRight, ChevronDown, Search, Star } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import { EmptyState, formatRupiah, PrimaryLink, ProductImage, PublicCard, PublicShell, productCategory } from '@/Components/Public/commerce.jsx';
@@ -100,12 +100,22 @@ function ProductCard({ product }) {
 
     return (
         <PublicCard className="overflow-hidden">
-            <ProductImage alt={product.name} className="h-56 w-full" imagePath={product.image_path} />
+            <div className="relative">
+                <ProductImage alt={product.name} className="h-56 w-full" imagePath={product.image_path} />
+                {product.is_featured && (
+                    <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-[#F08A2B] pl-2 pr-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white shadow-sm">
+                        <Star className="h-3 w-3 fill-current" />
+                        Unggulan
+                    </span>
+                )}
+            </div>
             <div className="p-5">
-                <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant">
-                    {category?.name ?? 'Herbal Phoenix'}
-                </p>
-                <h2 className="mt-2 font-headline-md text-headline-md text-primary-container">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant">
+                        {category?.name ?? 'Herbal Phoenix'}
+                    </p>
+                </div>
+                <h2 className="mt-1 font-headline-md text-headline-md text-primary-container">
                     {product.name}
                 </h2>
                 <p className="mt-3 line-clamp-2 font-body-sm text-sm leading-6 text-on-surface-variant">
@@ -159,12 +169,37 @@ function ProductResults({ productList, products }) {
 
 export default function ProductIndex({ productCategories = [], products }) {
     const productList = products?.data ?? [];
+    const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
     const [toolbarValues, setToolbarValues] = useState({
         perPage: String(products?.per_page ?? 12),
-        search: '',
-        sort: 'latest',
+        search: searchParams?.get('search') ?? '',
+        sort: searchParams?.get('sort') ?? 'latest',
+        category: searchParams?.get('category') ?? '',
     });
     const [openDropdown, setOpenDropdown] = useState(null);
+    const isFirstRender = useRef(true);
+
+    useEffect(() => {
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            return;
+        }
+
+        const timeoutId = setTimeout(() => {
+            router.get(
+                route('products.index'),
+                {
+                    search: toolbarValues.search || undefined,
+                    sort: toolbarValues.sort !== 'latest' ? toolbarValues.sort : undefined,
+                    perPage: toolbarValues.perPage !== '12' ? toolbarValues.perPage : undefined,
+                    category: toolbarValues.category || undefined,
+                },
+                { preserveState: true, preserveScroll: true, replace: true }
+            );
+        }, 300);
+
+        return () => clearTimeout(timeoutId);
+    }, [toolbarValues]);
 
     function updateToolbarValue(key, value) {
         setToolbarValues((currentValues) => ({
@@ -189,7 +224,7 @@ export default function ProductIndex({ productCategories = [], products }) {
                     </div>
                 </section>
 
-                <section aria-label="Toolbar katalog produk" className="relative z-10 w-full border-b border-outline-variant/70 bg-[#F3F4F6] px-margin-mobile py-4 shadow-sm shadow-primary-container/5 md:px-margin-desktop md:py-5">
+                <section aria-label="Toolbar katalog produk" className="relative z-20 w-full border-b border-outline-variant/70 bg-[#F3F4F6] px-margin-mobile py-4 shadow-sm shadow-primary-container/5 md:px-margin-desktop md:py-5">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                             <label className="block sm:w-80 lg:w-90">
@@ -246,14 +281,27 @@ export default function ProductIndex({ productCategories = [], products }) {
                                 <p className="font-label-sm text-xs font-bold uppercase tracking-[0.18em] text-on-surface-variant">Kategori</p>
                                 <h2 className="mt-2 font-headline-md text-headline-md text-primary-container">Filter produk</h2>
                                 <div className="mt-5 flex flex-wrap gap-2 lg:flex-col">
-                                    {productCategories.map((category) => (
-                                        <span className="flex items-center justify-between gap-3 rounded-2xl border border-primary-fixed-dim bg-primary-fixed/25 px-4 py-2 font-body-sm text-xs font-bold text-primary-container" key={category.id}>
-                                            <span>{category.name}</span>
-                                            <span className="rounded-lg bg-white/80 px-2 py-0.5 text-[10px] font-black text-primary-container">
-                                                {category.products_count ?? 0}
-                                            </span>
-                                        </span>
-                                    ))}
+                                    <button
+                                        onClick={() => updateToolbarValue('category', '')}
+                                        className={`flex w-full items-center justify-between gap-3 rounded-2xl border px-4 py-2 font-body-sm text-xs font-bold transition ${!toolbarValues.category ? 'border-primary-fixed-dim bg-primary-fixed/25 text-primary-container' : 'border-outline-variant bg-white text-on-surface hover:bg-surface-container-low'}`}
+                                    >
+                                        <span>Semua Kategori</span>
+                                    </button>
+                                    {productCategories.map((category) => {
+                                        const isActive = toolbarValues.category === category.slug;
+                                        return (
+                                            <button
+                                                key={category.id}
+                                                onClick={() => updateToolbarValue('category', isActive ? '' : category.slug)}
+                                                className={`flex w-full items-center justify-between gap-3 rounded-2xl border px-4 py-2 font-body-sm text-xs font-bold transition ${isActive ? 'border-primary-fixed-dim bg-primary-fixed/25 text-primary-container' : 'border-outline-variant bg-white text-on-surface hover:bg-surface-container-low'}`}
+                                            >
+                                                <span>{category.name}</span>
+                                                <span className={`rounded-lg px-2 py-0.5 text-[10px] font-black ${isActive ? 'bg-white/80 text-primary-container' : 'bg-surface-container-high text-on-surface'}`}>
+                                                    {category.products_count ?? 0}
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             </aside>
 
