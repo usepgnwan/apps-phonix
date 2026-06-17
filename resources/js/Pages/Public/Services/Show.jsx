@@ -30,8 +30,8 @@ export default function ServiceShow({ relatedServices = [], service }) {
                 </SecondaryLink>
 
                 <section className="grid grid-cols-1 gap-8 lg:grid-cols-[1.05fr_0.95fr]">
-                    <PublicCard className="overflow-hidden">
-                        <ProductImage alt={service.name} className="h-full min-h-[360px] w-full" imagePath={service.image_path} />
+                    <PublicCard className="overflow-hidden h-fit">
+                        <ProductImage alt={service.name} className="aspect-[4/3] w-full object-[center_20%]" imagePath={service.image_path} />
                     </PublicCard>
 
                     <PublicCard className="p-6 md:p-8">
