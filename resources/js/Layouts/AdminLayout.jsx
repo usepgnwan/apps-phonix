@@ -55,6 +55,9 @@ const navigationGroups = [
     {
         label: 'Master Data',
         items: [
+            { label: 'Staff', routeName: 'admin.staff.index', pattern: 'admin.staff.*', icon: UsersRound },
+            { label: 'Tim', routeName: 'admin.teams.index', pattern: 'admin.teams.*', icon: UsersRound },
+            { label: 'Jabatan', routeName: 'admin.positions.index', pattern: 'admin.positions.*', icon: UserRound },
             { label: 'Produk', routeName: 'admin.products.index', pattern: 'admin.products.*', icon: Package },
             { label: 'Kategori Produk', routeName: 'admin.product-categories.index', pattern: 'admin.product-categories.*', icon: Tags },
             { label: 'Layanan', routeName: 'admin.services.index', pattern: 'admin.services.*', icon: Leaf },
