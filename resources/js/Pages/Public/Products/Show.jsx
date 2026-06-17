@@ -292,9 +292,6 @@ export default function ProductShow({ product, relatedProducts = [] }) {
                                     Produk Unggulan
                                 </span>
                             )}
-                            <span className="rounded-full border border-outline-variant bg-white px-4 py-2 font-label-sm text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">
-                                Luxury botanical
-                            </span>
                         </div>
                         <h1 className="mt-5 font-headline-xl text-xl font-bold leading-tight text-primary-container md:text-2xl">
                             {product.name}
