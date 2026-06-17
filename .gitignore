@@ -28,3 +28,5 @@ Thumbs.db
 .omo
 /public/images/products/*
 !/public/images/products/.gitignore
+/public/images/services/*
+!/public/images/services/.gitignore

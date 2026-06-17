@@ -30,6 +30,12 @@ function snippet(value) {
     return value.length > 140 ? `${value.slice(0, 140)}...` : value;
 }
 
+const storageImage = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    return path.startsWith('/') ? path : `/storage/${path}`;
+};
+
 function AdminLayananIndex({ services = [] }) {
     return (
         <>
@@ -61,16 +67,31 @@ function AdminLayananIndex({ services = [] }) {
                         {services.map((service) => (
                             <AdminCard className="p-5" key={service.id}>
                                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                                    <div>
-                                        <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
-                                            {visitTipeLabels[service.visit_type] ?? service.visit_type ?? '-'}
-                                        </p>
-                                        <h2 className="mt-1 font-body-lg text-lg font-extrabold text-[#333333]">
-                                            {service.name}
-                                        </h2>
-                                        <p className="mt-2 font-body-sm text-sm leading-6 text-gray-500">
-                                            {snippet(service.description)}
-                                        </p>
+                                    <div className="flex gap-4">
+                                        {service.image_path ? (
+                                            <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-gray-200">
+                                                <img 
+                                                    src={storageImage(service.image_path)} 
+                                                    alt={service.name} 
+                                                    className="h-full w-full object-cover" 
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-gray-50">
+                                                <span className="text-gray-400 text-xs">No image</span>
+                                            </div>
+                                        )}
+                                        <div>
+                                            <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
+                                                {visitTipeLabels[service.visit_type] ?? service.visit_type ?? '-'}
+                                            </p>
+                                            <h2 className="mt-1 font-body-lg text-lg font-extrabold text-[#333333]">
+                                                {service.name}
+                                            </h2>
+                                            <p className="mt-2 font-body-sm text-sm leading-6 text-gray-500">
+                                                {snippet(service.description)}
+                                            </p>
+                                        </div>
                                     </div>
                                     <p className="shrink-0 font-body-sm text-base font-extrabold text-[#1E4D3A]">
                                         {formatCurrency(service.price)}
