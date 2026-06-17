@@ -261,13 +261,13 @@ function getYouTubeId(url) {
 
 function DynamicVideoPlayer({ url, title }) {
     const isYouTube = url?.includes('youtube.com') || url?.includes('youtu.be');
-    
+
     if (isYouTube) {
         const videoId = getYouTubeId(url);
         if (videoId) {
             return (
-                <iframe 
-                    src={`https://www.youtube.com/embed/${videoId}?rel=0`} 
+                <iframe
+                    src={`https://www.youtube.com/embed/${videoId}?rel=0`}
                     title={title || "Video Testimoni"}
                     className="w-full h-full absolute inset-0"
                     allowFullScreen
@@ -866,10 +866,10 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                             {/* Left Content (Image) */}
                             <div className="w-full lg:w-1/2">
                                 <div className="rounded-3xl overflow-hidden shadow-lg border border-outline-variant bg-white aspect-[4/3] relative">
-                                    <img 
-                                        src="/images/genqi_bioscan.jpg" 
-                                        alt="Terapi GenQi Bio Elektrik" 
-                                        className="w-full h-full object-cover"
+                                    <img
+                                        src="/images/genqi_bioscan.jpeg"
+                                        alt="Terapi GenQi Bio Elektrik"
+                                        className="w-full h-full object-cover object-[center_15%]"
                                     />
                                 </div>
                             </div>
@@ -885,33 +885,41 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                                 </h2>
                                 <div className="space-y-4 text-on-surface-variant font-body-md leading-relaxed">
                                     <p>
-                                        <strong className="text-primary">GenQi</strong> adalah terapi pengobatan timur dengan menggunakan metode bio elektrik. Setiap masalah kesehatan dapat terdeteksi melalui alat tersebut dan energi perbaikannya langsung masuk ke bagian jaringan kulit, ligamen, sendi, otot, dan tulang.
+                                        GenQi Bio Elektrik Stimulasi (BES) adalah perangkat teknologi bioelektrik modern yang dirancang khusus untuk meniru metode terapi tradisional secara aman, efektif, dan tanpa obat. GenQi adalah terapi pengobatan timur dengan menggunakan metode bio elektrik. Alat ini menggabungkan teknologi bioelektrik dengan konsep jalur meridian saraf untuk membantu stimulasi tubuh secara alami. Praktik GenQi secara efektif menyatukan Akupuntur, Bekam (Cupping), dan Pijat menjadi satu kesatuan terapi yang komprehensif.
                                     </p>
                                     <p>
-                                        Praktik GenQi secara efektif menyatukan <strong className="text-primary">Akupuntur, Bekam, dan Pijat</strong> menjadi satu kesatuan terapi yang komprehensif.
+                                        Alat ini mengusung konsep 4 Terapi dalam 1 Mesin (Akupuntur, Tuina, Moxa, dan Cupping) untuk mengatasi berbagai masalah nyeri dan kebugaran, menjadikannya solusi modern untuk keseimbangan tubuh dan kualitas hidup yang lebih baik.
                                     </p>
                                 </div>
-                                
-                                <div className="bg-[#F6F7F7] border border-[#E5E7EB] rounded-2xl p-6 mt-6">
-                                    <h3 className="font-bold text-primary mb-4 flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-[#F08A2B]">health_and_safety</span>
-                                        Manfaat Terapi GenQi
-                                    </h3>
-                                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        {[
-                                            'Membuang toxic tubuh',
-                                            'Melancarkan peredaran darah',
-                                            'Meringankan stroke',
-                                            'Mengurangi selulit & lemak',
-                                        ].map((item, idx) => (
-                                            <li key={idx} className="flex items-start gap-2 text-sm text-on-surface-variant">
-                                                <span className="material-symbols-outlined text-[#6FA788] text-lg shrink-0">check_circle</span>
-                                                {item}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
+
+
                             </div>
+
+                        </div>
+                        <div className="bg-[#F6F7F7] border border-[#E5E7EB] rounded-2xl p-6 mt-6">
+                            <h3 className="font-bold text-primary mb-4 flex items-center gap-2">
+                                <span className="material-symbols-outlined text-[#F08A2B]">health_and_safety</span>
+                                Manfaat Terapi GenQi
+                            </h3>
+                            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {[
+                                    'Menyeimbangkan energi Yin dan Yang',
+                                    'Melancarkan sirkulasi darah dan energi (Qi)',
+                                    'Membuka sumbatan jalur meridian tubuh',
+                                    'Mendetoksifikasi racun di dalam tubuh',
+                                    'Merilekskan otot-otot yang tegang',
+                                    'Meningkatkan mobilitas dan kelenturan sendi',
+                                    'Meredakan berbagai nyeri sendi dan tulang',
+                                    'Mengatasi masalah saraf kejepit dan frozen shoulder',
+                                    'Meringankan keluhan migrain, nyeri haid, dan insomnia',
+                                    'Mempercepat pemulihan pasca-stroke, cedera, dan operasi',
+                                ].map((item, idx) => (
+                                    <li key={idx} className="flex items-start gap-2 text-sm text-on-surface-variant">
+                                        <span className="material-symbols-outlined text-[#6FA788] text-lg shrink-0">check_circle</span>
+                                        {item}
+                                    </li>
+                                ))}
+                            </ul>
                         </div>
                     </Reveal>
                 </section>
@@ -1071,7 +1079,7 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                             <p className="font-label-md text-secondary uppercase tracking-widest mb-3">Konsultasi Gratis</p>
                             <h2 className="font-headline-lg text-headline-lg text-primary mb-3">Siap Untuk Hidup Lebih Sehat?</h2>
                             <p className="font-body-md text-body-md text-on-surface-variant mb-6">Tim ahli kami siap membantu Anda menentukan terapi dan produk herbal yang tepat sesuai kebutuhan Anda. Hubungi kami sekarang untuk konsultasi gratis!</p>
-                            
+
                             {usePage().props.siteSettings?.alamat && (
                                 <div className="mb-8 flex items-start gap-3 text-on-surface-variant">
                                     <span className="material-symbols-outlined text-primary shrink-0 mt-0.5">location_on</span>
