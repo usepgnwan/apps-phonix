@@ -1,6 +1,7 @@
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import { useState } from 'react';
-import { CheckCircle2, ClipboardList, Minus, Package, Plus, Receipt, Search, ShoppingCart, Trash2, X, Printer, FileText } from 'lucide-react';
+import { CheckCircle2, ClipboardList, Minus, Package, Plus, Receipt, Search, ShoppingCart, Trash2, X, Printer, FileText, DollarSign, Award, Calculator, TrendingUp, Users } from 'lucide-react';
+import ReactECharts from 'echarts-for-react';
 
 import AdminCard from '@/Components/Admin/AdminCard';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
@@ -443,43 +444,162 @@ function OfflineSalePosForm({ products, services, customerProfiles, leads, field
 
 // ─── Sale History ────────────────────────────────────────────────────────────
 
-function OfflineSaleList({ offlineSales, filters }) {
+function OfflineSaleList({ offlineSales, filters, historyMetrics }) {
     const items = offlineSales.data ?? [];
     const [search, setSearch] = useState(filters?.search || '');
-
-    function handleSearch(e) {
-        setSearch(e.target.value);
-        router.get(route('admin.offline-sales.index'), { search: e.target.value }, {
+    function handleFilter(overrideSearch = search) {
+        router.get(route('admin.offline-sales.index'), { search: overrideSearch, start_date: filters?.start_date, end_date: filters?.end_date }, {
             preserveState: true,
             replace: true,
             preserveScroll: true
         });
     }
 
-    if (items.length === 0 && !filters?.search) {
-        return (
-            <AdminCard className="p-5">
-                <EmptyState description="Penjualan offline akan tampil di sini setelah dicatat." title="Belum ada offline sale." />
-            </AdminCard>
-        );
+    function handleSearchChange(e) {
+        setSearch(e.target.value);
+        handleFilter(e.target.value);
     }
+
+    const sourceChartOption = {
+        tooltip: { trigger: 'item', valueFormatter: (value) => formatCurrency(value) },
+        legend: { top: 'bottom', icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 12, color: '#666' } },
+        series: [
+            {
+                type: 'pie',
+                radius: ['40%', '70%'],
+                avoidLabelOverlap: false,
+                itemStyle: {
+                    borderRadius: 10,
+                    borderColor: '#fff',
+                    borderWidth: 2
+                },
+                label: { show: false, position: 'center' },
+                emphasis: {
+                    label: { show: true, fontSize: 14, fontWeight: 'bold' }
+                },
+                labelLine: { show: false },
+                data: historyMetrics?.revenue_per_source?.map(s => ({
+                    name: readableLabel(s.source),
+                    value: s.revenue
+                })) || []
+            }
+        ]
+    };
+
+    const staffNames = [...(historyMetrics?.staff_ranking || [])].reverse().map(s => s.field_staff?.name || 'Unknown');
+    const staffRevenues = [...(historyMetrics?.staff_ranking || [])].reverse().map(s => s.revenue);
+    const staffTransactions = [...(historyMetrics?.staff_ranking || [])].reverse().map(s => s.transactions);
+
+    const staffChartOption = {
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        legend: { top: 'top', right: '0', icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 10, color: '#666' } },
+        grid: { left: '3%', right: '4%', bottom: '3%', top: '15%', containLabel: true },
+        xAxis: [
+            { 
+                type: 'value', 
+                axisLabel: { 
+                    formatter: (value) => {
+                        if (value >= 1000000) return (value / 1000000) + 'jt';
+                        if (value >= 1000) return (value / 1000) + 'k';
+                        return value;
+                    },
+                    color: '#9CA3AF',
+                    fontSize: 10
+                },
+                splitLine: { lineStyle: { type: 'dashed', color: '#F3F4F6' } }
+            },
+            {
+                type: 'value',
+                axisLabel: { color: '#9CA3AF', fontSize: 10 },
+                splitLine: { show: false }
+            }
+        ],
+        yAxis: { 
+            type: 'category', 
+            data: staffNames,
+            axisLabel: { color: '#4B5563', fontSize: 11, width: 90, overflow: 'truncate' },
+            axisLine: { show: false },
+            axisTick: { show: false }
+        },
+        series: [
+            {
+                name: 'Revenue',
+                type: 'bar',
+                xAxisIndex: 0,
+                data: staffRevenues,
+                itemStyle: { color: '#1E4D3A', borderRadius: [0, 4, 4, 0] },
+                barWidth: '50%',
+                valueFormatter: (value) => formatCurrency(value)
+            },
+            {
+                name: 'Total Transaksi',
+                type: 'line',
+                xAxisIndex: 1,
+                data: staffTransactions,
+                itemStyle: { color: '#D97706' },
+                lineStyle: { width: 2 },
+                symbol: 'circle',
+                symbolSize: 6,
+                valueFormatter: (value) => value + ' trx'
+            }
+        ]
+    };
 
     return (
         <div className="space-y-4">
-            <div className="flex justify-end">
-                <div className="relative w-full max-w-sm">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                    <input
-                        type="text"
-                        placeholder="Cari customer atau invoice..."
-                        value={search}
-                        onChange={handleSearch}
-                        className="w-full rounded-2xl border border-[#E5E7EB] py-2 pl-10 pr-4 text-sm focus:border-[#1E4D3A] focus:outline-none focus:ring-1 focus:ring-[#1E4D3A]"
-                    />
+            {/* 2 Segments */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Revenue per Sumber */}
+                <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm h-72 flex flex-col">
+                    <p className="font-bold text-[#333333] mb-2 text-sm">Revenue per Sumber / Event</p>
+                    <div className="flex-1 w-full h-full">
+                        {historyMetrics?.revenue_per_source?.length > 0 ? (
+                            <ReactECharts option={sourceChartOption} style={{ height: '100%', width: '100%' }} />
+                        ) : (
+                            <div className="h-full flex flex-col items-center justify-center text-center px-4">
+                                <p className="text-xs text-gray-500">Belum ada data sumber penjualan offline.</p>
+                                <p className="text-[10px] text-gray-400 mt-1">Data event atau door-to-door akan tampil di sini.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Peringkat Staff Lapangan */}
+                <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm h-72 flex flex-col relative">
+                    <div className="flex justify-between items-start mb-2">
+                        <p className="font-bold text-[#333333] text-sm">Peringkat Staff Lapangan</p>
+                        <div className="bg-gray-100 rounded-lg p-2 text-[9px] text-gray-500 text-right leading-tight">
+                            Integrasi CRM:<br/>
+                            <span className="font-medium text-gray-700">Lead ke Konversi Offline</span>
+                        </div>
+                    </div>
+                    <div className="flex-1 w-full h-full">
+                        {historyMetrics?.staff_ranking?.length > 0 ? (
+                            <ReactECharts option={staffChartOption} style={{ height: '100%', width: '100%' }} />
+                        ) : (
+                            <div className="h-full flex flex-col items-center justify-center text-center px-4">
+                                <p className="text-xs text-gray-500">Belum ada data staff lapangan.</p>
+                                <p className="text-[10px] text-gray-400 mt-1">Peringkat performa staff akan tampil di sini.</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
-            <AdminCard className="overflow-hidden">
+            <AdminCard className="overflow-hidden mt-2">
+                <div className="border-b border-[#E5E7EB] px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <p className="font-bold text-[#333333] text-sm">Daftar Penjualan Offline Terbaru</p>
+                    <div className="relative w-full max-w-sm">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="Cari customer atau invoice..."
+                            value={search}
+                            onChange={handleSearchChange}
+                            className="w-full rounded-2xl border border-[#E5E7EB] py-2 pl-10 pr-4 text-sm focus:border-[#1E4D3A] focus:outline-none focus:ring-1 focus:ring-[#1E4D3A] font-body-sm"
+                        />
+                    </div>
+                </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left font-body-sm text-sm">
                         <thead className="bg-[#F6F7F7] font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400">
@@ -599,8 +719,18 @@ function OfflineSaleList({ offlineSales, filters }) {
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
-function AdminOfflineSalesIndex({ offlineSales, filters, metrics, products = [], services = [], customerProfiles = [], leads = [], fieldStaff = [], events = [], sources = [], paymentMethods = [] }) {
+function AdminOfflineSalesIndex({ offlineSales, filters, metrics, historyMetrics, products = [], services = [], customerProfiles = [], leads = [], fieldStaff = [], events = [], sources = [], paymentMethods = [] }) {
     const [activeTab, setActiveTab] = useState(filters?.search ? 'history' : 'pos');
+    const [startDate, setStartDate] = useState(filters?.start_date || '');
+    const [endDate, setEndDate] = useState(filters?.end_date || '');
+
+    function handleDateFilter() {
+        router.get(route('admin.offline-sales.index'), { search: filters?.search, start_date: startDate, end_date: endDate }, {
+            preserveState: true,
+            replace: true,
+            preserveScroll: true
+        });
+    }
 
     const tabs = [
         { id: 'pos', label: 'POS Penjualan', icon: ShoppingCart },
@@ -615,14 +745,35 @@ function AdminOfflineSalesIndex({ offlineSales, filters, metrics, products = [],
                     description="Catat penjualan offline langsung, lalu pantau transaksi event, door to door, dan penjualan langsung."
                     eyebrow="Commerce / Penjualan Offline"
                     title="Penjualan Offline"
+                    action={
+                        <div className="flex flex-wrap items-center gap-2 bg-white rounded-xl border border-[#E5E7EB] px-3 py-1.5 shadow-sm mt-4 sm:mt-0">
+                            <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-wider text-gray-500">Filter Tanggal</span>
+                            <input 
+                                type="date" 
+                                value={startDate} 
+                                onChange={(e) => setStartDate(e.target.value)}
+                                className="border-none text-xs sm:text-sm focus:ring-0 text-[#333333] p-0 sm:p-1 bg-transparent font-body-sm w-[110px] sm:w-auto"
+                            />
+                            <span className="text-gray-300">-</span>
+                            <input 
+                                type="date" 
+                                value={endDate} 
+                                onChange={(e) => setEndDate(e.target.value)}
+                                className="border-none text-xs sm:text-sm focus:ring-0 text-[#333333] p-0 sm:p-1 bg-transparent font-body-sm w-[110px] sm:w-auto"
+                            />
+                            <button type="button" onClick={handleDateFilter} className="ml-1 bg-[#1E4D3A] text-white rounded p-1.5 hover:bg-[#013625] transition-colors" title="Terapkan Filter">
+                                <Search className="h-3.5 w-3.5" />
+                            </button>
+                        </div>
+                    }
                 />
 
-                {/* Metric Cards */}
+                {/* Global Metric Cards (Shown in both tabs) */}
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    <MetricCard helper="Seluruh transaksi offline" icon="O" label="Total Penjualan" tone="forest" value={formatNumber(metrics.total)} />
-                    <MetricCard helper="Akumulasi total transaksi" icon="R" label="Revenue" tone="sage" value={formatCurrency(metrics.revenue)} />
-                    <MetricCard helper="Transaksi dari event" icon="E" label="Penjualan Event" tone="blue" value={formatNumber(metrics.events)} />
-                    <MetricCard helper="Transaksi door to door" icon="D" label="Door to Door" tone="brown" value={formatNumber(metrics.doorToDoor)} />
+                    <MetricCard helper="Seluruh transaksi offline" icon="O" label="Total Penjualan" tone="forest" value={formatNumber(historyMetrics?.total_transactions)} />
+                    <MetricCard helper="Akumulasi total transaksi" icon="R" label="Revenue" tone="sage" value={formatCurrency(historyMetrics?.total_revenue)} />
+                    <MetricCard helper="Transaksi dari event" icon="E" label="Penjualan Event" tone="blue" value={formatNumber(historyMetrics?.events)} />
+                    <MetricCard helper="Transaksi door to door" icon="D" label="Door to Door" tone="brown" value={formatNumber(historyMetrics?.door_to_door)} />
                 </div>
 
                 {/* Tabs */}
@@ -666,7 +817,7 @@ function AdminOfflineSalesIndex({ offlineSales, filters, metrics, products = [],
                         />
                     )}
                     {activeTab === 'history' && (
-                        <OfflineSaleList offlineSales={offlineSales} filters={filters} />
+                        <OfflineSaleList offlineSales={offlineSales} filters={filters} historyMetrics={historyMetrics} />
                     )}
                 </div>
             </div>

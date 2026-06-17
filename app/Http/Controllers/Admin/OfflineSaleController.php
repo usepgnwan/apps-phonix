@@ -33,6 +33,44 @@ class OfflineSaleController extends Controller
 
         $metricsQuery = OfflineSale::query();
 
+        $startDate = request('start_date');
+        $endDate = request('end_date');
+
+        $historyQuery = OfflineSale::query()
+            ->when($startDate && $endDate, function ($query) use ($startDate, $endDate) {
+                $query->whereBetween('sold_at', [$startDate, $endDate]);
+            });
+
+        $totalRevenue = (clone $historyQuery)->sum('total');
+        $totalTransactions = (clone $historyQuery)->count();
+        $averageTransaction = $totalTransactions > 0 ? $totalRevenue / $totalTransactions : 0;
+
+        $bestSellingProduct = \App\Models\OfflineSaleItem::query()
+            ->whereHas('offlineSale', function($query) use ($startDate, $endDate) {
+                if ($startDate && $endDate) {
+                    $query->whereBetween('sold_at', [$startDate, $endDate]);
+                }
+            })
+            ->whereNotNull('product_id')
+            ->selectRaw('product_id, SUM(quantity) as total_qty')
+            ->groupBy('product_id')
+            ->orderByDesc('total_qty')
+            ->with('product:id,name')
+            ->first();
+
+        $revenuePerSource = (clone $historyQuery)
+            ->selectRaw('source, SUM(total) as revenue')
+            ->groupBy('source')
+            ->get();
+
+        $staffRanking = (clone $historyQuery)
+            ->whereNotNull('field_staff_id')
+            ->selectRaw('field_staff_id, SUM(total) as revenue, COUNT(id) as transactions')
+            ->groupBy('field_staff_id')
+            ->orderByDesc('revenue')
+            ->with('fieldStaff:id,name')
+            ->get();
+
         return Inertia::render('Admin/OfflineSales/Index', [
             'metrics' => [
                 'total' => (clone $metricsQuery)->count(),
@@ -40,16 +78,29 @@ class OfflineSaleController extends Controller
                 'events' => (clone $metricsQuery)->where('source', 'event')->count(),
                 'doorToDoor' => (clone $metricsQuery)->where('source', 'door_to_door')->count(),
             ],
+            'historyMetrics' => [
+                'total_revenue' => $totalRevenue,
+                'total_transactions' => $totalTransactions,
+                'average_transaction' => $averageTransaction,
+                'best_selling_product' => $bestSellingProduct,
+                'events' => (clone $historyQuery)->where('source', 'event')->count(),
+                'door_to_door' => (clone $historyQuery)->where('source', 'door_to_door')->count(),
+                'revenue_per_source' => $revenuePerSource,
+                'staff_ranking' => $staffRanking,
+            ],
             'offlineSales' => OfflineSale::query()
                 ->with(['customerProfile', 'lead', 'fieldStaff', 'event', 'paymentMethod'])
                 ->when(request('search'), function ($query, $search) {
                     $query->where('customer_name', 'like', "%{$search}%")
                           ->orWhere('sale_number', 'like', "%{$search}%");
                 })
+                ->when($startDate && $endDate, function ($query) use ($startDate, $endDate) {
+                    $query->whereBetween('sold_at', [$startDate, $endDate]);
+                })
                 ->latest()
                 ->paginate(10)
                 ->withQueryString(),
-            'filters' => request()->only(['search']),
+            'filters' => request()->only(['search', 'start_date', 'end_date']),
             'products' => Product::query()->where('is_active', true)->orderBy('name')->get(),
             'services' => Service::query()->where('is_active', true)->orderBy('name')->get(),
             'customerProfiles' => CustomerProfile::query()->orderBy('name')->get(),
