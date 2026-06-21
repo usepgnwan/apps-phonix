@@ -6,6 +6,7 @@ use App\Models\CustomerProfile;
 use App\Models\Examination;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class ExaminationService
 {
@@ -13,13 +14,17 @@ class ExaminationService
     {
         return DB::transaction(function () use ($data, $admin): Examination {
             $customerProfileId = $this->resolveCustomerProfileId($data);
+            $resultPdfPath = isset($data['result_pdf']) ? Storage::disk('public')->put('examination-results', $data['result_pdf']) : null;
 
             $examination = Examination::query()->create([
                 'customer_profile_id' => $customerProfileId,
                 'booking_id' => $data['booking_id'] ?? null,
+                'service_type' => $data['service_type'],
+                'assigned_staff_id' => $data['assigned_staff_id'] ?? null,
                 'complaint' => $data['complaint'],
                 'result' => $data['result'],
-                'summary' => $data['summary'],
+                'result_pdf_path' => $resultPdfPath,
+                'summary' => $data['result'],
                 'internal_recommendation' => $data['internal_recommendation'],
                 'created_by' => $admin->id,
             ]);
@@ -33,7 +38,7 @@ class ExaminationService
                 ]);
             }
 
-            return $examination->load(['customerProfile', 'booking', 'creator', 'productRecommendations.product']);
+            return $examination->load(['customerProfile', 'booking', 'creator', 'assignedStaff', 'productRecommendations.product']);
         });
     }
 

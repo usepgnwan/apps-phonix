@@ -80,6 +80,11 @@ function AdminProdukIndex({ products = [] }) {
                                             <p className="mt-1 line-clamp-2 font-body-sm text-sm leading-6 text-gray-500">
                                                 {product.short_description || 'Deskripsi singkat belum tersedia.'}
                                             </p>
+                                            {product.bpom_number && (
+                                                <p className="mt-2 font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-[#1E4D3A]/75">
+                                                    No. BPOM {product.bpom_number}
+                                                </p>
+                                            )}
                                         </div>
                                         <p className="shrink-0 font-body-sm text-base font-extrabold text-[#1E4D3A]">
                                             {formatCurrency(product.price)}

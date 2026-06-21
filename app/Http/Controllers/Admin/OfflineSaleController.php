@@ -12,6 +12,9 @@ use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\Service;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use App\Services\OfflineSaleService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -44,6 +47,13 @@ class OfflineSaleController extends Controller
         $totalRevenue = (clone $historyQuery)->sum('total');
         $totalTransactions = (clone $historyQuery)->count();
         $averageTransaction = $totalTransactions > 0 ? $totalRevenue / $totalTransactions : 0;
+        $convertedLeadTransactions = (clone $historyQuery)->whereNotNull('lead_id')->count();
+        $totalLeads = Lead::query()
+            ->when($startDate && $endDate, function ($query) use ($startDate, $endDate) {
+                $query->whereBetween('created_at', [$startDate, $endDate]);
+            })
+            ->count();
+        $leadConversionRate = $totalLeads > 0 ? ($convertedLeadTransactions / $totalLeads) * 100 : 0;
 
         $bestSellingProduct = \App\Models\OfflineSaleItem::query()
             ->whereHas('offlineSale', function($query) use ($startDate, $endDate) {
@@ -71,6 +81,12 @@ class OfflineSaleController extends Controller
             ->with('fieldStaff:id,name')
             ->get();
 
+        $revenueTrend = (clone $historyQuery)
+            ->selectRaw('DATE(sold_at) as sale_date, SUM(total) as revenue, COUNT(id) as transactions')
+            ->groupBy('sale_date')
+            ->orderBy('sale_date')
+            ->get();
+
         return Inertia::render('Admin/OfflineSales/Index', [
             'metrics' => [
                 'total' => (clone $metricsQuery)->count(),
@@ -83,16 +99,31 @@ class OfflineSaleController extends Controller
                 'total_transactions' => $totalTransactions,
                 'average_transaction' => $averageTransaction,
                 'best_selling_product' => $bestSellingProduct,
+                'converted_lead_transactions' => $convertedLeadTransactions,
+                'total_leads' => $totalLeads,
+                'lead_conversion_rate' => $leadConversionRate,
+                'revenue_trend' => $revenueTrend,
                 'events' => (clone $historyQuery)->where('source', 'event')->count(),
                 'door_to_door' => (clone $historyQuery)->where('source', 'door_to_door')->count(),
                 'revenue_per_source' => $revenuePerSource,
                 'staff_ranking' => $staffRanking,
             ],
             'offlineSales' => OfflineSale::query()
-                ->with(['customerProfile', 'lead', 'fieldStaff', 'event', 'paymentMethod'])
+                ->with(['customerProfile', 'lead', 'fieldStaff', 'event', 'paymentMethod', 'voucherRedemption.voucher'])
                 ->when(request('search'), function ($query, $search) {
-                    $query->where('customer_name', 'like', "%{$search}%")
-                          ->orWhere('sale_number', 'like', "%{$search}%");
+                    $query->where(function ($query) use ($search) {
+                        $query->where('customer_name', 'ILIKE', "%{$search}%")
+                            ->orWhere('sale_number', 'ILIKE', "%{$search}%")
+                            ->orWhereHas('fieldStaff', function ($query) use ($search) {
+                                $query->where('name', 'ILIKE', "%{$search}%");
+                            })
+                            ->orWhereHas('lead', function ($query) use ($search) {
+                                $query->where('name', 'ILIKE', "%{$search}%");
+                            })
+                            ->orWhereHas('event', function ($query) use ($search) {
+                                $query->where('name', 'ILIKE', "%{$search}%");
+                            });
+                    });
                 })
                 ->when($startDate && $endDate, function ($query) use ($startDate, $endDate) {
                     $query->whereBetween('sold_at', [$startDate, $endDate]);
@@ -113,6 +144,78 @@ class OfflineSaleController extends Controller
         ]);
     }
 
+
+    public function validateVoucher(Request $request, OfflineSaleService $offlineSaleService): JsonResponse
+    {
+        $this->authorizeAdmin();
+
+        $validated = $request->validate([
+            'voucher_code' => ['required', 'string', 'max:255'],
+            'customer_profile_id' => ['nullable', 'exists:customer_profiles,id'],
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.product_id' => ['nullable', 'exists:products,id'],
+            'items.*.service_id' => ['nullable', 'exists:services,id'],
+            'items.*.quantity' => ['required', 'integer', 'min:1'],
+        ]);
+
+        $subtotal = collect($validated['items'])->sum(function (array $item): float {
+            $quantity = (int) $item['quantity'];
+
+            if (! empty($item['product_id'])) {
+                $product = Product::query()->whereKey($item['product_id'])->where('is_active', true)->first();
+
+                if ($product === null) {
+                    throw ValidationException::withMessages([
+                        'items' => 'Produk tidak valid atau sudah tidak aktif.',
+                    ]);
+                }
+
+                return (float) $product->price * $quantity;
+            }
+
+            if (! empty($item['service_id'])) {
+                $service = Service::query()->whereKey($item['service_id'])->where('is_active', true)->first();
+
+                if ($service === null) {
+                    throw ValidationException::withMessages([
+                        'items' => 'Layanan tidak valid atau sudah tidak aktif.',
+                    ]);
+                }
+
+                return (float) ($service->price ?? 0) * $quantity;
+            }
+
+            throw ValidationException::withMessages([
+                'items' => 'Item harus memiliki produk atau layanan.',
+            ]);
+        });
+
+        try {
+            [$voucher, $discountAmount] = $offlineSaleService->previewVoucher($validated, $validated['voucher_code'], $subtotal);
+        } catch (ValidationException $exception) {
+            return response()->json([
+                'valid' => false,
+                'message' => collect($exception->errors())->flatten()->first() ?? 'Voucher tidak valid.',
+                'errors' => $exception->errors(),
+            ], 422);
+        }
+
+        return response()->json([
+            'valid' => true,
+            'voucher' => [
+                'id' => $voucher->id,
+                'code' => $voucher->code,
+                'name' => $voucher->name,
+                'discount_type' => $voucher->discount_type,
+                'discount_value' => $voucher->discount_value,
+            ],
+            'subtotal' => $subtotal,
+            'discount_amount' => $discountAmount,
+            'total' => $subtotal - $discountAmount,
+            'message' => 'Voucher valid dan dapat digunakan.',
+        ]);
+    }
+
     public function store(StoreOfflineSaleRequest $request, OfflineSaleService $offlineSaleService): RedirectResponse
     {
         $offlineSale = $offlineSaleService->create($request->validated());
@@ -127,7 +230,7 @@ class OfflineSaleController extends Controller
     {
         $this->authorizeAdmin();
 
-        $offlineSale->load(['offlineSaleItems.product', 'offlineSaleItems.service', 'customerProfile', 'lead', 'fieldStaff', 'event', 'paymentMethod']);
+        $offlineSale->load(['offlineSaleItems.product', 'offlineSaleItems.service', 'customerProfile', 'lead', 'fieldStaff', 'event', 'paymentMethod', 'voucherRedemption.voucher']);
 
         return Inertia::render('Admin/OfflineSales/Show', [
             'offlineSale' => $offlineSale,
@@ -138,7 +241,7 @@ class OfflineSaleController extends Controller
     {
         $this->authorizeAdmin();
 
-        $offlineSale->load(['offlineSaleItems.product', 'offlineSaleItems.service', 'paymentMethod']);
+        $offlineSale->load(['offlineSaleItems.product', 'offlineSaleItems.service', 'paymentMethod', 'voucherRedemption.voucher']);
 
         return view('admin.offline_sales.print', [
             'sale' => $offlineSale,

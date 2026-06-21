@@ -21,7 +21,8 @@ class StorePaymentMethodRequest extends FormRequest
             'bank_name' => ['required_if:type,bank_transfer', 'nullable', 'string', 'max:255'],
             'account_number' => ['required_if:type,bank_transfer', 'nullable', 'string', 'max:255'],
             'account_holder_name' => ['required_if:type,bank_transfer', 'nullable', 'string', 'max:255'],
-            'qris_image_path' => ['required_if:type,qris', 'nullable', 'string', 'max:255'],
+            'qris_image_path' => ['nullable', 'string', 'max:255'],
+            'qris_image' => ['required_if:type,qris', 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'instructions' => ['nullable', 'string'],
             'is_active' => ['required', 'boolean'],
         ];

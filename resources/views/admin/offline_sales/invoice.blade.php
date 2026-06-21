@@ -166,6 +166,16 @@
     </table>
 
     <table class="totals-table">
+        @if(($sale->voucher_discount_amount ?? 0) > 0)
+        <tr>
+            <td>Subtotal</td>
+            <td class="text-right">Rp {{ number_format($sale->subtotal, 0, ',', '.') }}</td>
+        </tr>
+        <tr>
+            <td>Voucher {{ $sale->voucherRedemption?->voucher?->code }}</td>
+            <td class="text-right">- Rp {{ number_format($sale->voucher_discount_amount, 0, ',', '.') }}</td>
+        </tr>
+        @endif
         <tr class="grand-total">
             <td>TOTAL</td>
             <td class="text-right">Rp {{ number_format($sale->total, 0, ',', '.') }}</td>

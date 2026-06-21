@@ -115,6 +115,16 @@
         <div class="divider"></div>
 
         <table>
+            @if(($sale->voucher_discount_amount ?? 0) > 0)
+            <tr>
+                <td class="text-left" style="font-size: 10px;">Subtotal</td>
+                <td class="text-right" style="font-size: 10px;">Rp {{ number_format($sale->subtotal, 0, ',', '.') }}</td>
+            </tr>
+            <tr>
+                <td class="text-left" style="font-size: 10px;">Voucher {{ $sale->voucherRedemption?->voucher?->code }}</td>
+                <td class="text-right" style="font-size: 10px;">- Rp {{ number_format($sale->voucher_discount_amount, 0, ',', '.') }}</td>
+            </tr>
+            @endif
             <tr>
                 <td class="font-bold text-left">TOTAL</td>
                 <td class="font-bold text-right">Rp {{ number_format($sale->total, 0, ',', '.') }}</td>

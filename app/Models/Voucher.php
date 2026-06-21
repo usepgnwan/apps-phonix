@@ -25,6 +25,11 @@ class Voucher extends Model
         return $this->hasMany(Order::class);
     }
 
+    public function offlineSales(): HasMany
+    {
+        return $this->hasMany(OfflineSale::class);
+    }
+
     public function voucherRedemptions(): HasMany
     {
         return $this->hasMany(VoucherRedemption::class);

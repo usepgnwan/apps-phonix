@@ -43,7 +43,17 @@ class PaymentMethodController extends Controller
 
     public function store(StorePaymentMethodRequest $request): RedirectResponse
     {
-        PaymentMethod::query()->create($request->validated());
+        $data = $request->validated();
+
+        if ($request->hasFile('qris_image')) {
+            $data['qris_image_path'] = $request->file('qris_image')->store('payment-methods', 'public');
+        } elseif ($data['type'] === 'qris') {
+            unset($data['qris_image_path']);
+        }
+
+        unset($data['qris_image']);
+
+        PaymentMethod::query()->create($data);
 
         return redirect()->route('admin.payment-methods.index')->with('success', 'Metode pembayaran berhasil disimpan.');
     }
@@ -72,7 +82,17 @@ class PaymentMethodController extends Controller
 
     public function update(UpdatePaymentMethodRequest $request, PaymentMethod $paymentMethod): RedirectResponse
     {
-        $paymentMethod->update($request->validated());
+        $data = $request->validated();
+
+        if ($request->hasFile('qris_image')) {
+            $data['qris_image_path'] = $request->file('qris_image')->store('payment-methods', 'public');
+        } elseif ($data['type'] === 'qris') {
+            unset($data['qris_image_path']);
+        }
+
+        unset($data['qris_image']);
+
+        $paymentMethod->update($data);
 
         return redirect()->route('admin.payment-methods.index')->with('success', 'Metode pembayaran berhasil diperbarui.');
     }

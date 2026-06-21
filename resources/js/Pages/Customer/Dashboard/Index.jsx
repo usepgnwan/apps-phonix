@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { ArrowRight, CalendarCheck, ClipboardPlus, Leaf, Package, ReceiptText, Sparkles } from 'lucide-react';
+import { ArrowRight, CalendarCheck, ClipboardPlus, Leaf, Package, ReceiptText, ShoppingBag, Sparkles, Star } from 'lucide-react';
 
 import CustomerCard from '@/Components/Customer/CustomerCard';
 import CustomerEmptyState from '@/Components/Customer/CustomerEmptyState';
@@ -187,17 +187,170 @@ function RecentExaminations({ examinations = [] }) {
     );
 }
 
-function Recommendations({ recommendations = [] }) {
+function productCategory(product) {
+    return product?.product_category ?? product?.productCategory ?? null;
+}
+
+function visitTypeLabel(visitType) {
+    const labels = {
+        clinic_visit: 'Datang ke klinik',
+        home_visit: 'Home visit',
+        online: 'Online',
+    };
+
+    return labels[visitType] ?? 'Layanan Phoenix';
+}
+
+function CatalogItem({ item, type }) {
+    const isProduct = type === 'product';
+    const href = isProduct
+        ? (routeExists('products.index') ? route('products.index') : null)
+        : (routeExists('bookings.create') ? route('bookings.create', { service_id: item.id }) : (routeExists('services.index') ? route('services.index') : null));
+    const description = isProduct
+        ? (item.short_description || 'Produk herbal Phoenix pilihan untuk rutinitas wellness Anda.')
+        : (item.description || 'Layanan botanical care dari tim Phoenix.');
+    const meta = isProduct ? productCategory(item)?.name : visitTypeLabel(item.visit_type);
+
+    const content = (
+        <div className="flex h-full min-h-[190px] flex-col justify-between rounded-3xl border border-outline-variant/80 bg-surface-container-low p-4 transition hover:border-primary-fixed-dim hover:bg-white">
+            <div>
+                <div className="flex items-center justify-between gap-3">
+                    <span className="rounded-full bg-primary-fixed/45 px-3 py-1 font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-primary-container">
+                        {isProduct ? 'Produk' : 'Layanan'}
+                    </span>
+                    {item.is_featured && <Star aria-hidden="true" className="h-4 w-4 fill-tertiary-fixed-dim text-tertiary-container" />}
+                </div>
+                <p className="mt-4 font-label-sm text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant/75">
+                    {meta}
+                </p>
+                <h3 className="mt-2 line-clamp-2 font-headline-md text-xl font-bold leading-tight text-primary-container">
+                    {item.name}
+                </h3>
+                <p className="mt-3 line-clamp-2 font-body-sm text-xs leading-5 text-on-surface-variant">
+                    {description}
+                </p>
+            </div>
+            <div className="mt-5 flex items-center justify-between gap-3">
+                <span className="font-body-sm text-sm font-extrabold text-primary-container">
+                    {formatCurrency(item.price)}
+                </span>
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary-container text-white">
+                    <ArrowRight aria-hidden="true" className="h-4 w-4" />
+                </span>
+            </div>
+        </div>
+    );
+
+    return href ? <Link className="block h-full min-w-[260px] sm:min-w-[300px]" href={href}>{content}</Link> : <div className="h-full min-w-[260px] sm:min-w-[300px]">{content}</div>;
+}
+
+function CompactCatalogItem({ item, type }) {
+    const isProduct = type === 'product';
+    const href = isProduct
+        ? (item.slug && routeExists('products.show') ? route('products.show', item.slug) : (routeExists('products.index') ? route('products.index') : null))
+        : (item.slug && routeExists('services.show') ? route('services.show', item.slug) : (routeExists('services.index') ? route('services.index') : null));
+    const meta = isProduct ? productCategory(item)?.name : visitTypeLabel(item.visit_type);
+
+    const content = (
+        <div className="group flex h-full min-h-[152px] flex-col overflow-hidden rounded-2xl border border-outline-variant/80 bg-surface-container-low text-left transition hover:border-primary-fixed-dim hover:bg-white hover:shadow-sm hover:shadow-primary-container/10">
+            <div className="relative h-20 w-full overflow-hidden bg-primary-fixed/20 sm:h-24">
+                {item.image_path ? (
+                    <img alt={item.name} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" src={item.image_path} />
+                ) : (
+                    <div className="flex h-full w-full items-center justify-center text-primary-container/35 transition duration-300 group-hover:text-primary-container/55">
+                        <Package aria-hidden="true" className="h-7 w-7" />
+                    </div>
+                )}
+                <span className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-0.5 font-label-sm text-[9px] font-bold uppercase tracking-[0.14em] text-primary-container shadow-sm">
+                    {isProduct ? 'Produk' : 'Layanan'}
+                </span>
+            </div>
+            <div className="flex flex-1 flex-col justify-between p-3">
+                <div>
+                    <h3 className="line-clamp-2 font-body-sm text-xs font-extrabold leading-snug text-on-surface">
+                        {item.name}
+                    </h3>
+                    {meta && (
+                        <p className="mt-1 truncate font-body-sm text-[10px] font-semibold text-on-surface-variant/75">
+                            {meta}
+                        </p>
+                    )}
+                </div>
+                <div className="mt-2 flex items-center justify-between gap-2">
+                    <span className="truncate font-body-sm text-xs font-extrabold text-primary-container">
+                        {formatCurrency(item.price)}
+                    </span>
+                    <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary-container text-white transition group-hover:bg-primary">
+                        <ArrowRight aria-hidden="true" className="h-3.5 w-3.5" />
+                    </span>
+                </div>
+            </div>
+        </div>
+    );
+
+    return href ? <Link className="block h-full min-w-[168px] sm:min-w-[184px]" href={href}>{content}</Link> : <div className="h-full min-w-[168px] sm:min-w-[184px]">{content}</div>;
+}
+
+function QuickActions() {
+    const actions = [
+        routeExists('products.index') && {
+            href: route('products.index'),
+            icon: ShoppingBag,
+            label: 'Belanja Produk',
+            variant: 'primary',
+        },
+        routeExists('bookings.create') && {
+            href: route('bookings.create'),
+            icon: CalendarCheck,
+            label: 'Booking Layanan',
+            variant: 'secondary',
+        },
+        routeExists('customer.profile.show') && {
+            href: route('customer.profile.show'),
+            icon: ArrowRight,
+            label: 'Lihat Profil',
+            variant: 'outline',
+        },
+    ].filter(Boolean);
+
+    return (
+        <div className="flex flex-col gap-2 sm:min-w-[190px]">
+            {actions.map((action) => {
+                const IconComponent = action.icon;
+                const className = action.variant === 'primary'
+                    ? 'bg-primary-container text-white shadow-sm shadow-primary-container/20 hover:bg-primary'
+                    : action.variant === 'secondary'
+                        ? 'border border-primary-fixed-dim bg-primary-fixed/45 text-primary-container hover:bg-primary-fixed'
+                        : 'border border-primary-container bg-white text-primary-container hover:bg-primary-container hover:text-white';
+
+                return (
+                    <Link className={`inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 font-body-sm text-sm font-bold transition ${className}`} href={action.href} key={action.label}>
+                        {action.label}
+                        <IconComponent aria-hidden="true" className="h-4 w-4" />
+                    </Link>
+                );
+            })}
+        </div>
+    );
+}
+
+function Recommendations({ generalProducts = [], recommendations = [], serviceRecommendations = [] }) {
     return (
         <CustomerCard className="p-5">
-            <CustomerSectionHeader eyebrow="Rekomendasi" title="Produk yang Disarankan" />
+            <CustomerSectionHeader eyebrow="Rekomendasi" title={recommendations.length === 0 ? 'Pilihan Phoenix untuk Anda' : 'Produk yang Disarankan'} />
             <div className="space-y-4">
                 {recommendations.length === 0 ? (
-                    <CustomerEmptyState
-                        description="Rekomendasi personal dari hasil pemeriksaan akan tampil di sini."
-                        icon={Leaf}
-                        title="Belum ada rekomendasi produk."
-                    />
+                    [...generalProducts.map((product) => ({ item: product, type: 'product' })), ...serviceRecommendations.map((service) => ({ item: service, type: 'service' }))].length === 0 ? (
+                        <CustomerEmptyState
+                            description="Rekomendasi personal dari hasil pemeriksaan akan tampil di sini."
+                            icon={Leaf}
+                            title="Belum ada rekomendasi produk."
+                        />
+                    ) : (
+                        [...generalProducts.map((product) => ({ item: product, type: 'product' })), ...serviceRecommendations.map((service) => ({ item: service, type: 'service' }))].map(({ item, type }) => (
+                            <CatalogItem item={item} key={`${type}-${item.id}`} type={type} />
+                        ))
+                    )
                 ) : (
                     recommendations.map((recommendation) => (
                         <div className="rounded-2xl border border-outline-variant/80 bg-surface-container-low px-4 py-3" key={recommendation.id}>
@@ -222,7 +375,43 @@ function Recommendations({ recommendations = [] }) {
     );
 }
 
-export default function CustomerDashboardIndex({ customerProfile, summary = {}, recentOrders = [], recentBookings = [], recentExaminations = [], recentProductRecommendations = [] }) {
+function MiniCatalog({ catalog = {} }) {
+    const products = catalog.products ?? [];
+    const services = catalog.services ?? [];
+    const items = [
+        ...products.map((product) => ({ item: product, type: 'product' })),
+        ...services.map((service) => ({ item: service, type: 'service' })),
+    ];
+
+    if (items.length === 0) {
+        return null;
+    }
+
+    return (
+        <CustomerCard className="overflow-hidden p-5">
+            <CustomerSectionHeader
+                action={routeExists('products.index') && (
+                    <Link className="inline-flex items-center gap-2 rounded-full border border-primary-fixed-dim px-4 py-2 font-body-sm text-xs font-bold text-primary-container transition hover:bg-primary-fixed/30" href={route('products.index')}>
+                        Buka Katalog
+                        <ArrowRight aria-hidden="true" className="h-4 w-4" />
+                    </Link>
+                )}
+                description="Geser untuk melihat produk herbal dan layanan botanical care yang sedang ditonjolkan Phoenix."
+                eyebrow="Mini Catalog"
+                title="Pilihan Herbal & Layanan"
+            />
+            <div className="-mx-5 flex snap-x gap-4 overflow-x-auto px-5 pb-2">
+                {items.map(({ item, type }) => (
+                    <div className="snap-start" key={`${type}-${item.id}`}>
+                        <CompactCatalogItem item={item} type={type} />
+                    </div>
+                ))}
+            </div>
+        </CustomerCard>
+    );
+}
+
+export default function CustomerDashboardIndex({ customerProfile, summary = {}, recentOrders = [], recentBookings = [], recentExaminations = [], recentProductRecommendations = [], generalProductRecommendations = [], featuredServiceRecommendation = [], miniCatalog = {} }) {
     const profileName = customerProfile?.name ?? 'Customer Phoenix';
 
     return (
@@ -231,15 +420,7 @@ export default function CustomerDashboardIndex({ customerProfile, summary = {}, 
 
             <div className="space-y-8">
                 <CustomerPageHeader
-                    action={routeExists('customer.profile.show') && (
-                        <Link
-                            className="inline-flex items-center gap-2 rounded-full border border-primary-container bg-white px-4 py-2 font-body-sm text-sm font-bold text-primary-container transition hover:bg-primary-container hover:text-white"
-                            href={route('customer.profile.show')}
-                        >
-                            Lihat Profil
-                            <ArrowRight aria-hidden="true" className="h-4 w-4" />
-                        </Link>
-                    )}
+                    action={<QuickActions />}
                     description="Pantau order herbal, booking layanan, pemeriksaan, dan rekomendasi personal Anda dalam satu ruang yang hangat dan rapi."
                     eyebrow="Dashboard Customer"
                     icon={Sparkles}
@@ -257,8 +438,13 @@ export default function CustomerDashboardIndex({ customerProfile, summary = {}, 
                 <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
                     <RecentOrders orders={recentOrders} />
                     <RecentBookings bookings={recentBookings} />
+                </div>
+
+                <MiniCatalog catalog={miniCatalog} />
+
+                <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
                     <RecentExaminations examinations={recentExaminations} />
-                    <Recommendations recommendations={recentProductRecommendations} />
+                    <Recommendations generalProducts={generalProductRecommendations} recommendations={recentProductRecommendations} serviceRecommendations={featuredServiceRecommendation} />
                 </div>
             </div>
         </>

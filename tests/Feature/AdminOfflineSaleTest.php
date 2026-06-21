@@ -7,9 +7,11 @@ use App\Models\Event;
 use App\Models\Lead;
 use App\Models\LeadSource;
 use App\Models\OfflineSale;
+use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\User;
+use App\Models\Voucher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -49,9 +51,9 @@ class AdminOfflineSaleTest extends TestCase
         $this->inertiaGet($admin, route('admin.offline-sales.index'))
             ->assertOk()
             ->assertJsonPath('component', 'Admin/OfflineSales/Index')
-            ->assertJsonPath('props.offlineSales.0.sale_number', $offlineSale->sale_number)
-            ->assertJsonPath('props.offlineSales.0.customer_profile.name', $customerProfile->name)
-            ->assertJsonPath('props.offlineSales.0.field_staff.id', $fieldStaff->id)
+            ->assertJsonPath('props.offlineSales.data.0.sale_number', $offlineSale->sale_number)
+            ->assertJsonPath('props.offlineSales.data.0.customer_profile.name', $customerProfile->name)
+            ->assertJsonPath('props.offlineSales.data.0.field_staff.id', $fieldStaff->id)
             ->assertJsonPath('props.products.0.name', 'Herbal A')
             ->assertJsonPath('props.customerProfiles.0.name', $customerProfile->name)
             ->assertJsonPath('props.leads.0.id', $lead->id)
@@ -61,7 +63,7 @@ class AdminOfflineSaleTest extends TestCase
         $this->inertiaGet($admin, route('admin.offline-sales.show', $offlineSale))
             ->assertOk()
             ->assertJsonPath('component', 'Admin/OfflineSales/Show')
-            ->assertJsonPath('props.offlineSale.offline_sale_items.0.product_name', $product->name)
+            ->assertJsonPath('props.offlineSale.offline_sale_items.0.item_name', $product->name)
             ->assertJsonPath('props.offlineSale.customer_profile.name', $customerProfile->name)
             ->assertJsonPath('props.offlineSale.lead.id', $lead->id)
             ->assertJsonPath('props.offlineSale.field_staff.id', $fieldStaff->id)
@@ -84,6 +86,7 @@ class AdminOfflineSaleTest extends TestCase
         $event = $this->createEvent();
         $fieldStaff = $this->createFieldStaff();
         $lead = $this->createLead($event, $fieldStaff, $customerProfile);
+        $paymentMethod = $this->createPaymentMethod();
 
         $response = $this->actingAs($admin)->post(route('admin.offline-sales.store'), [
             'customer_profile_id' => $customerProfile->id,
@@ -91,6 +94,7 @@ class AdminOfflineSaleTest extends TestCase
             'field_staff_id' => $fieldStaff->id,
             'event_id' => $event->id,
             'source' => 'event',
+            'payment_method_id' => $paymentMethod->id,
             'customer_name' => 'Customer Offline',
             'customer_whatsapp_number' => '08123456789',
             'notes' => 'Pembelian di event',
@@ -103,7 +107,7 @@ class AdminOfflineSaleTest extends TestCase
         ]);
 
         $offlineSale = OfflineSale::query()->latest('id')->firstOrFail();
-        $response->assertRedirect(route('admin.offline-sales.show', $offlineSale));
+        $response->assertRedirect(route('admin.offline-sales.index'));
 
         $this->assertMatchesRegularExpression('/^OFF-\d{8}-[A-Z0-9]{6}$/', $offlineSale->sale_number);
         $this->assertSame('275000.00', (string) $offlineSale->total);
@@ -125,7 +129,7 @@ class AdminOfflineSaleTest extends TestCase
         $this->assertDatabaseHas('offline_sale_items', [
             'offline_sale_id' => $offlineSale->id,
             'product_id' => $productA->id,
-            'product_name' => 'Herbal A',
+            'item_name' => 'Herbal A',
             'unit_price' => 100000,
             'quantity' => 2,
             'line_total' => 200000,
@@ -133,7 +137,7 @@ class AdminOfflineSaleTest extends TestCase
         $this->assertDatabaseHas('offline_sale_items', [
             'offline_sale_id' => $offlineSale->id,
             'product_id' => $productB->id,
-            'product_name' => 'Herbal B',
+            'item_name' => 'Herbal B',
             'unit_price' => 75000,
             'quantity' => 1,
             'line_total' => 75000,
@@ -144,6 +148,7 @@ class AdminOfflineSaleTest extends TestCase
     {
         $admin = $this->createAdmin();
         $product = $this->createProduct(['stock_quantity' => 5]);
+        $paymentMethod = $this->createPaymentMethod();
 
         $this->actingAs($admin)->post(route('admin.offline-sales.store'), [
             'customer_profile_id' => null,
@@ -151,6 +156,7 @@ class AdminOfflineSaleTest extends TestCase
             'field_staff_id' => null,
             'event_id' => null,
             'source' => 'offline',
+            'payment_method_id' => $paymentMethod->id,
             'customer_name' => 'Customer Walk In',
             'customer_whatsapp_number' => null,
             'notes' => null,
@@ -168,6 +174,90 @@ class AdminOfflineSaleTest extends TestCase
             'source' => 'offline',
             'customer_name' => 'Customer Walk In',
         ]);
+    }
+
+    public function test_active_admin_can_create_guest_offline_sale_without_name_or_whatsapp(): void
+    {
+        $admin = $this->createAdmin();
+        $product = $this->createProduct(['stock_quantity' => 5]);
+        $paymentMethod = $this->createPaymentMethod();
+
+        $response = $this->actingAs($admin)->post(route('admin.offline-sales.store'), [
+            'customer_profile_id' => null,
+            'lead_id' => null,
+            'field_staff_id' => null,
+            'event_id' => null,
+            'source' => 'offline',
+            'payment_method_id' => $paymentMethod->id,
+            'customer_name' => '',
+            'customer_whatsapp_number' => '',
+            'notes' => null,
+            'sold_at' => now()->format('Y-m-d H:i:s'),
+            'items' => [
+                ['product_id' => $product->id, 'quantity' => 1],
+            ],
+        ]);
+
+        $offlineSale = OfflineSale::query()->latest('id')->firstOrFail();
+        $response->assertRedirect(route('admin.offline-sales.index'));
+
+        $this->assertDatabaseHas('offline_sales', [
+            'id' => $offlineSale->id,
+            'customer_profile_id' => null,
+            'lead_id' => null,
+            'source' => 'offline',
+            'customer_name' => 'Walk-in Guest',
+            'customer_whatsapp_number' => null,
+            'total' => 100000,
+        ]);
+        $this->assertSame(4, $product->fresh()->stock_quantity);
+    }
+
+    public function test_admin_can_validate_offline_sale_voucher_before_submit(): void
+    {
+        $admin = $this->createAdmin();
+        $product = $this->createProduct(['price' => 150000, 'stock_quantity' => 5]);
+        $customerProfile = $this->createCustomerProfile(['member_status' => 'member']);
+        $this->createVoucher([
+            'code' => 'OFF25',
+            'discount_type' => 'fixed',
+            'discount_value' => 25000,
+            'minimum_purchase' => 100000,
+        ]);
+
+        $this->actingAs($admin)
+            ->postJson(route('admin.offline-sales.validate-voucher'), [
+                'voucher_code' => 'off25',
+                'customer_profile_id' => $customerProfile->id,
+                'items' => [
+                    ['product_id' => $product->id, 'quantity' => 2],
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('valid', true)
+            ->assertJsonPath('voucher.code', 'OFF25')
+            ->assertJsonPath('subtotal', 300000)
+            ->assertJsonPath('discount_amount', 25000)
+            ->assertJsonPath('total', 275000);
+    }
+
+    public function test_offline_sale_voucher_validation_requires_member_customer_profile(): void
+    {
+        $admin = $this->createAdmin();
+        $product = $this->createProduct(['price' => 150000]);
+        $this->createVoucher(['code' => 'OFF25']);
+
+        $this->actingAs($admin)
+            ->postJson(route('admin.offline-sales.validate-voucher'), [
+                'voucher_code' => 'OFF25',
+                'customer_profile_id' => null,
+                'items' => [
+                    ['product_id' => $product->id, 'quantity' => 1],
+                ],
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('valid', false)
+            ->assertJsonPath('errors.voucher_code.0', 'Voucher hanya dapat digunakan jika profil customer CRM dipilih.');
     }
 
     public function test_offline_sale_validation_rejects_invalid_source_and_empty_items(): void
@@ -250,18 +340,18 @@ class AdminOfflineSaleTest extends TestCase
         return User::factory()->create(array_merge(['role' => 'field_staff', 'is_active' => true], $attributes));
     }
 
-    private function createCustomerProfile(): CustomerProfile
+    private function createCustomerProfile(array $attributes = []): CustomerProfile
     {
         $index = CustomerProfile::query()->count() + 1;
         $user = User::factory()->create(['role' => 'customer', 'is_active' => true]);
 
-        return CustomerProfile::query()->create([
+        return CustomerProfile::query()->create(array_merge([
             'user_id' => $user->id,
             'name' => 'Customer '.$index,
             'whatsapp_number' => '0812345678'.$index,
             'primary_address' => 'Alamat '.$index,
             'member_status' => 'non_member',
-        ]);
+        ], $attributes));
     }
 
     private function createEvent(): Event
@@ -296,6 +386,21 @@ class AdminOfflineSaleTest extends TestCase
         ]);
     }
 
+    private function createVoucher(array $attributes = []): Voucher
+    {
+        return Voucher::query()->create(array_merge([
+            'code' => 'OFF10',
+            'name' => 'Voucher Offline',
+            'discount_type' => 'percentage',
+            'discount_value' => 10,
+            'minimum_purchase' => null,
+            'starts_at' => now()->subDay(),
+            'ends_at' => now()->addDay(),
+            'usage_limit' => 10,
+            'is_published' => true,
+        ], $attributes));
+    }
+
     private function createProduct(array $attributes = []): Product
     {
         $index = Product::query()->count() + 1;
@@ -324,6 +429,18 @@ class AdminOfflineSaleTest extends TestCase
         ], $attributes));
     }
 
+    private function createPaymentMethod(array $attributes = []): PaymentMethod
+    {
+        return PaymentMethod::query()->create(array_merge([
+            'type' => 'cash',
+            'bank_name' => null,
+            'account_number' => null,
+            'account_holder_name' => null,
+            'instructions' => null,
+            'is_active' => true,
+        ], $attributes));
+    }
+
     private function createOfflineSale(Product $product, CustomerProfile $customerProfile, Lead $lead, User $fieldStaff, Event $event): OfflineSale
     {
         $offlineSale = OfflineSale::query()->create([
@@ -342,7 +459,7 @@ class AdminOfflineSaleTest extends TestCase
 
         $offlineSale->offlineSaleItems()->create([
             'product_id' => $product->id,
-            'product_name' => $product->name,
+            'item_name' => $product->name,
             'unit_price' => $product->price,
             'quantity' => 1,
             'line_total' => $product->price,
@@ -359,6 +476,7 @@ class AdminOfflineSaleTest extends TestCase
             'field_staff_id' => null,
             'event_id' => null,
             'source' => 'offline',
+            'payment_method_id' => $this->createPaymentMethod()->id,
             'customer_name' => 'Customer Offline',
             'customer_whatsapp_number' => '08123456789',
             'notes' => 'Catatan offline',

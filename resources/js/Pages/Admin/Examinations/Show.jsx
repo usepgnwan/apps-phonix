@@ -30,7 +30,7 @@ function AdminPemeriksaanShow({ examination }) {
                             </Link>
                         </div>
                     )}
-                    description="Detail hasil pemeriksaan, ringkasan, dan rekomendasi produk."
+                    description="Detail hasil pemeriksaan, layanan, staff bertugas, dan rekomendasi produk."
                     eyebrow="Booking & Customer / Pemeriksaan"
                     title={title}
                 />
@@ -45,7 +45,11 @@ function AdminPemeriksaanShow({ examination }) {
                         <DetailRow label="Customer">{examination.customer_profile?.name}</DetailRow>
                         <DetailRow label="WhatsApp">{examination.customer_profile?.whatsapp_number}</DetailRow>
                         <DetailRow label="Nomor Booking">{examination.booking?.booking_number}</DetailRow>
-                        <DetailRow label="Layanan">{examination.booking?.service?.name}</DetailRow>
+                        <DetailRow label="Jenis Layanan">{examination.service_type ?? examination.booking?.service?.name}</DetailRow>
+                        <DetailRow label="Staff Bertugas">{examination.assigned_staff?.name}</DetailRow>
+                        <DetailRow label="Hasil PDF">
+                            {examination.result_pdf_path ? <a className="font-bold text-[#1E4D3A] underline-offset-4 hover:underline" href={`/storage/${examination.result_pdf_path}`} target="_blank" rel="noreferrer">Lihat PDF</a> : '-'}
+                        </DetailRow>
                         <DetailRow label="Pembuat">{examination.creator?.name}</DetailRow>
                         <DetailRow label="Dibuat Pada">{formatDateTime(examination.created_at)}</DetailRow>
                     </div>
@@ -54,7 +58,6 @@ function AdminPemeriksaanShow({ examination }) {
                     <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                         <TextBlock label="Keluhan">{examination.complaint}</TextBlock>
                         <TextBlock label="Hasil">{examination.result}</TextBlock>
-                        <TextBlock label="Ringkasan">{examination.summary}</TextBlock>
                         <TextBlock label="Rekomendasi Internal">{examination.internal_recommendation}</TextBlock>
                     </div>
                 </AdminCard>

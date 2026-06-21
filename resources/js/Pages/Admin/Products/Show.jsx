@@ -107,6 +107,7 @@ function AdminProdukShow({ product }) {
                             <DetailRow label="Deskripsi Singkat">{product.short_description || '-'}</DetailRow>
                             <DetailRow label="Deskripsi Lengkap">{product.full_description || '-'}</DetailRow>
                             <DetailRow label="Komposisi">{product.composition || '-'}</DetailRow>
+                            <DetailRow label="No. BPOM">{product.bpom_number || '-'}</DetailRow>
                             <DetailRow label="Tipe Kemasan">{product.packaging_type || '-'}</DetailRow>
                             <DetailRow label="Berat / Jumlah Isi">{product.content_amount ? `${product.content_amount} ${product.content_unit || ''}` : '-'}</DetailRow>
                             <DetailRow label="Manfaat">{product.benefits || '-'}</DetailRow>

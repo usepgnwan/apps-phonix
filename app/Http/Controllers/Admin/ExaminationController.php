@@ -8,6 +8,7 @@ use App\Models\Booking;
 use App\Models\CustomerProfile;
 use App\Models\Examination;
 use App\Models\Product;
+use App\Models\User;
 use App\Services\ExaminationService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -28,7 +29,7 @@ class ExaminationController extends Controller
 
         return Inertia::render('Admin/Examinations/Index', [
             'examinations' => Examination::query()
-                ->with(['customerProfile', 'booking', 'creator', 'productRecommendations.product'])
+                ->with(['customerProfile', 'booking', 'creator', 'assignedStaff', 'productRecommendations.product'])
                 ->latest()
                 ->get(),
         ]);
@@ -42,6 +43,11 @@ class ExaminationController extends Controller
             'customerProfiles' => CustomerProfile::query()->orderBy('name')->get(),
             'bookings' => Booking::query()->with(['customerProfile', 'service'])->latest()->get(),
             'products' => Product::query()->where('is_active', true)->orderBy('name')->get(),
+            'fieldStaff' => User::query()
+                ->whereIn('role', ['field_staff', 'admin'])
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name', 'email', 'role', 'is_active']),
         ]);
     }
 
@@ -56,7 +62,7 @@ class ExaminationController extends Controller
     {
         $this->authorizeAdmin();
 
-        $examination->load(['customerProfile', 'booking', 'creator', 'productRecommendations.product']);
+        $examination->load(['customerProfile', 'booking', 'creator', 'assignedStaff', 'productRecommendations.product']);
 
         return Inertia::render('Admin/Examinations/Show', [
             'examination' => $examination,
