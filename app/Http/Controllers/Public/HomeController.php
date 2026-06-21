@@ -39,8 +39,12 @@ class HomeController extends Controller
                 ->latest()
                 ->limit(6)
                 ->get(['id', 'customer_name', 'content', 'photo_path']),
-            'videos' => Video::query()
+            'pinnedVideo' => Video::query()
                 ->where('is_pinned', true)
+                ->latest()
+                ->first(['id', 'title', 'video_link']),
+            'videos' => Video::query()
+                ->where('is_pinned', false)
                 ->inRandomOrder()
                 ->limit(8)
                 ->get(['id', 'title', 'video_link']),

@@ -1,5 +1,6 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { Plus } from 'lucide-react';
+import { Switch } from '@headlessui/react';
 
 import AdminDeleteButton from '@/Components/Admin/AdminDeleteButton';
 import AdminCard from '@/Components/Admin/AdminCard';
@@ -92,10 +93,22 @@ function AdminVideoIndex({ videos = [] }) {
                                                 </a>
                                             </td>
                                             <td className="whitespace-nowrap px-4 py-4">
-                                                <StatusBadge
-                                                    label={video.is_pinned ? 'Ya' : 'Tidak'}
-                                                    tone={video.is_pinned ? 'forest' : 'gray'}
-                                                />
+                                                <Switch
+                                                    checked={video.is_pinned}
+                                                    onChange={() => {
+                                                        router.patch(route('admin.videos.pin.toggle', video.id), {}, { preserveScroll: true });
+                                                    }}
+                                                    className={`${
+                                                        video.is_pinned ? 'bg-[#1E4D3A]' : 'bg-gray-200'
+                                                    } relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E4D3A] focus:ring-offset-2`}
+                                                >
+                                                    <span className="sr-only">Toggle Pin</span>
+                                                    <span
+                                                        className={`${
+                                                            video.is_pinned ? 'translate-x-6' : 'translate-x-1'
+                                                        } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
+                                                    />
+                                                </Switch>
                                             </td>
                                             <td className="whitespace-nowrap px-4 py-4 font-body-sm text-sm text-gray-600">
                                                 {formatDate(video.created_at)}
