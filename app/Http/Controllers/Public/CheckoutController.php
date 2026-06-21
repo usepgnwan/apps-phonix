@@ -9,8 +9,10 @@ use App\Models\PaymentMethod;
 use App\Models\Setting;
 use App\Services\CartResolver;
 use App\Services\CheckoutService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -72,6 +74,58 @@ class CheckoutController extends Controller
             ->with('success', 'Order berhasil dibuat dan menunggu konfirmasi ongkir admin.')
             ->with('order_number', $order->order_number)
             ->with('whatsapp_url', $this->orderWhatsappUrl($order));
+    }
+
+    public function validateVoucher(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'voucher_code' => ['required', 'string', 'max:255'],
+            ]);
+
+            $cart = $this->cartResolver->resolve($request)->load('cartItems.product', 'user', 'customerProfile');
+
+            if ($cart->cartItems->isEmpty()) {
+                throw ValidationException::withMessages([
+                    'cart' => 'Keranjang masih kosong.',
+                ]);
+            }
+
+            $subtotal = $cart->cartItems->sum(function ($cartItem): float {
+                $product = $cartItem->product;
+
+                if ($product === null || ! $product->is_active) {
+                    throw ValidationException::withMessages([
+                        'cart' => 'Produk tidak valid atau sudah tidak aktif.',
+                    ]);
+                }
+
+                return (float) $product->price * (int) $cartItem->quantity;
+            });
+
+            [$voucher, $discountAmount] = $this->checkoutService->previewVoucher($cart, $validated['voucher_code'], $subtotal);
+        } catch (ValidationException $exception) {
+            return response()->json([
+                'valid' => false,
+                'message' => collect($exception->errors())->flatten()->first() ?? 'Voucher tidak valid.',
+                'errors' => $exception->errors(),
+            ], 422);
+        }
+
+        return response()->json([
+            'valid' => true,
+            'voucher' => [
+                'id' => $voucher->id,
+                'code' => $voucher->code,
+                'name' => $voucher->name,
+                'discount_type' => $voucher->discount_type,
+                'discount_value' => $voucher->discount_value,
+            ],
+            'subtotal' => $subtotal,
+            'discount_amount' => $discountAmount,
+            'total' => $subtotal - $discountAmount,
+            'message' => 'Voucher valid dan dapat digunakan.',
+        ]);
     }
 
     private function orderWhatsappUrl(Order $order): string

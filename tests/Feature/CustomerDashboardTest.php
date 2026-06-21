@@ -75,6 +75,33 @@ class CustomerDashboardTest extends TestCase
             ->assertJsonPath('props.summary.productRecommendationsCount', 1);
     }
 
+
+    public function test_customer_dashboard_returns_active_catalog_recommendation_props(): void
+    {
+        [$user] = $this->createCustomer('customer@example.com');
+
+        $featuredProduct = $this->createProduct(['name' => 'Produk Unggulan', 'slug' => 'produk-unggulan', 'is_featured' => true]);
+        $generalProduct = $this->createProduct(['name' => 'Produk Umum', 'slug' => 'produk-umum', 'is_featured' => false]);
+        $inactiveProduct = $this->createProduct(['name' => 'Produk Nonaktif', 'slug' => 'produk-nonaktif', 'is_active' => false, 'is_featured' => true]);
+        $featuredService = $this->createService(['name' => 'Layanan Unggulan', 'slug' => 'layanan-unggulan', 'is_featured' => true]);
+        $generalService = $this->createService(['name' => 'Layanan Umum', 'slug' => 'layanan-umum', 'is_featured' => false]);
+        $inactiveService = $this->createService(['name' => 'Layanan Nonaktif', 'slug' => 'layanan-nonaktif', 'is_active' => false, 'is_featured' => true]);
+
+        $response = $this->inertiaGet($user, route('customer.dashboard.index'));
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('props.generalProductRecommendations.0.id', $featuredProduct->id)
+            ->assertJsonPath('props.generalProductRecommendations.1.id', $generalProduct->id)
+            ->assertJsonPath('props.featuredServiceRecommendation.0.id', $featuredService->id)
+            ->assertJsonPath('props.miniCatalog.products.0.id', $featuredProduct->id)
+            ->assertJsonPath('props.miniCatalog.products.1.id', $generalProduct->id)
+            ->assertJsonPath('props.miniCatalog.services.0.id', $featuredService->id)
+            ->assertJsonPath('props.miniCatalog.services.1.id', $generalService->id)
+            ->assertJsonMissing(['id' => $inactiveProduct->id])
+            ->assertJsonMissing(['id' => $inactiveService->id]);
+    }
+
     public function test_customer_can_view_own_order_detail_page(): void
     {
         [$user, $profile] = $this->createCustomer('customer@example.com');
@@ -196,15 +223,7 @@ class CustomerDashboardTest extends TestCase
 
     private function createBookingFor(User $user, CustomerProfile $profile): Booking
     {
-        $service = Service::query()->create([
-            'name' => 'Konsultasi Herbal '.Service::query()->count(),
-            'slug' => 'konsultasi-herbal-'.Service::query()->count(),
-            'description' => 'Layanan konsultasi herbal.',
-            'price' => 150000,
-            'visit_type' => 'home_visit',
-            'is_active' => true,
-            'is_featured' => false,
-        ]);
+        $service = $this->createService();
 
         return Booking::query()->create([
             'booking_number' => 'BK-TEST-'.Booking::query()->count(),
@@ -254,17 +273,19 @@ class CustomerDashboardTest extends TestCase
         ]);
     }
 
-    private function createProduct(): Product
+    private function createProduct(array $overrides = []): Product
     {
         $category = ProductCategory::query()->firstOrCreate(
             ['slug' => 'herbal'],
             ['name' => 'Herbal', 'is_active' => true],
         );
 
-        return Product::query()->create([
+        $count = Product::query()->count();
+
+        return Product::query()->create(array_merge([
             'product_category_id' => $category->id,
-            'name' => 'Produk Herbal '.Product::query()->count(),
-            'slug' => 'produk-herbal-'.Product::query()->count(),
+            'name' => 'Produk Herbal '.$count,
+            'slug' => 'produk-herbal-'.$count,
             'price' => 100000,
             'short_description' => 'Deskripsi singkat produk herbal.',
             'full_description' => 'Deskripsi lengkap produk herbal.',
@@ -272,7 +293,22 @@ class CustomerDashboardTest extends TestCase
             'low_stock_threshold' => 1,
             'is_active' => true,
             'is_featured' => false,
-        ]);
+        ], $overrides));
+    }
+
+    private function createService(array $overrides = []): Service
+    {
+        $count = Service::query()->count();
+
+        return Service::query()->create(array_merge([
+            'name' => 'Konsultasi Herbal '.$count,
+            'slug' => 'konsultasi-herbal-'.$count,
+            'description' => 'Layanan konsultasi herbal.',
+            'price' => 150000,
+            'visit_type' => 'home_visit',
+            'is_active' => true,
+            'is_featured' => false,
+        ], $overrides));
     }
 
     private function createVoucher(): Voucher

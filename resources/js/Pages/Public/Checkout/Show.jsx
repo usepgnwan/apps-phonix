@@ -148,6 +148,7 @@ export default function CheckoutShow({ authUser, cart, customerProfile, paymentM
     const [regencies, setRegencies] = useState([]);
     const [districts, setDistricts] = useState([]);
     const [villages, setVillages] = useState([]);
+    const [voucherCheck, setVoucherCheck] = useState({ status: 'idle', data: null, message: '' });
     const [loadingRegions, setLoadingRegions] = useState({
         provinces: false,
         regencies: false,
@@ -168,6 +169,13 @@ export default function CheckoutShow({ authUser, cart, customerProfile, paymentM
         payment_method_id: '',
         voucher_code: '',
     });
+    const voucherCodeRef = useRef(data.voucher_code);
+    const voucherDiscount = voucherCheck.status === 'valid' ? Number(voucherCheck.data?.discount_amount ?? 0) : 0;
+    const previewTotal = Math.max(subtotal - voucherDiscount, 0);
+
+    useEffect(() => {
+        voucherCodeRef.current = data.voucher_code;
+    }, [data.voucher_code]);
 
     useEffect(() => {
         let isActive = true;
@@ -399,6 +407,58 @@ export default function CheckoutShow({ authUser, cart, customerProfile, paymentM
         setData('shipping_village', selectedRegionName(villages, selectedId));
     }
 
+    function changeVoucherCode(value) {
+        setData('voucher_code', value.toUpperCase());
+        setVoucherCheck({ status: 'idle', data: null, message: '' });
+    }
+
+    async function checkVoucher() {
+        const checkedCode = data.voucher_code;
+
+        if (!checkedCode) {
+            setVoucherCheck({ status: 'invalid', data: null, message: 'Masukkan kode voucher terlebih dahulu.' });
+            return;
+        }
+
+        setVoucherCheck({ status: 'checking', data: null, message: 'Memeriksa voucher...' });
+
+        try {
+            const response = await fetch(route('checkout.validate-voucher'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+                },
+                body: JSON.stringify({
+                    voucher_code: checkedCode,
+                }),
+            });
+
+            const contentType = response.headers.get('content-type') || '';
+            const payload = contentType.includes('application/json') ? await response.json() : { message: await response.text() };
+
+            if (checkedCode !== voucherCodeRef.current) {
+                return;
+            }
+
+            if (!response.ok) {
+                const message = payload.message || Object.values(payload.errors || {})[0]?.[0] || 'Voucher tidak valid.';
+                setVoucherCheck({ status: 'invalid', data: null, message });
+                return;
+            }
+
+            setVoucherCheck({ status: 'valid', data: payload, message: payload.message || 'Voucher valid dan dapat digunakan.' });
+        } catch (error) {
+            if (checkedCode !== voucherCodeRef.current) {
+                return;
+            }
+
+            setVoucherCheck({ status: 'invalid', data: null, message: error?.message || 'Gagal memeriksa voucher. Coba lagi.' });
+        }
+    }
+
     function chooseSavedAddress(address) {
         setProvinceId('');
         setRegencyId('');
@@ -420,6 +480,11 @@ export default function CheckoutShow({ authUser, cart, customerProfile, paymentM
 
     function submit(event) {
         event.preventDefault();
+
+        if (data.voucher_code && voucherCheck.status !== 'valid') {
+            setVoucherCheck({ status: 'invalid', data: null, message: 'Cek voucher terlebih dahulu sebelum membuat order.' });
+            return;
+        }
 
         transform((formData) => ({
             ...formData,
@@ -509,7 +574,15 @@ export default function CheckoutShow({ authUser, cart, customerProfile, paymentM
                                     <section className="rounded-3xl border border-primary-fixed-dim bg-primary-fixed/25 p-4">
                                         <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.18em] text-on-primary-fixed">Voucher Belanja</p>
                                         <div className="mt-3">
-                                            <TextField error={errors.voucher_code} label="Kode Voucher" name="voucher_code" onChange={(event) => setData('voucher_code', event.target.value)} value={data.voucher_code} />
+                                            <span className="font-label-sm text-xs font-bold uppercase tracking-[0.14em] text-on-surface-variant">Kode Voucher</span>
+                                            <div className="mt-2 flex gap-2">
+                                                <input className="block min-w-0 flex-1 rounded-2xl border-outline-variant bg-white font-body-sm text-sm uppercase text-on-surface shadow-sm focus:border-primary-container focus:ring-primary-container" name="voucher_code" onChange={(event) => changeVoucherCode(event.target.value)} type="text" value={data.voucher_code ?? ''} />
+                                                <button className="shrink-0 rounded-2xl border border-primary-container px-4 font-body-sm text-xs font-bold text-primary-container transition hover:bg-primary-container hover:text-white disabled:cursor-not-allowed disabled:opacity-50" disabled={voucherCheck.status === 'checking' || !data.voucher_code} onClick={checkVoucher} type="button">
+                                                    {voucherCheck.status === 'checking' ? 'Cek...' : 'Cek'}
+                                                </button>
+                                            </div>
+                                            <FieldError message={errors.voucher_code} />
+                                            {voucherCheck.message ? <p className={`mt-2 font-body-sm text-xs ${voucherCheck.status === 'valid' ? 'text-primary-container' : 'text-error'}`}>{voucherCheck.message}</p> : null}
                                         </div>
                                     </section>
                                 ) : null}
@@ -535,10 +608,28 @@ export default function CheckoutShow({ authUser, cart, customerProfile, paymentM
                                     <span>Subtotal</span>
                                     <span>{formatRupiah(subtotal)}</span>
                                 </div>
+                                {data.voucher_code ? (
+                                    <div className="mt-3 space-y-2 rounded-2xl bg-primary-fixed/25 p-3">
+                                        <div className="flex justify-between font-body-sm text-xs text-primary-container">
+                                            <span>Kode Voucher</span>
+                                            <span className="font-bold uppercase">{data.voucher_code}</span>
+                                        </div>
+                                        {voucherCheck.status === 'valid' ? (
+                                            <div className="flex justify-between font-body-sm text-xs text-primary-container">
+                                                <span>Diskon Voucher</span>
+                                                <span className="font-bold">-{formatRupiah(voucherDiscount)}</span>
+                                            </div>
+                                        ) : null}
+                                        <div className="flex justify-between border-t border-primary-fixed-dim pt-2 font-body-sm text-sm font-extrabold text-primary-container">
+                                            <span>Estimasi Total</span>
+                                            <span>{formatRupiah(previewTotal)}</span>
+                                        </div>
+                                    </div>
+                                ) : null}
                                 <p className="mt-2 font-body-sm text-xs leading-5 text-on-surface-variant">Belum termasuk ongkir. Admin akan mengonfirmasi biaya pengiriman setelah order dibuat.</p>
                             </div>
-                            <button className="mt-5 inline-flex w-full items-center justify-center rounded-full bg-primary-container px-5 py-3 font-label-md text-sm font-bold text-white shadow-sm shadow-primary-container/20 transition hover:bg-primary disabled:cursor-not-allowed disabled:opacity-60" disabled={processing} form="checkout-form" type="submit">
-                                Buat Order
+                            <button className="mt-5 inline-flex w-full items-center justify-center rounded-full bg-primary-container px-5 py-3 font-label-md text-sm font-bold text-white shadow-sm shadow-primary-container/20 transition hover:bg-primary disabled:cursor-not-allowed disabled:opacity-60" disabled={processing || (data.voucher_code && voucherCheck.status !== 'valid')} form="checkout-form" type="submit">
+                                {data.voucher_code && voucherCheck.status !== 'valid' ? 'Cek Voucher Dulu' : 'Buat Order'}
                             </button>
                             <SecondaryLink className="mt-5 w-full" href={route('orders.lookup.create')}>Sudah Checkout? Cek Pesanan</SecondaryLink>
                             <SecondaryLink className="mt-5 w-full" href={route('cart.index')}>Kembali ke Keranjang</SecondaryLink>

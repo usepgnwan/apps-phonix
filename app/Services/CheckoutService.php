@@ -148,6 +148,11 @@ class CheckoutService
         });
     }
 
+    public function previewVoucher(Cart $cart, string $code, float $subtotal): array
+    {
+        return $this->resolveVoucher($cart, $code, $subtotal);
+    }
+
     private function resolveVoucher(Cart $cart, string $code, float $subtotal): array
     {
         $customerProfile = $cart->customerProfile;
@@ -188,7 +193,6 @@ class CheckoutService
 
         $redemptionCount = VoucherRedemption::query()
             ->where('voucher_id', $voucher->id)
-            ->lockForUpdate()
             ->count();
 
         if ($redemptionCount >= $voucher->usage_limit) {

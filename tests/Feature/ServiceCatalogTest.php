@@ -31,7 +31,9 @@ class ServiceCatalogTest extends TestCase
         $response
             ->assertOk()
             ->assertJsonPath('component', 'Public/Services/Show')
-            ->assertJsonPath('props.service.id', $service->id);
+            ->assertJsonPath('props.service.id', $service->id)
+            ->assertJsonPath('props.service.key_features', 'Keunggulan utama layanan.')
+            ->assertJsonPath('props.service.benefits', 'Manfaat layanan untuk pelanggan.');
     }
 
     public function test_inactive_service_show_returns_not_found(): void
@@ -49,6 +51,8 @@ class ServiceCatalogTest extends TestCase
             'name' => 'Konsultasi Herbal '.Service::query()->count(),
             'slug' => 'konsultasi-herbal-'.Service::query()->count(),
             'description' => 'Layanan konsultasi herbal.',
+            'key_features' => 'Keunggulan utama layanan.',
+            'benefits' => 'Manfaat layanan untuk pelanggan.',
             'price' => 150000,
             'visit_type' => 'both',
             'is_active' => $isActive,

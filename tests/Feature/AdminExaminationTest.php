@@ -13,6 +13,8 @@ use App\Models\ProductRecommendation;
 use App\Models\Service;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class AdminExaminationTest extends TestCase
@@ -45,7 +47,9 @@ class AdminExaminationTest extends TestCase
         $booking = $this->createBooking($customerProfile);
         $product = $this->createProduct(['name' => 'Herbal Rekomendasi']);
         $inactiveProduct = $this->createProduct(['name' => 'Herbal Nonaktif', 'is_active' => false]);
+        $fieldStaff = User::factory()->create(['role' => 'field_staff', 'is_active' => true]);
         $examination = $this->createExamination($customerProfile, $booking, $admin, $product);
+        $examination->forceFill(['assigned_staff_id' => $fieldStaff->id])->save();
 
         $this->inertiaGet($admin, route('admin.examinations.index'))
             ->assertOk()
@@ -53,6 +57,7 @@ class AdminExaminationTest extends TestCase
             ->assertJsonPath('props.examinations.0.id', $examination->id)
             ->assertJsonPath('props.examinations.0.customer_profile.name', $customerProfile->name)
             ->assertJsonPath('props.examinations.0.creator.id', $admin->id)
+            ->assertJsonPath('props.examinations.0.assigned_staff.name', $fieldStaff->name)
             ->assertJsonPath('props.examinations.0.product_recommendations.0.product.name', $product->name);
 
         $this->inertiaGet($admin, route('admin.examinations.create'))
@@ -65,6 +70,8 @@ class AdminExaminationTest extends TestCase
             ->assertJsonPath('props.products.0.name', 'Herbal Rekomendasi')
             ->assertJsonMissingPath('props.products.1');
 
+        $this->assertContains($admin->id, User::query()->whereIn('role', ['field_staff', 'admin'])->where('is_active', true)->pluck('id')->all());
+
         $this->assertSame('Herbal Nonaktif', $inactiveProduct->name);
 
         $this->inertiaGet($admin, route('admin.examinations.show', $examination))
@@ -72,16 +79,20 @@ class AdminExaminationTest extends TestCase
             ->assertJsonPath('component', 'Admin/Examinations/Show')
             ->assertJsonPath('props.examination.id', $examination->id)
             ->assertJsonPath('props.examination.booking.id', $booking->id)
+            ->assertJsonPath('props.examination.assigned_staff.name', $fieldStaff->name)
             ->assertJsonPath('props.examination.product_recommendations.0.product.name', $product->name);
     }
 
     public function test_active_admin_can_create_examination_without_product_recommendations(): void
     {
         $admin = $this->createAdmin();
+        $fieldStaff = User::factory()->create(['role' => 'field_staff', 'is_active' => true]);
         $customerProfile = $this->createCustomerProfile();
         $booking = $this->createBooking($customerProfile);
 
-        $response = $this->actingAs($admin)->post(route('admin.examinations.store'), $this->examinationPayload($customerProfile, $booking));
+        $response = $this->actingAs($admin)->post(route('admin.examinations.store'), array_merge($this->examinationPayload($customerProfile, $booking), [
+            'assigned_staff_id' => $fieldStaff->id,
+        ]));
 
         $examination = Examination::query()->latest('id')->firstOrFail();
         $response->assertRedirect(route('admin.examinations.show', $examination));
@@ -90,9 +101,11 @@ class AdminExaminationTest extends TestCase
             'id' => $examination->id,
             'customer_profile_id' => $customerProfile->id,
             'booking_id' => $booking->id,
+            'service_type' => 'Konsultasi Herbal Mandiri',
+            'assigned_staff_id' => $fieldStaff->id,
             'complaint' => 'Keluhan customer',
             'result' => 'Hasil pemeriksaan',
-            'summary' => 'Ringkasan pemeriksaan',
+            'summary' => 'Hasil pemeriksaan',
             'internal_recommendation' => 'Rekomendasi internal',
             'created_by' => $admin->id,
         ]);
@@ -136,6 +149,56 @@ class AdminExaminationTest extends TestCase
         ]);
     }
 
+    public function test_active_admin_can_create_examination_with_ten_megabyte_result_pdf(): void
+    {
+        Storage::fake('public');
+
+        $admin = $this->createAdmin();
+        $customerProfile = $this->createCustomerProfile();
+
+        $response = $this->actingAs($admin)->post(route('admin.examinations.store'), array_merge($this->examinationPayload($customerProfile), [
+            'result_pdf' => UploadedFile::fake()->create('hasil-10mb.pdf', 10240, 'application/pdf'),
+        ]));
+
+        $examination = Examination::query()->latest('id')->firstOrFail();
+        $response->assertRedirect(route('admin.examinations.show', $examination));
+        $this->assertNotNull($examination->result_pdf_path);
+        $this->assertTrue(Storage::disk('public')->exists($examination->result_pdf_path));
+    }
+
+    public function test_result_pdf_must_not_exceed_ten_megabytes(): void
+    {
+        Storage::fake('public');
+
+        $admin = $this->createAdmin();
+        $customerProfile = $this->createCustomerProfile();
+
+        $this->actingAs($admin)->post(route('admin.examinations.store'), array_merge($this->examinationPayload($customerProfile), [
+            'result_pdf' => UploadedFile::fake()->create('hasil-besar.pdf', 10241, 'application/pdf'),
+        ]))->assertSessionHasErrors([
+            'result_pdf' => 'File PDF maksimal 10MB.',
+        ]);
+
+        $this->assertSame(0, Examination::query()->count());
+    }
+
+    public function test_active_admin_can_create_examination_with_result_pdf(): void
+    {
+        Storage::fake('public');
+
+        $admin = $this->createAdmin();
+        $customerProfile = $this->createCustomerProfile();
+
+        $response = $this->actingAs($admin)->post(route('admin.examinations.store'), array_merge($this->examinationPayload($customerProfile), [
+            'result_pdf' => UploadedFile::fake()->create('hasil-pemeriksaan.pdf', 256, 'application/pdf'),
+        ]));
+
+        $examination = Examination::query()->latest('id')->firstOrFail();
+        $response->assertRedirect(route('admin.examinations.show', $examination));
+        $this->assertNotNull($examination->result_pdf_path);
+        $this->assertTrue(Storage::disk('public')->exists($examination->result_pdf_path));
+    }
+
     public function test_active_admin_can_create_guest_examination_and_auto_create_customer_profile(): void
     {
         $admin = $this->createAdmin();
@@ -148,7 +211,7 @@ class AdminExaminationTest extends TestCase
             'guest_address' => 'Alamat walk-in',
             'complaint' => 'Keluhan guest',
             'result' => 'Hasil guest',
-            'summary' => 'Ringkasan guest',
+            'service_type' => 'Walk-in Herbal',
             'internal_recommendation' => 'Rekomendasi guest',
             'product_recommendations' => [
                 ['product_id' => $product->id, 'notes' => 'Minum malam'],
@@ -192,7 +255,7 @@ class AdminExaminationTest extends TestCase
             'booking_id' => $booking->id,
             'complaint' => 'Keluhan guest',
             'result' => 'Hasil guest',
-            'summary' => 'Ringkasan guest',
+            'service_type' => 'Walk-in Herbal',
             'internal_recommendation' => 'Rekomendasi guest',
             'product_recommendations' => [],
         ])->assertSessionHasErrors('booking_id');
@@ -220,11 +283,12 @@ class AdminExaminationTest extends TestCase
         $this->actingAs($admin)->post(route('admin.examinations.store'), [
             'customer_profile_id' => 999999,
             'booking_id' => 999999,
+            'service_type' => null,
+            'assigned_staff_id' => 999999,
             'complaint' => null,
             'result' => null,
-            'summary' => null,
             'internal_recommendation' => null,
-        ])->assertSessionHasErrors(['customer_profile_id', 'booking_id', 'complaint', 'result', 'summary', 'internal_recommendation']);
+        ])->assertSessionHasErrors(['customer_profile_id', 'booking_id', 'service_type', 'assigned_staff_id', 'complaint', 'result', 'internal_recommendation']);
     }
 
     public function test_booking_must_belong_to_customer_profile(): void
@@ -372,9 +436,9 @@ class AdminExaminationTest extends TestCase
             'customer_mode' => 'registered',
             'customer_profile_id' => $customerProfile->id,
             'booking_id' => $booking?->id,
+            'service_type' => 'Konsultasi Herbal Mandiri',
             'complaint' => 'Keluhan customer',
             'result' => 'Hasil pemeriksaan',
-            'summary' => 'Ringkasan pemeriksaan',
             'internal_recommendation' => 'Rekomendasi internal',
             'product_recommendations' => [],
         ];

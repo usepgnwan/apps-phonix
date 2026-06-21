@@ -45,10 +45,22 @@ function TextField({ error, label, name, onChange, value }) {
     );
 }
 
-function AdminPemeriksaanCreate({ bookings = [], customerProfiles = [], products = [] }) {
-    const form = useForm({ customer_mode: 'registered', customer_profile_id: '', guest_name: '', guest_whatsapp_number: '', guest_address: '', booking_id: '', complaint: '', result: '', summary: '', internal_recommendation: '', product_recommendations: [] });
+function FileField({ error, fileName, label, name, onChange }) {
+    return (
+        <label className="block">
+            <span className="font-label-sm text-xs font-bold uppercase tracking-[0.12em] text-gray-500">{label}</span>
+            <input accept="application/pdf" className="mt-2 block w-full rounded-2xl border border-[#E5E7EB] bg-white font-body-sm text-sm text-[#333333] shadow-sm file:mr-4 file:border-0 file:bg-[#1E4D3A] file:px-4 file:py-3 file:font-body-sm file:text-sm file:font-bold file:text-white focus:border-[#1E4D3A] focus:ring-[#1E4D3A]" name={name} onChange={onChange} type="file" />
+            <p className="mt-1 font-body-sm text-xs text-gray-500">{fileName || 'PDF opsional, maksimal 10MB.'}</p>
+            <FieldError message={error} />
+        </label>
+    );
+}
+
+function AdminPemeriksaanCreate({ bookings = [], customerProfiles = [], fieldStaff = [], products = [] }) {
+    const form = useForm({ customer_mode: 'registered', customer_profile_id: '', guest_name: '', guest_whatsapp_number: '', guest_address: '', booking_id: '', service_type: '', assigned_staff_id: '', complaint: '', result: '', result_pdf: null, internal_recommendation: '', product_recommendations: [] });
     const isGuest = form.data.customer_mode === 'guest';
     const filteredBookings = bookings.filter((booking) => !form.data.customer_profile_id || String(booking.customer_profile_id) === String(form.data.customer_profile_id));
+    const selectedFileName = form.data.result_pdf?.name;
 
     function updateRecommendation(rowId, key, value) {
         form.setData('product_recommendations', form.data.product_recommendations.map((item) => item.row_id === rowId ? { ...item, [key]: value } : item));
@@ -64,16 +76,17 @@ function AdminPemeriksaanCreate({ bookings = [], customerProfiles = [], products
 
     function submit(event) {
         event.preventDefault();
-        form
-            .transform((data) => ({
-                ...data,
-                customer_profile_id: data.customer_mode === 'guest' ? null : data.customer_profile_id,
-                booking_id: data.booking_id || null,
-                product_recommendations: data.product_recommendations
-                    .filter((item) => item.product_id)
-                    .map(({ product_id, notes }) => ({ product_id, notes })),
-            }))
-            .post(route('admin.examinations.store'));
+        form.transform((data) => ({
+            ...data,
+            customer_profile_id: data.customer_mode === 'guest' ? null : data.customer_profile_id,
+            booking_id: data.booking_id || null,
+            assigned_staff_id: data.assigned_staff_id || null,
+            product_recommendations: data.product_recommendations
+                .filter((item) => item.product_id)
+                .map(({ product_id, notes }) => ({ product_id, notes })),
+        }));
+
+        form.post(route('admin.examinations.store'), { forceFormData: true });
     }
 
     return (
@@ -123,9 +136,14 @@ function AdminPemeriksaanCreate({ bookings = [], customerProfiles = [], products
                                     </SelectField>
                                 </>
                             )}
+                            <TextField error={form.errors.service_type} label="Jenis Layanan" name="service_type" onChange={(event) => form.setData('service_type', event.target.value)} value={form.data.service_type} />
+                            <SelectField error={form.errors.assigned_staff_id} label="Staff Bertugas" name="assigned_staff_id" onChange={(event) => form.setData('assigned_staff_id', event.target.value)} value={form.data.assigned_staff_id}>
+                                <option value="">Belum ditugaskan</option>
+                                {fieldStaff.map((staff) => <option key={staff.id} value={staff.id}>{staff.name}</option>)}
+                            </SelectField>
                             <TextAreaField error={form.errors.complaint} label="Keluhan" name="complaint" onChange={(event) => form.setData('complaint', event.target.value)} value={form.data.complaint} />
                             <TextAreaField error={form.errors.result} label="Hasil" name="result" onChange={(event) => form.setData('result', event.target.value)} value={form.data.result} />
-                            <TextAreaField error={form.errors.summary} label="Ringkasan" name="summary" onChange={(event) => form.setData('summary', event.target.value)} value={form.data.summary} />
+                            <FileField error={form.errors.result_pdf} fileName={selectedFileName} label="Upload Hasil PDF" name="result_pdf" onChange={(event) => form.setData('result_pdf', event.target.files?.[0] ?? null)} />
                             <TextAreaField error={form.errors.internal_recommendation} label="Rekomendasi Internal" name="internal_recommendation" onChange={(event) => form.setData('internal_recommendation', event.target.value)} value={form.data.internal_recommendation} />
                         </div>
 

@@ -64,6 +64,26 @@ function SelectField({ children, error, label, onChange, value }) {
     );
 }
 
+function FileField({ error, file, label, onChange }) {
+    return (
+        <label className="block">
+            <span className="font-label-sm text-xs font-bold uppercase tracking-[0.12em] text-gray-500">
+                {label}
+            </span>
+            <input
+                accept="image/jpeg,image/png,image/webp"
+                className="mt-2 block w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 font-body-sm text-sm text-[#333333] shadow-sm file:mr-4 file:rounded-full file:border-0 file:bg-[#1E4D3A] file:px-4 file:py-2 file:font-body-sm file:text-sm file:font-bold file:text-white focus:border-[#1E4D3A] focus:ring-[#1E4D3A]"
+                onChange={onChange}
+                type="file"
+            />
+            <p className="mt-2 font-body-sm text-xs text-gray-500">
+                {file ? `File dipilih: ${file.name}` : 'Pilih gambar QRIS JPG, PNG, atau WebP maksimal 2MB.'}
+            </p>
+            <FieldError message={error} />
+        </label>
+    );
+}
+
 function CheckboxField({ checked, error, label, onChange }) {
     return (
         <label className="flex items-start gap-3 rounded-2xl border border-[#E5E7EB] bg-[#F6F7F7] px-4 py-3">
@@ -89,14 +109,14 @@ function AdminPaymentMethodsTambah() {
         bank_name: '',
         account_number: '',
         account_holder_name: '',
-        qris_image_path: '',
+        qris_image: null,
         instructions: '',
         is_active: true,
     });
 
     function submit(event) {
         event.preventDefault();
-        form.post(route('admin.payment-methods.store'));
+        form.post(route('admin.payment-methods.store'), { forceFormData: true });
     }
 
     return (
@@ -153,11 +173,11 @@ function AdminPaymentMethodsTambah() {
                         )}
 
                         {form.data.type === 'qris' && (
-                            <TextField
-                                error={form.errors.qris_image_path}
-                                label="Path Gambar QRIS"
-                                onChange={(event) => form.setData('qris_image_path', event.target.value)}
-                                value={form.data.qris_image_path}
+                            <FileField
+                                error={form.errors.qris_image}
+                                file={form.data.qris_image}
+                                label="Gambar QRIS"
+                                onChange={(event) => form.setData('qris_image', event.target.files[0] ?? null)}
                             />
                         )}
 

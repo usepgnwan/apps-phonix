@@ -30,6 +30,10 @@ function readableLabel(value) {
     return String(value ?? '-').replaceAll('_', ' ').replaceAll('-', ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+function relationName(relation, fallback = '-') {
+    return relation?.name || fallback;
+}
+
 function FieldError({ message }) {
     return message ? <p className="mt-1 font-body-sm text-xs text-red-700">{message}</p> : null;
 }
@@ -72,14 +76,17 @@ function OfflineSalePosForm({ products, services, customerProfiles, leads, field
     const [search, setSearch] = useState('');
     const [itemTab, setItemTab] = useState('products');
     const [successModalData, setSuccessModalData] = useState(null);
+    const [voucherCheck, setVoucherCheck] = useState({ status: 'idle', data: null, message: '' });
 
     const form = useForm({
         customer_profile_id: '',
         lead_id: '',
+        is_guest: false,
         field_staff_id: '',
         event_id: '',
         source: 'offline',
         payment_method_id: '',
+        voucher_code: '',
         customer_name: '',
         customer_whatsapp_number: '',
         notes: '',
@@ -100,13 +107,41 @@ function OfflineSalePosForm({ products, services, customerProfiles, leads, field
         return { ...item, lineTotal: unitPrice * qty, model, isProduct, qty, unitPrice };
     });
 
-    const estimatedTotal = estimatedItems.reduce((t, i) => t + i.lineTotal, 0);
+    const estimatedSubtotal = estimatedItems.reduce((t, i) => t + i.lineTotal, 0);
+    const voucherDiscount = voucherCheck.status === 'valid' ? Number(voucherCheck.data?.discount_amount ?? 0) : 0;
+    const estimatedTotal = Math.max(estimatedSubtotal - voucherDiscount, 0);
     const estimatedQty = estimatedItems.reduce((t, i) => t + Number(i.qty || 0), 0);
+    const isWalkInGuest = form.data.is_guest;
 
     const currentItems = itemTab === 'products' ? products : services;
     const filteredItems = currentItems.filter((p) =>
         p.name.toLowerCase().includes(search.toLowerCase())
     );
+
+    function resetVoucherCheck() {
+        setVoucherCheck({ status: 'idle', data: null, message: '' });
+    }
+
+    function updateField(name, value) {
+        form.setData(name, value);
+
+        if (['voucher_code', 'customer_profile_id'].includes(name)) {
+            resetVoucherCheck();
+        }
+    }
+
+    function toggleWalkInGuest(enabled) {
+        form.setData((data) => ({
+            ...data,
+            is_guest: enabled,
+            customer_profile_id: enabled ? '' : data.customer_profile_id,
+            lead_id: enabled ? '' : data.lead_id,
+            voucher_code: enabled ? '' : data.voucher_code,
+            customer_name: enabled ? '' : data.customer_name,
+            customer_whatsapp_number: enabled ? '' : data.customer_whatsapp_number,
+        }));
+        resetVoucherCheck();
+    }
 
     function addItemToCart(item, type) {
         const key = type === 'product' ? 'product_id' : 'service_id';
@@ -115,8 +150,10 @@ function OfflineSalePosForm({ products, services, customerProfiles, leads, field
             const updated = [...cart];
             updated[existing] = { ...updated[existing], quantity: updated[existing].quantity + 1 };
             form.setData('items', updated);
+            resetVoucherCheck();
         } else {
             form.setData('items', [...cart, { row_id: crypto.randomUUID(), [key]: item.id, quantity: 1 }]);
+            resetVoucherCheck();
         }
     }
 
@@ -124,15 +161,77 @@ function OfflineSalePosForm({ products, services, customerProfiles, leads, field
         const updated = [...cart];
         updated[index] = { ...updated[index], quantity: Math.max(1, Number(value)) };
         form.setData('items', updated);
+        resetVoucherCheck();
     }
 
     function removeFromCart(index) {
         form.setData('items', cart.filter((_, i) => i !== index));
+        resetVoucherCheck();
+    }
+
+    async function checkVoucher() {
+        if (!form.data.voucher_code) {
+            setVoucherCheck({ status: 'invalid', data: null, message: 'Masukkan kode voucher terlebih dahulu.' });
+            return;
+        }
+
+        if (cart.length === 0) {
+            setVoucherCheck({ status: 'invalid', data: null, message: 'Keranjang harus berisi item sebelum cek voucher.' });
+            return;
+        }
+
+        setVoucherCheck({ status: 'checking', data: null, message: 'Memeriksa voucher...' });
+
+        try {
+            const response = await fetch(route('admin.offline-sales.validate-voucher'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name=\"csrf-token\"]')?.content ?? '',
+                },
+                body: JSON.stringify({
+                    voucher_code: form.data.voucher_code,
+                    customer_profile_id: form.data.customer_profile_id || null,
+                    items: cart,
+                }),
+            });
+
+            const contentType = response.headers.get('content-type') || '';
+            const payload = contentType.includes('application/json') ? await response.json() : { message: await response.text() };
+
+            if (!response.ok) {
+                const message = payload.message || Object.values(payload.errors || {})[0]?.[0] || 'Voucher tidak valid.';
+                setVoucherCheck({ status: 'invalid', data: null, message });
+                return;
+            }
+
+            setVoucherCheck({ status: 'valid', data: payload, message: payload.message || 'Voucher valid dan dapat digunakan.' });
+        } catch (error) {
+            setVoucherCheck({ status: 'invalid', data: null, message: error?.message || 'Gagal memeriksa voucher. Coba lagi.' });
+        }
     }
 
     function submit(event) {
         event.preventDefault();
-        form.post(route('admin.offline-sales.store'), {
+
+        const submitData = form.data.is_guest
+            ? {
+                ...form.data,
+                customer_profile_id: '',
+                lead_id: '',
+                voucher_code: '',
+                customer_name: '',
+                customer_whatsapp_number: '',
+            }
+            : form.data;
+
+        if (submitData.voucher_code && voucherCheck.status !== 'valid') {
+            setVoucherCheck({ status: 'invalid', data: null, message: 'Cek voucher terlebih dahulu sebelum menyimpan transaksi.' });
+            return;
+        }
+        form.transform(() => submitData).post(route('admin.offline-sales.store'), {
             onSuccess: (page) => {
                 if (page.props.recentSale) {
                     setSuccessModalData(page.props.recentSale);
@@ -141,10 +240,12 @@ function OfflineSalePosForm({ products, services, customerProfiles, leads, field
                     form.setData({
                         customer_profile_id: '',
                         lead_id: '',
+                        is_guest: false,
                         field_staff_id: '',
                         event_id: '',
                         source: 'offline',
                         payment_method_id: '',
+                        voucher_code: '',
                         customer_name: '',
                         customer_whatsapp_number: '',
                         notes: '',
@@ -152,6 +253,7 @@ function OfflineSalePosForm({ products, services, customerProfiles, leads, field
                         items: [],
                     });
                     form.clearErrors();
+                    setVoucherCheck({ status: 'idle', data: null, message: '' });
                     setSearch('');
                 }
             }
@@ -321,11 +423,29 @@ function OfflineSalePosForm({ products, services, customerProfiles, leads, field
                                 <span>Total Qty</span>
                                 <span className="font-bold text-[#333333]">{estimatedQty} pcs</span>
                             </div>
+                            <div className="flex justify-between text-xs text-gray-500">
+                                <span>Subtotal</span>
+                                <span className="font-bold text-[#333333]">{formatCurrency(estimatedSubtotal)}</span>
+                            </div>
+                            {form.data.voucher_code && (
+                                <div className="space-y-1">
+                                    <div className="flex justify-between text-xs text-[#1E4D3A]">
+                                        <span>Kode Voucher</span>
+                                        <span className="font-bold uppercase">{form.data.voucher_code}</span>
+                                    </div>
+                                    {voucherCheck.status === 'valid' && (
+                                        <div className="flex justify-between text-xs text-[#1E4D3A]">
+                                            <span>Diskon Voucher</span>
+                                            <span className="font-bold">-{formatCurrency(voucherDiscount)}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                             <div className="flex justify-between items-center border-t border-[#E5E7EB] pt-2.5">
-                                <span className="text-sm font-bold text-[#333333]">Total</span>
+                                <span className="text-sm font-bold text-[#333333]">Estimasi Total</span>
                                 <span className="text-lg font-extrabold text-[#1E4D3A]">{formatCurrency(estimatedTotal)}</span>
                             </div>
-                            <p className="text-[10px] text-gray-400 leading-4">Final price mengikuti perhitungan server saat submit.</p>
+                            <p className="text-[10px] text-gray-400 leading-4">Diskon voucher dan final price dihitung ulang oleh server saat submit.</p>
                         </div>
                     </div>
                 </AdminCard>
@@ -353,9 +473,51 @@ function OfflineSalePosForm({ products, services, customerProfiles, leads, field
                             ))}
                         </SelectField>
                         <TextField error={form.errors.sold_at} label="Tanggal Terjual" name="sold_at" onChange={(e) => form.setData('sold_at', e.target.value)} type="datetime-local" value={form.data.sold_at} />
-                        <TextField error={form.errors.customer_name} label="Nama Customer" name="customer_name" onChange={(e) => form.setData('customer_name', e.target.value)} value={form.data.customer_name} />
-                        <TextField error={form.errors.customer_whatsapp_number} label="WhatsApp Customer" name="customer_whatsapp_number" onChange={(e) => form.setData('customer_whatsapp_number', e.target.value)} value={form.data.customer_whatsapp_number} />
-                        <SelectField error={form.errors.customer_profile_id} label="Profil Customer (CRM)" name="customer_profile_id" onChange={(e) => form.setData('customer_profile_id', e.target.value)} value={form.data.customer_profile_id}>
+                        <div>
+                            <span className="font-label-sm text-xs font-bold uppercase tracking-[0.12em] text-gray-500">Kode Voucher</span>
+                            <div className="mt-1.5 flex gap-2">
+                                <input
+                                    className="block min-w-0 flex-1 rounded-xl border-[#E5E7EB] font-body-sm text-sm uppercase text-[#333333] shadow-sm focus:border-[#1E4D3A] focus:ring-[#1E4D3A]"
+                                    name="voucher_code"
+                                    onChange={(e) => updateField('voucher_code', e.target.value.toUpperCase())}
+                                    type="text"
+                                    value={form.data.voucher_code ?? ''}
+                                />
+                                <button
+                                    className="shrink-0 rounded-xl border border-[#1E4D3A] px-3 font-body-sm text-xs font-bold text-[#1E4D3A] transition hover:bg-[#1E4D3A] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                                    disabled={voucherCheck.status === 'checking' || !form.data.voucher_code || cart.length === 0}
+                                    onClick={checkVoucher}
+                                    type="button"
+                                >
+                                    {voucherCheck.status === 'checking' ? 'Cek...' : 'Cek'}
+                                </button>
+                            </div>
+                            <FieldError message={form.errors.voucher_code} />
+                            {voucherCheck.message && (
+                                <p className={`mt-1 font-body-sm text-xs ${voucherCheck.status === 'valid' ? 'text-[#1E4D3A]' : 'text-red-700'}`}>{voucherCheck.message}</p>
+                            )}
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => toggleWalkInGuest(!isWalkInGuest)}
+                            className={`sm:col-span-2 flex items-center justify-between gap-4 rounded-2xl border px-4 py-3 text-left transition ${isWalkInGuest ? 'border-[#1E4D3A] bg-[#A8C5B3]/15 shadow-sm' : 'border-dashed border-[#A8C5B3] bg-[#F6F7F7] hover:border-[#1E4D3A]'}`}
+                            aria-pressed={isWalkInGuest}
+                        >
+                            <span>
+                                <span className="font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-[#1E4D3A]">Pembeli Tanpa Data / Guest</span>
+                                <span className="mt-1 block text-xs text-gray-500">Aktifkan untuk walk-in cepat tanpa nama, WhatsApp, relasi CRM, atau voucher.</span>
+                            </span>
+                            <span className={`relative h-6 w-11 shrink-0 rounded-full transition ${isWalkInGuest ? 'bg-[#1E4D3A]' : 'bg-gray-300'}`}>
+                                <span className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow transition ${isWalkInGuest ? 'left-6' : 'left-1'}`} />
+                            </span>
+                        </button>
+                        {!isWalkInGuest && (
+                            <>
+                                <TextField error={form.errors.customer_name} label="Nama Customer" name="customer_name" onChange={(e) => form.setData('customer_name', e.target.value)} value={form.data.customer_name} />
+                                <TextField error={form.errors.customer_whatsapp_number} label="WhatsApp Customer" name="customer_whatsapp_number" onChange={(e) => form.setData('customer_whatsapp_number', e.target.value)} value={form.data.customer_whatsapp_number} />
+                            </>
+                        )}
+                        <SelectField error={form.errors.customer_profile_id} label="Profil Customer (CRM)" name="customer_profile_id" onChange={(e) => updateField('customer_profile_id', e.target.value)} value={form.data.customer_profile_id}>
                             <option value="">Tidak terhubung</option>
                             {customerProfiles.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </SelectField>
@@ -371,17 +533,21 @@ function OfflineSalePosForm({ products, services, customerProfiles, leads, field
                             <option value="">Tidak dari event</option>
                             {events.map((ev) => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
                         </SelectField>
+                        <div className="sm:col-span-2 rounded-2xl border border-dashed border-[#A8C5B3] bg-[#A8C5B3]/10 px-4 py-3">
+                            <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-[#1E4D3A]">{isWalkInGuest ? 'Walk-in Guest' : 'Customer CRM Terhubung'}</p>
+                            <p className="mt-1 text-xs text-gray-500">{isWalkInGuest ? 'Transaksi akan dicatat sebagai walk-in karena tidak terhubung ke profil customer atau lead.' : 'Transaksi terhubung ke data CRM/lead yang dipilih.'}</p>
+                        </div>
                         <div className="sm:col-span-2">
                             <TextAreaField error={form.errors.notes} label="Catatan" name="notes" onChange={(e) => form.setData('notes', e.target.value)} value={form.data.notes} />
                         </div>
                     </div>
                     <button
                         className="mt-4 w-full rounded-2xl bg-[#1E4D3A] px-5 py-3.5 font-body-sm text-sm font-bold text-white transition hover:bg-[#013625] disabled:cursor-not-allowed disabled:opacity-60 flex items-center justify-center gap-2"
-                        disabled={form.processing || cart.length === 0}
+                        disabled={form.processing || cart.length === 0 || (form.data.voucher_code && voucherCheck.status !== 'valid')}
                         type="submit"
                     >
                         <Receipt className="h-4 w-4" />
-                        Simpan Offline Sale
+                        {form.data.voucher_code && voucherCheck.status !== 'valid' ? 'Cek Voucher Dulu' : 'Simpan Offline Sale'}
                     </button>
                 </AdminCard>
             </div>
@@ -415,6 +581,18 @@ function OfflineSalePosForm({ products, services, customerProfiles, leads, field
                                     ))}
                                 </div>
                             </div>
+                            {Number(successModalData.voucher_discount_amount ?? 0) > 0 && (
+                                <div className="border-t border-gray-200 pt-4 space-y-2">
+                                    <div className="flex justify-between text-xs">
+                                        <span className="text-gray-500">Subtotal</span>
+                                        <span className="font-bold text-gray-900">{formatCurrency(successModalData.subtotal)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs text-[#1E4D3A]">
+                                        <span>Diskon Voucher</span>
+                                        <span className="font-bold">-{formatCurrency(successModalData.voucher_discount_amount)}</span>
+                                    </div>
+                                </div>
+                            )}
                             <div className="border-t border-gray-200 pt-4 flex justify-between items-center">
                                 <p className="text-[10px] text-gray-400 uppercase font-bold tracking-[0.16em]">Total</p>
                                 <p className="text-lg font-extrabold text-[#1E4D3A]">{formatCurrency(successModalData.total)}</p>
@@ -486,6 +664,50 @@ function OfflineSaleList({ offlineSales, filters, historyMetrics }) {
         ]
     };
 
+    const revenueTrendData = historyMetrics?.revenue_trend || [];
+    const revenueTrendOption = {
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'line', lineStyle: { color: '#A8C5B3' } },
+            valueFormatter: (value) => formatCurrency(value)
+        },
+        grid: { left: '3%', right: '4%', bottom: '3%', top: '12%', containLabel: true },
+        xAxis: {
+            type: 'category',
+            boundaryGap: false,
+            data: revenueTrendData.map((item) => item.sale_date),
+            axisLabel: { color: '#9CA3AF', fontSize: 10 },
+            axisLine: { lineStyle: { color: '#E5E7EB' } },
+            axisTick: { show: false }
+        },
+        yAxis: {
+            type: 'value',
+            axisLabel: {
+                formatter: (value) => {
+                    if (value >= 1000000) return (value / 1000000) + 'jt';
+                    if (value >= 1000) return (value / 1000) + 'k';
+                    return value;
+                },
+                color: '#9CA3AF',
+                fontSize: 10
+            },
+            splitLine: { lineStyle: { type: 'dashed', color: '#F3F4F6' } }
+        },
+        series: [
+            {
+                name: 'Revenue',
+                type: 'line',
+                smooth: true,
+                data: revenueTrendData.map((item) => item.revenue),
+                lineStyle: { color: '#1E4D3A', width: 3 },
+                itemStyle: { color: '#1E4D3A' },
+                areaStyle: { color: 'rgba(168, 197, 179, 0.25)' },
+                symbol: 'circle',
+                symbolSize: 7
+            }
+        ]
+    };
+
     const staffNames = [...(historyMetrics?.staff_ranking || [])].reverse().map(s => s.field_staff?.name || 'Unknown');
     const staffRevenues = [...(historyMetrics?.staff_ranking || [])].reverse().map(s => s.revenue);
     const staffTransactions = [...(historyMetrics?.staff_ranking || [])].reverse().map(s => s.transactions);
@@ -547,6 +769,28 @@ function OfflineSaleList({ offlineSales, filters, historyMetrics }) {
 
     return (
         <div className="space-y-4">
+            <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm h-80 flex flex-col">
+                <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                        <p className="font-bold text-[#333333] text-sm">Tren Revenue Offline</p>
+                        <p className="mt-1 text-[10px] text-gray-400">Pergerakan revenue harian dari transaksi offline.</p>
+                    </div>
+                    <span className="inline-flex w-fit items-center rounded-full bg-[#A8C5B3]/20 px-3 py-1 font-body-sm text-[10px] font-bold uppercase tracking-[0.16em] text-[#1E4D3A]">
+                        Botanical trend
+                    </span>
+                </div>
+                <div className="flex-1 w-full h-full">
+                    {revenueTrendData.length > 0 ? (
+                        <ReactECharts option={revenueTrendOption} style={{ height: '100%', width: '100%' }} />
+                    ) : (
+                        <div className="h-full flex flex-col items-center justify-center text-center px-4">
+                            <p className="text-xs text-gray-500">Belum ada data tren revenue.</p>
+                            <p className="text-[10px] text-gray-400 mt-1">Revenue harian akan tampil setelah transaksi offline tercatat.</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+
             {/* 2 Segments */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Revenue per Sumber */}
@@ -593,7 +837,7 @@ function OfflineSaleList({ offlineSales, filters, historyMetrics }) {
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                         <input
                             type="text"
-                            placeholder="Cari customer atau invoice..."
+                            placeholder="Cari customer, invoice, staff, lead, atau event..."
                             value={search}
                             onChange={handleSearchChange}
                             className="w-full rounded-2xl border border-[#E5E7EB] py-2 pl-10 pr-4 text-sm focus:border-[#1E4D3A] focus:outline-none focus:ring-1 focus:ring-[#1E4D3A] font-body-sm"
@@ -601,36 +845,42 @@ function OfflineSaleList({ offlineSales, filters, historyMetrics }) {
                     </div>
                 </div>
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left font-body-sm text-sm">
+                    <table className="min-w-[1100px] w-full text-left font-body-sm text-sm">
                         <thead className="bg-[#F6F7F7] font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400">
                             <tr>
-                                <th className="px-5 py-4 whitespace-nowrap">Invoice & Tanggal</th>
-                                <th className="px-5 py-4">Customer</th>
-                                <th className="px-5 py-4">Sumber & Pembayaran</th>
-                                <th className="px-5 py-4 text-right">Total</th>
-                                <th className="px-5 py-4 text-center">Aksi</th>
+                                <th className="w-[190px] whitespace-nowrap px-5 py-4">Invoice & Tanggal</th>
+                                <th className="w-[210px] whitespace-nowrap px-5 py-4">Customer</th>
+                                <th className="w-[260px] whitespace-nowrap px-5 py-4">Staff / Lead / Event</th>
+                                <th className="w-[210px] whitespace-nowrap px-5 py-4">Sumber & Pembayaran</th>
+                                <th className="w-[140px] whitespace-nowrap px-5 py-4 text-right">Total</th>
+                                <th className="w-[190px] whitespace-nowrap px-5 py-4 text-center">Aksi</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[#E5E7EB] bg-white text-[#333333]">
                             {items.length === 0 ? (
                                 <tr>
-                                    <td colSpan="5" className="px-5 py-12 text-center text-gray-400">
+                                    <td colSpan="6" className="px-5 py-12 text-center text-gray-400">
                                         Tidak ada data yang cocok dengan pencarian.
                                     </td>
                                 </tr>
                             ) : (
                                 items.map((sale) => (
                             <tr key={sale.id} className="transition-colors hover:bg-gray-50">
-                                <td className="px-5 py-4">
+                                <td className="whitespace-nowrap px-5 py-4">
                                     <div className="font-bold text-[#1E4D3A]">{sale.sale_number}</div>
                                     <div className="mt-1 text-xs text-gray-500">{formatDateTime(sale.sold_at)}</div>
                                 </td>
-                                <td className="px-5 py-4">
+                                <td className="whitespace-nowrap px-5 py-4">
                                     <div className="font-bold">{sale.customer_name || '-'}</div>
                                     <div className="mt-1 text-xs text-gray-500">{sale.customer_whatsapp_number || '-'}</div>
                                 </td>
-                                <td className="px-5 py-4">
-                                    <div className="mb-1">
+                                <td className="whitespace-nowrap px-5 py-4 font-body-sm text-sm text-gray-600">
+                                    <div><span className="font-bold text-[#1E4D3A]">Staff:</span> {relationName(sale.field_staff, 'Belum ditugaskan')}</div>
+                                    <div className="mt-1 text-xs"><span className="font-bold text-[#1E4D3A]">Lead:</span> {relationName(sale.lead)}</div>
+                                    <div className="mt-0.5 text-xs"><span className="font-bold text-[#1E4D3A]">Event:</span> {relationName(sale.event)}</div>
+                                </td>
+                                <td className="whitespace-nowrap px-5 py-4">
+                                    <div className="mb-1.5">
                                         <span className="inline-flex items-center rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-gray-600 uppercase tracking-wider">
                                             {readableLabel(sale.source)}
                                         </span>
@@ -639,11 +889,11 @@ function OfflineSaleList({ offlineSales, filters, historyMetrics }) {
                                         {sale.payment_method ? (sale.payment_method.bank_name ? `${sale.payment_method.bank_name} - ${sale.payment_method.account_number}` : readableLabel(sale.payment_method.type)) : '-'}
                                     </div>
                                 </td>
-                                <td className="px-5 py-4 text-right font-extrabold text-[#1E4D3A]">
+                                <td className="whitespace-nowrap px-5 py-4 text-right font-extrabold text-[#1E4D3A]">
                                     {formatCurrency(sale.total)}
                                 </td>
-                                <td className="px-5 py-4 text-center">
-                                    <div className="flex flex-wrap items-center justify-center gap-2">
+                                <td className="whitespace-nowrap px-5 py-4 text-center">
+                                    <div className="inline-flex items-center justify-center gap-2 whitespace-nowrap">
                                         <Link
                                             className="group inline-flex items-center gap-2 rounded-full border border-[#1E4D3A] px-3 py-1.5 font-body-sm text-xs font-bold text-[#1E4D3A] transition hover:bg-[#1E4D3A] hover:text-white"
                                             href={route('admin.offline-sales.show', sale.id)}
@@ -769,11 +1019,12 @@ function AdminOfflineSalesIndex({ offlineSales, filters, metrics, historyMetrics
                 />
 
                 {/* Global Metric Cards (Shown in both tabs) */}
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
                     <MetricCard helper="Seluruh transaksi offline" icon="O" label="Total Penjualan" tone="forest" value={formatNumber(historyMetrics?.total_transactions)} />
                     <MetricCard helper="Akumulasi total transaksi" icon="R" label="Revenue" tone="sage" value={formatCurrency(historyMetrics?.total_revenue)} />
                     <MetricCard helper="Transaksi dari event" icon="E" label="Penjualan Event" tone="blue" value={formatNumber(historyMetrics?.events)} />
                     <MetricCard helper="Transaksi door to door" icon="D" label="Door to Door" tone="brown" value={formatNumber(historyMetrics?.door_to_door)} />
+                    <MetricCard helper={`${formatNumber(historyMetrics?.converted_lead_transactions)} dari ${formatNumber(historyMetrics?.total_leads)} lead`} icon="L" label="Konversi Lead" tone="forest" value={`${formatNumber(historyMetrics?.lead_conversion_rate)}%`} />
                 </div>
 
                 {/* Tabs */}

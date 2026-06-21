@@ -25,9 +25,14 @@ class StoreExaminationRequest extends FormRequest
             'guest_whatsapp_number' => ['required_if:customer_mode,guest', 'nullable', 'string', 'max:30'],
             'guest_address' => ['required_if:customer_mode,guest', 'nullable', 'string', 'max:1000'],
             'booking_id' => ['nullable', 'exists:bookings,id'],
+            'service_type' => ['required', 'string', 'max:255'],
+            'assigned_staff_id' => [
+                'nullable',
+                Rule::exists('users', 'id')->whereIn('role', ['field_staff', 'admin'])->where('is_active', true),
+            ],
             'complaint' => ['required', 'string'],
             'result' => ['required', 'string'],
-            'summary' => ['required', 'string'],
+            'result_pdf' => ['nullable', 'file', 'mimes:pdf', 'max:10240'],
             'internal_recommendation' => ['required', 'string'],
             'created_by' => ['prohibited'],
             'product_recommendations' => ['nullable', 'array'],
@@ -37,6 +42,16 @@ class StoreExaminationRequest extends FormRequest
             ],
             'product_recommendations.*.notes' => ['nullable', 'string'],
             'product_recommendations.*.created_by' => ['prohibited'],
+        ];
+    }
+
+
+    public function messages(): array
+    {
+        return [
+            'result_pdf.uploaded' => 'File PDF gagal diupload. Pastikan ukuran file maksimal 10MB dan konfigurasi server PHP mengizinkan upload minimal 10MB.',
+            'result_pdf.max' => 'File PDF maksimal 10MB.',
+            'result_pdf.mimes' => 'File hasil pemeriksaan harus berupa PDF.',
         ];
     }
 

@@ -17,6 +17,13 @@ use Intervention\Image\Format;
 
 class StaffController extends Controller
 {
+    private const STAFF_HIERARCHY_POSITIONS = [
+        'Executive Premier',
+        'Executive Leader',
+        'Junior Leader',
+        'Business Crew',
+    ];
+
     private function authorizeAdmin(): void
     {
         $user = request()->user();
@@ -43,7 +50,7 @@ class StaffController extends Controller
 
         return Inertia::render('Admin/Staff/Index', [
             'staff' => $staff,
-            'positions' => Position::orderBy('name')->get(),
+            'positions' => $this->staffHierarchyPositions(),
             'teams' => Team::orderBy('name')->get(),
             'filters' => $request->only(['search']),
         ]);
@@ -57,7 +64,7 @@ class StaffController extends Controller
             'name' => 'required|string|max:255',
             'phone_number' => 'nullable|string|max:255',
             'team_id' => 'nullable|exists:teams,id',
-            'position_id' => 'nullable|exists:positions,id',
+            'position_id' => ['nullable', $this->staffHierarchyPositionRule()],
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'nullable|string|min:8',
             'photo' => 'nullable|image|max:5120', // Max 5MB before compression
@@ -90,7 +97,7 @@ class StaffController extends Controller
             'name' => 'required|string|max:255',
             'phone_number' => 'nullable|string|max:255',
             'team_id' => 'nullable|exists:teams,id',
-            'position_id' => 'nullable|exists:positions,id',
+            'position_id' => ['nullable', $this->staffHierarchyPositionRule()],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($staff->id)],
             'password' => 'nullable|string|min:8',
             'photo' => 'nullable|image|max:5120',
@@ -120,6 +127,21 @@ class StaffController extends Controller
         $staff->update($validated);
 
         return redirect()->route('admin.staff.index')->with('success', 'Staff berhasil diperbarui.');
+    }
+
+    private function staffHierarchyPositions()
+    {
+        return Position::query()
+            ->whereIn('name', self::STAFF_HIERARCHY_POSITIONS)
+            ->get()
+            ->sortBy(fn (Position $position) => array_search($position->name, self::STAFF_HIERARCHY_POSITIONS, true))
+            ->values();
+    }
+
+    private function staffHierarchyPositionRule()
+    {
+        return Rule::exists('positions', 'id')
+            ->where(fn ($query) => $query->whereIn('name', self::STAFF_HIERARCHY_POSITIONS));
     }
 
     public function destroy(User $staff)

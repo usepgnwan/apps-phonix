@@ -121,6 +121,11 @@ function ProductCard({ product }) {
                 <p className="mt-3 line-clamp-2 font-body-sm text-sm leading-6 text-on-surface-variant">
                     {product.short_description || 'Produk herbal Phoenix pilihan untuk mendukung rutinitas wellness Anda.'}
                 </p>
+                {product.bpom_number && (
+                    <p className="mt-3 font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-primary-container/75">
+                        No. BPOM {product.bpom_number}
+                    </p>
+                )}
                 <div className="mt-5 flex items-center justify-between gap-3">
                     <p className="font-body-lg text-lg font-extrabold text-primary-container">
                         {formatRupiah(product.price)}

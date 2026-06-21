@@ -3,6 +3,26 @@ import { ArrowLeft, CalendarCheck, Clock, MapPin, Star } from 'lucide-react';
 
 import { formatRupiah, PrimaryLink, ProductImage, PublicCard, PublicShell, SecondaryLink, visitTypeLabel } from '@/Components/Public/commerce.jsx';
 
+function ServiceInfoSection({ children, eyebrow, title }) {
+    if (!children) {
+        return null;
+    }
+
+    return (
+        <PublicCard className="relative isolate overflow-hidden p-6 md:p-8">
+            <div className="pointer-events-none absolute -right-16 -top-20 h-52 w-52 rounded-full bg-primary-fixed/35 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-24 left-10 h-56 w-56 rounded-full bg-tertiary-fixed/25 blur-3xl" />
+            <div className="relative">
+                <p className="font-label-sm text-xs font-bold uppercase tracking-[0.22em] text-on-surface-variant">{eyebrow}</p>
+                <h2 className="mt-2 font-headline-lg text-headline-lg text-primary-container">{title}</h2>
+                <p className="mt-4 whitespace-pre-line font-body-md text-body-md leading-7 text-on-surface-variant">
+                    {children}
+                </p>
+            </div>
+        </PublicCard>
+    );
+}
+
 function RelatedService({ service }) {
     return (
         <PublicCard className="overflow-hidden">
@@ -81,6 +101,17 @@ export default function ServiceShow({ relatedServices = [], service }) {
                         </PrimaryLink>
                     </PublicCard>
                 </section>
+
+                {(service.key_features || service.benefits) && (
+                    <section className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                        <ServiceInfoSection eyebrow="Nilai utama" title="Keunggulan & Fitur Utama">
+                            {service.key_features}
+                        </ServiceInfoSection>
+                        <ServiceInfoSection eyebrow="Hasil yang dirasakan" title="Manfaat">
+                            {service.benefits}
+                        </ServiceInfoSection>
+                    </section>
+                )}
 
                 {relatedServices.length > 0 && (
                     <section className="space-y-4">

@@ -1,5 +1,6 @@
+import { useMemo, useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { CheckCircle2, Clock3, CreditCard, Eye, PackageCheck, ReceiptText, Truck, XCircle, FileText, Search } from 'lucide-react';
+import { CheckCircle2, Clock3, CreditCard, Download, Eye, PackageCheck, ReceiptText, Truck, XCircle, FileText, Search } from 'lucide-react';
 
 import AdminCard from '@/Components/Admin/AdminCard';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
@@ -111,6 +112,11 @@ function LifecycleCard({ label, count, tone, icon: IconComponent, isActive, onCl
 }
 
 function AdminOrderIndex({ orders = {}, filters = {}, metrics = {} }) {
+    const [selectedOrderIds, setSelectedOrderIds] = useState([]);
+    const currentPageOrderIds = useMemo(() => (orders.data ?? []).map((order) => order.id), [orders.data]);
+    const selectedCount = selectedOrderIds.length;
+    const isAllCurrentPageSelected = currentPageOrderIds.length > 0 && currentPageOrderIds.every((orderId) => selectedOrderIds.includes(orderId));
+    const exportParams = selectedCount > 0 ? { order_ids: selectedOrderIds } : filters;
 
     const lifecycleCards = [
         { id: 'all', label: 'Total Order', count: metrics.totalOrder, tone: 'white', icon: ReceiptText },
@@ -130,6 +136,24 @@ function AdminOrderIndex({ orders = {}, filters = {}, metrics = {} }) {
             { ...filters, status: status === 'all' ? null : status, page: 1 },
             { preserveState: true, preserveScroll: true }
         );
+    };
+
+    const toggleCurrentPageSelection = () => {
+        setSelectedOrderIds((currentIds) => {
+            if (isAllCurrentPageSelected) {
+                return currentIds.filter((orderId) => !currentPageOrderIds.includes(orderId));
+            }
+
+            return [...new Set([...currentIds, ...currentPageOrderIds])];
+        });
+    };
+
+    const toggleOrderSelection = (orderId) => {
+        setSelectedOrderIds((currentIds) => (
+            currentIds.includes(orderId)
+                ? currentIds.filter((selectedOrderId) => selectedOrderId !== orderId)
+                : [...currentIds, orderId]
+        ));
     };
 
     return (
@@ -206,6 +230,20 @@ function AdminOrderIndex({ orders = {}, filters = {}, metrics = {} }) {
                         </div>
                     </div>
 
+                    <div className="flex flex-col gap-3 border-t border-[#E5E7EB] bg-[#F6F7F7]/70 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+                        <p className="font-body-sm text-sm font-bold text-[#333333]">
+                            {selectedCount} order dipilih untuk export data pengiriman
+                        </p>
+                        <a
+                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#1E4D3A] px-4 py-2 font-body-sm text-xs font-bold text-[#1E4D3A] transition hover:bg-[#1E4D3A] hover:text-white"
+                            download
+                            href={route('admin.orders.export.shipping', exportParams)}
+                        >
+                            <Download aria-hidden="true" className="h-4 w-4" />
+                            Export Shipping XLSX
+                        </a>
+                    </div>
+
                     {!orders.data || orders.data.length === 0 ? (
                         <div className="p-5 border-t border-[#E5E7EB]">
                             <EmptyState
@@ -218,6 +256,15 @@ function AdminOrderIndex({ orders = {}, filters = {}, metrics = {} }) {
                             <table className="min-w-full divide-y divide-[#E5E7EB]">
                                 <thead className="bg-[#F6F7F7]">
                                     <tr>
+                                        <th className="px-4 py-3 text-left" scope="col">
+                                            <input
+                                                aria-label="Pilih semua order di halaman ini"
+                                                checked={isAllCurrentPageSelected}
+                                                className="rounded border-gray-300 text-[#1E4D3A] focus:ring-[#1E4D3A]"
+                                                onChange={toggleCurrentPageSelection}
+                                                type="checkbox"
+                                            />
+                                        </th>
                                         {[
                                             'Nomor Order',
                                             'Customer',
@@ -245,6 +292,15 @@ function AdminOrderIndex({ orders = {}, filters = {}, metrics = {} }) {
                                             className="transition hover:bg-[#A8C5B3]/10"
                                             key={order.id}
                                         >
+                                            <td className="whitespace-nowrap px-4 py-4">
+                                                <input
+                                                    aria-label={`Pilih ${order.order_number ?? `Order #${order.id}`}`}
+                                                    checked={selectedOrderIds.includes(order.id)}
+                                                    className="rounded border-gray-300 text-[#1E4D3A] focus:ring-[#1E4D3A]"
+                                                    onChange={() => toggleOrderSelection(order.id)}
+                                                    type="checkbox"
+                                                />
+                                            </td>
                                             <td className="whitespace-nowrap px-4 py-4 font-body-sm text-sm font-bold text-[#333333]">
                                                 {order.order_number ?? `Order #${order.id}`}
                                             </td>

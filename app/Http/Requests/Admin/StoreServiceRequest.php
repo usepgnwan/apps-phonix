@@ -19,6 +19,8 @@ class StoreServiceRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', 'unique:services,slug'],
             'description' => ['required', 'string'],
+            'key_features' => ['nullable', 'string'],
+            'benefits' => ['nullable', 'string'],
             'price' => ['nullable', 'numeric', 'min:0'],
             'visit_type' => ['required', 'in:home_visit,office_visit,both'],
             'image_path' => ['nullable', 'string', 'max:255'],

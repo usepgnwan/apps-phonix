@@ -1,12 +1,14 @@
 # System Flow Phoenix Herbal Commerce
 
-Dokumen ini merangkum alur sistem end-to-end berdasarkan migration, model, controller, service, route, dan test yang sudah dibuat sampai Batch 17. Dokumen ini dipakai sebagai acuan sebelum masuk implementasi UI Inertia agar halaman yang dibuat mengikuti flow backend yang sudah tersedia.
+Dokumen ini merangkum alur sistem end-to-end berdasarkan migration, model, controller, service, route, halaman Inertia, view Blade khusus, dan catatan implementasi sampai Batch 40. Dokumen ini dipakai sebagai acuan flow final yang lebih stabil daripada changelog harian atau catatan batch historis.
 
 Sumber acuan:
 
 - `.docs/features-modules.md`
 - `.docs/data-structure-plan.md`
 - `.docs/implementation-progress.md`
+- `.docs/source-audit-findings.md`
+- dokumen feature/changelog spesifik di `.docs/`
 
 ## Status Umum
 
@@ -30,9 +32,16 @@ Backend MVP utama sudah mencakup:
 - event,
 - offline sales read/create-only,
 - examination dan product recommendation read/create-only,
-- admin dashboard dan basic reports.
+- admin dashboard dan basic reports,
+- settings/template editor,
+- receipt email checkout,
+- admin video dan sitemap SEO,
+- PWA dasar,
+- admin staff, position, dan team,
+- print/invoice offline sale,
+- customer payment instruction.
 
-UI Inertia untuk sebagian besar halaman fitur masih belum dibuat. Controller fitur baru sementara banyak yang render page placeholder `Welcome` dengan prop `page` dan data backend terkait.
+UI Inertia utama sudah tersedia untuk mayoritas flow publik, customer, admin, dan field staff. Beberapa dokumen batch lama masih menyebut placeholder `Welcome`; bagian tersebut adalah catatan historis dan tidak lagi menjadi status final. Route yang masih memakai halaman lama harus diverifikasi langsung dari controller/page sebelum dianggap belum punya UI.
 
 ## Role dan Hak Akses
 
@@ -189,27 +198,30 @@ Catatan:
 Route utama:
 
 - `GET /checkout` dengan nama `checkout.show`
+- `POST /checkout/validate-voucher` dengan nama `checkout.validate-voucher`
 - `POST /checkout` dengan nama `checkout.store`
 
 Flow checkout:
 
 1. Customer atau guest membuka checkout.
 2. Sistem mengambil cart aktif dan customer profile jika ada.
-3. User mengirim data checkout:
+3. Jika customer member mengisi voucher, UI mewajibkan klik tombol **Cek** terlebih dahulu.
+4. Endpoint `checkout.validate-voucher` memvalidasi voucher secara JSON, menghitung subtotal server-side dari cart aktif, dan mengembalikan preview diskon atau error `422`.
+5. User mengirim data checkout:
    - `customer_name`,
    - `customer_whatsapp_number`,
    - `shipping_address`,
-   - `voucher_code` opsional.
-4. `CheckoutService` menjalankan transaksi database.
-5. Sistem memastikan cart tidak kosong.
-6. Sistem mengecek ulang setiap cart item:
+   - `voucher_code` opsional yang sudah lolos cek jika diisi.
+6. `CheckoutService` menjalankan transaksi database.
+7. Sistem memastikan cart tidak kosong.
+8. Sistem mengecek ulang setiap cart item:
    - produk masih aktif,
    - stok masih mencukupi.
-7. Sistem menghitung subtotal, diskon voucher jika valid, dan total awal.
-8. Sistem membuat `orders` dan `order_items` sebagai snapshot transaksi.
-9. Jika voucher valid dipakai, sistem membuat `voucher_redemptions`.
-10. Sistem mengosongkan cart item setelah order berhasil dibuat.
-11. User diarahkan ke halaman detail/konfirmasi pesanan publik dengan flash message dan `order_number`.
+9. Sistem menghitung subtotal, diskon voucher jika valid, dan total awal.
+10. Sistem membuat `orders` dan `order_items` sebagai snapshot transaksi.
+11. Jika voucher valid dipakai, sistem membuat `voucher_redemptions`.
+12. Sistem mengosongkan cart item setelah order berhasil dibuat.
+13. User diarahkan ke halaman detail/konfirmasi pesanan publik dengan flash message dan `order_number`.
 
 Status awal order:
 
@@ -305,11 +317,34 @@ Flow fulfillment dan stock movement:
 7. Jika status `processing` dikirim ulang, stok tidak berkurang lagi karena marker sudah terisi.
 8. Jika stok tidak cukup, transisi ditolak dan status order tetap sebelumnya.
 
+Flow invoice admin:
+
+1. Admin membuka invoice order dari detail/list order.
+2. Sistem mengambil order beserta item, customer, voucher, dan payment method terkait.
+3. Sistem menampilkan dokumen invoice untuk kebutuhan cetak atau arsip internal.
+
 Catatan fulfillment:
 
 - Tidak ada stock ledger pada MVP saat ini.
 - Tidak ada restore stok otomatis saat order cancelled setelah fulfillment dimulai.
 - Status `shipped`, `completed`, dan `cancelled` dapat diubah lewat update status, tetapi tidak memicu decrement stok jika belum masuk `processing`.
+
+### Instruksi Pembayaran Customer
+
+Flow:
+
+1. Customer atau guest membuat order lewat checkout.
+2. Order masuk dengan status awal menunggu konfirmasi ongkir.
+3. Admin mengisi ongkir dan mengubah order menjadi `waiting_payment`.
+4. Customer membuka detail order dari customer dashboard atau halaman lookup publik.
+5. Sistem menampilkan total akhir setelah ongkir dan diskon voucher.
+6. Jika payment method sudah dipilih atau tersedia, sistem menampilkan instruksi pembayaran manual seperti rekening bank atau QRIS sesuai data admin.
+7. Customer melakukan pembayaran di luar sistem, lalu admin memverifikasi pembayaran secara manual.
+
+Catatan:
+
+- Sistem tidak memakai payment gateway otomatis.
+- Instruksi pembayaran bergantung pada data payment method dan status order yang sudah dikonfirmasi admin.
 
 ## Flow Customer Profile dan Dashboard
 
@@ -393,7 +428,9 @@ Admin catalog mencakup:
 
 - product categories,
 - products,
-- services.
+- services,
+- testimonials,
+- videos.
 
 Flow umum:
 
@@ -405,8 +442,48 @@ Flow umum:
 
 Catatan:
 
-- UI admin catalog belum dibuat.
 - Upload gambar belum diperdalam sebagai flow UI.
+
+### Produk: BPOM, Komposisi, dan Kemasan
+
+Flow:
+
+1. Admin membuat atau memperbarui produk.
+2. Admin dapat mengisi nomor BPOM opsional.
+3. Admin dapat mengisi komposisi produk.
+4. Admin dapat mengisi detail kemasan terstruktur:
+   - tipe kemasan,
+   - jumlah isi,
+   - satuan isi.
+5. Data tersebut tersimpan pada produk dan dipakai oleh halaman detail publik.
+6. Halaman detail produk publik menampilkan informasi BPOM dan kemasan jika nilainya tersedia.
+
+### Testimonial
+
+Route utama:
+
+- resource `/admin/testimonials`
+
+Flow:
+
+1. Admin membuka daftar testimoni.
+2. Admin dapat membuat, memperbarui, dan menghapus testimoni.
+3. Testimoni berisi nama customer, isi ulasan, rating 1 sampai 5, dan status aktif.
+4. Foto testimoni tidak lagi menjadi bagian flow saat ini.
+5. Homepage hanya menampilkan testimoni aktif.
+
+### Video Terapi
+
+Route utama:
+
+- resource `/admin/videos`
+
+Flow:
+
+1. Admin membuat atau memperbarui data video terapi.
+2. Admin mengisi judul, link video, dan status pinned.
+3. Homepage mengambil video pinned untuk bagian bukti terapi.
+4. Frontend dapat merender video YouTube melalui iframe atau file MP4 melalui elemen video.
 
 ## Flow Admin Customer
 
@@ -434,6 +511,34 @@ Flow event:
 1. Admin membuat event.
 2. Event dapat dikaitkan ke leads dan offline sales.
 3. Event tidak boleh dihapus jika punya leads atau offline sales.
+
+### Staff, Position, dan Team
+
+Route utama:
+
+- resource `/admin/positions` tanpa create/show/edit page terpisah,
+- resource `/admin/teams` tanpa create/show/edit page terpisah,
+- resource `/admin/staff` tanpa create/show/edit page terpisah.
+
+Flow position dan team:
+
+1. Admin mengelola master data jabatan melalui halaman positions.
+2. Admin mengelola master data tim melalui halaman teams.
+3. Data position dan team dipakai sebagai referensi staff lapangan.
+
+Flow staff:
+
+1. Admin membuka halaman staff.
+2. Sistem menampilkan user dengan role `field_staff` beserta relasi team dan position.
+3. Admin dapat membuat, memperbarui, dan menghapus staff sesuai aturan controller.
+4. Admin dapat mengisi nomor telepon, memilih team, memilih position, dan mengunggah foto staff.
+5. Foto staff diproses untuk ukuran lebih ringan sebelum disimpan.
+6. Staff yang dibuat dipakai oleh flow lead assignment, field staff CRM, dan offline sales.
+
+Catatan:
+
+- Staff adalah user aplikasi dengan role `field_staff`, bukan entitas terpisah.
+- Position dan team adalah master data referensi untuk pengelompokan staff.
 
 ### Admin Lead/CRM
 
@@ -493,8 +598,11 @@ Catatan:
 Route utama:
 
 - `GET /admin/offline-sales`
+- `POST /admin/offline-sales/validate-voucher`
 - `POST /admin/offline-sales`
 - `GET /admin/offline-sales/{offlineSale}`
+- `GET /admin/offline-sales/{offlineSale}/print`
+- `GET /admin/offline-sales/{offlineSale}/invoice`
 
 Flow:
 
@@ -509,11 +617,29 @@ Flow:
    - `door_to_door`,
    - `event`.
 4. Admin mengisi customer name, WhatsApp opsional, sold at, notes, dan items melalui grid data transaksi di kiri dan panel produk/kalkulasi di kanan.
-5. `OfflineSaleService` menjalankan transaksi untuk membuat `offline_sales` dan `offline_sale_items`.
-6. UI menampilkan estimasi subtotal dan total dari produk terpilih, tetapi harga final tetap dihitung server-side.
-7. Harga, line total, dan total dihitung server-side dari harga produk saat ini.
-8. Sale number dibuat dengan format `OFF-YYYYMMDD-XXXXXX`.
-9. Stok produk dikurangi sesuai quantity item dalam transaksi yang sama.
+5. Jika memilih customer profile member dan mengisi voucher, UI mewajibkan klik tombol **Cek** terlebih dahulu.
+6. Endpoint `admin.offline-sales.validate-voucher` memvalidasi voucher secara JSON dari customer profile dan item yang dipilih, lalu mengembalikan preview diskon atau error `422`.
+7. `OfflineSaleService` menjalankan transaksi untuk membuat `offline_sales` dan `offline_sale_items`.
+8. UI menampilkan estimasi subtotal, diskon voucher, dan total dari item terpilih, tetapi harga final tetap dihitung server-side.
+9. Harga, line total, subtotal, diskon voucher, dan total dihitung server-side dari harga produk/layanan saat ini.
+10. Sale number dibuat dengan format `OFF-YYYYMMDD-XXXXXX`.
+11. Stok produk dikurangi sesuai quantity item dalam transaksi yang sama.
+12. Jika voucher valid dipakai, sistem membuat `voucher_redemptions` yang terhubung ke offline sale.
+13. Admin dapat membuka detail offline sale, invoice, atau cetak struk thermal.
+
+Flow print dan invoice:
+
+1. Setelah transaksi offline sale berhasil dibuat, UI menyediakan aksi cetak struk.
+2. Route print merender view Blade khusus ukuran printer thermal 58mm.
+3. Route invoice merender dokumen invoice untuk transaksi offline sale.
+4. Riwayat penjualan juga menyediakan aksi cetak ulang.
+5. Struk dan invoice menampilkan subtotal, voucher, diskon voucher, dan total akhir jika transaksi memakai voucher.
+
+Flow analytics offline sale:
+
+1. Halaman offline sale menampilkan ringkasan dan visualisasi performa penjualan.
+2. Sistem dapat menampilkan revenue per source atau event.
+3. Sistem dapat menampilkan ranking staff lapangan berdasarkan revenue dan jumlah transaksi.
 
 Validasi penting:
 
@@ -526,6 +652,7 @@ Catatan:
 
 - Offline sales saat ini read/create-only.
 - Tidak ada edit/delete offline sale pada MVP saat ini.
+- Item offline sale mendukung item produk dan layanan sesuai implementasi terbaru; pengurangan stok hanya relevan untuk item produk.
 
 ## Flow Examination dan Product Recommendation
 
@@ -606,7 +733,7 @@ Flow:
 
 1. Admin aktif membuka reports.
 2. Sistem menjalankan query agregasi langsung dari tabel operasional.
-3. Controller render placeholder `Welcome` dengan `page = admin.reports.index`.
+3. Controller render halaman Inertia report admin dengan data agregasi.
 
 Reports yang tersedia:
 
@@ -624,6 +751,68 @@ Catatan:
 
 - Reports masih read-only.
 - Belum ada filter tanggal, export, chart, atau tabel reporting khusus.
+
+## Flow Settings, Template, Email Receipt, SEO, dan PWA
+
+### Admin Settings dan Template Editor
+
+Route utama:
+
+- `GET /admin/settings`
+- `POST /admin/settings`
+
+Flow:
+
+1. Admin membuka halaman settings.
+2. Sistem mengambil key-value settings dan mengirimnya ke halaman Inertia.
+3. Admin dapat mengelola template order dan email melalui rich text editor.
+4. Admin dapat menyimpan tag dinamis seperti `[nama]`, `[order]`, `[items]`, `[total]`, `[whatsapp]`, dan `[email]` di template.
+5. Admin dapat mengelola alamat klinik/perusahaan untuk ditampilkan di halaman publik.
+6. Sistem menyimpan perubahan dengan pola `updateOrCreate` berdasarkan key setting.
+
+Catatan:
+
+- Model `Setting` adalah key-value settings aktif untuk fitur template dan konfigurasi dinamis.
+- Model `WebsiteSetting` masih ada sebagai domain website setting terpisah/legacy dan perlu dicek sebelum dipakai untuk fitur baru.
+
+### Email Receipt Checkout
+
+Flow:
+
+1. Customer atau guest menyelesaikan checkout.
+2. `CheckoutService` membuat order dan order items.
+3. Sistem membaca `receipt_email` dan `order_template` dari settings.
+4. Jika konfigurasi tersedia, sistem merender template dengan data order.
+5. Sistem mengirim email receipt ke alamat tujuan internal yang dikonfigurasi.
+6. Jika SMTP gagal, proses checkout tidak dibatalkan karena email hanya notifikasi pendukung.
+
+Catatan:
+
+- Credential SMTP berada di `.env` dan tidak boleh masuk repository.
+- Email receipt bukan payment confirmation otomatis.
+
+### SEO, Sitemap, Robots, dan PWA
+
+Route utama:
+
+- `GET /sitemap.xml`
+
+Flow SEO dan sitemap:
+
+1. Halaman publik menyetel meta title, description, dan keywords utama.
+2. Sitemap controller mengambil produk dan layanan aktif.
+3. Sistem merender sitemap XML untuk crawler.
+4. `robots.txt` mengizinkan halaman publik dan membatasi area sensitif seperti admin/customer/field/api.
+
+Flow PWA:
+
+1. Layout utama memuat manifest dan theme color.
+2. Browser mendaftarkan service worker dasar.
+3. Admin layout dapat menampilkan tombol install app jika browser mendukung `beforeinstallprompt`.
+
+Catatan:
+
+- PWA saat ini bersifat dasar untuk installability, bukan offline-first penuh.
 
 ## Status Utama yang Dipakai Sistem
 
@@ -681,39 +870,36 @@ Catatan:
 - `door_to_door`
 - `event`
 
-## Flow Prioritas untuk UI Berikutnya
+## Prioritas Maintenance Berikutnya
 
-Karena backend sudah cukup lengkap, UI sebaiknya mengikuti urutan dependency data berikut:
+Karena UI utama sudah tersedia untuk mayoritas flow, prioritas berikutnya bukan lagi membuat halaman dari nol, tetapi menyelaraskan stabilitas, QA, dan dokumentasi:
 
-1. Customer Profile UI
-   - Dibutuhkan sebelum customer booking dan dashboard berjalan mulus.
-2. Customer Dashboard UI
-   - Menghubungkan customer ke order dan booking miliknya.
-3. Product dan Service UI
-   - Dibutuhkan untuk browsing katalog.
-4. Cart dan Checkout UI
-   - Dibutuhkan untuk flow order customer.
-5. Booking UI
-   - Dibutuhkan untuk flow layanan.
-6. Admin Order UI
-   - Penting untuk konfirmasi ongkir, pembayaran, dan fulfillment stok.
-7. Admin Catalog UI
-   - Dibutuhkan untuk mengelola data produk/layanan.
-8. Admin CRM, Field Staff, Offline Sales, Examination, Dashboard, dan Reports UI
-   - Dibuat setelah flow customer dan order dasar dapat digunakan.
+1. Audit end-to-end public commerce
+   - Pastikan produk, cart, checkout, lookup order, dan instruksi pembayaran berjalan mulus untuk guest dan customer login.
+2. Audit end-to-end booking
+   - Pastikan create booking, list booking, detail booking customer, dan update admin booking konsisten.
+3. Audit admin commerce dan inventory
+   - Pastikan order shipping/payment/status, fulfillment stok, offline sale, invoice, dan print struk berjalan sesuai aturan stok.
+4. Audit CRM dan field staff
+   - Pastikan assignment lead, status follow-up, activity field staff, team, position, dan staff CRUD konsisten.
+5. Audit settings, template, email, SEO, dan PWA
+   - Pastikan settings aktif terdokumentasi, tag template valid, email receipt tidak mengganggu checkout, sitemap/robots/PWA sesuai kebutuhan production.
+6. Rapikan dokumentasi batch historis
+   - Pertahankan `implementation-progress.md` sebagai log sejarah, tetapi gunakan dokumen ini sebagai acuan flow final.
 
 ## Gap yang Masih Perlu Diputuskan
 
 Gap backend yang masih ada dan perlu keputusan sebelum dianggap production-complete:
 
-- Payment method display dan instruksi pembayaran setelah ongkir dikonfirmasi admin.
 - Order detail customer login di dashboard sudah tersedia; guest memakai flow cek pesanan publik berbasis nomor order dan WhatsApp.
-- Offline sale stock decrement jika penjualan offline harus memotong stok inventory yang sama.
 - Restore stok saat order cancelled setelah status `processing`.
 - Strict role validation untuk `assigned_staff_id` pada admin lead.
 - Export/filter/report advanced jika dibutuhkan di luar MVP.
+- Hardening upload/media untuk gambar produk, layanan, QRIS, dan foto staff jika akan dipakai production penuh.
+- Keputusan final pemakaian `Setting` vs `WebsiteSetting` agar tidak ada dua sumber konfigurasi yang membingungkan.
 
-Gap UI yang masih besar:
+Gap UI/QA yang masih perlu diaudit:
 
-- Hampir semua fitur selain homepage masih belum punya page Inertia khusus.
-- Controller sudah mengirim data, tetapi UI perlu dibuat sesuai flow di dokumen ini.
+- Pastikan semua halaman Inertia terbaru mengikuti design system botanical/green-earth tone.
+- Pastikan flow mobile untuk public commerce, booking, admin POS, dan field staff nyaman digunakan.
+- Pastikan state error/empty/loading pada form penting sudah jelas untuk user.

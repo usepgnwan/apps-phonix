@@ -93,6 +93,8 @@ function AdminLayananEdit({ service }) {
         name: service.name ?? '',
         slug: service.slug ?? '',
         description: service.description ?? '',
+        key_features: service.key_features ?? '',
+        benefits: service.benefits ?? '',
         price: service.price ?? '',
         visit_type: service.visit_type ?? 'both',
         thumbnail: null,
@@ -171,6 +173,20 @@ function AdminLayananEdit({ service }) {
                             onChange={(event) => form.setData('description', event.target.value)}
                             value={form.data.description}
                         />
+                        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                            <TextAreaField
+                                error={form.errors.key_features}
+                                label="Keunggulan & Fitur Utama"
+                                onChange={(event) => form.setData('key_features', event.target.value)}
+                                value={form.data.key_features}
+                            />
+                            <TextAreaField
+                                error={form.errors.benefits}
+                                label="Manfaat"
+                                onChange={(event) => form.setData('benefits', event.target.value)}
+                                value={form.data.benefits}
+                            />
+                        </div>
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                             <CheckboxField
                                 checked={form.data.is_active}

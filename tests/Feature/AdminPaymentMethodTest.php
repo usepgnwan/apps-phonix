@@ -8,6 +8,8 @@ use App\Models\PaymentMethod;
 use App\Models\User;
 use App\Models\Voucher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class AdminPaymentMethodTest extends TestCase
@@ -82,20 +84,26 @@ class AdminPaymentMethodTest extends TestCase
 
     public function test_active_admin_can_create_qris_payment_method(): void
     {
+        Storage::fake('public');
         $admin = $this->createAdmin();
 
         $response = $this->actingAs($admin)->post(route('admin.payment-methods.store'), $this->qrisPayload());
 
         $response->assertRedirect(route('admin.payment-methods.index'))->assertSessionHas('success');
 
+        $paymentMethod = PaymentMethod::query()->where('type', 'qris')->firstOrFail();
+
         $this->assertDatabaseHas('payment_methods', [
+            'id' => $paymentMethod->id,
             'type' => 'qris',
             'bank_name' => null,
             'account_number' => null,
             'account_holder_name' => null,
-            'qris_image_path' => 'payment-methods/qris-1.png',
             'is_active' => true,
         ]);
+
+        $this->assertStringStartsWith('payment-methods/', $paymentMethod->qris_image_path);
+        $this->assertTrue(Storage::disk('public')->exists($paymentMethod->qris_image_path));
     }
 
     public function test_active_admin_can_update_payment_method(): void
@@ -123,6 +131,62 @@ class AdminPaymentMethodTest extends TestCase
         ]);
     }
 
+    public function test_active_admin_can_update_qris_payment_method_with_new_upload(): void
+    {
+        Storage::fake('public');
+        $admin = $this->createAdmin();
+        $paymentMethod = $this->createPaymentMethod([
+            'type' => 'qris',
+            'qris_image_path' => 'payment-methods/old-qris.png',
+        ]);
+
+        $response = $this->actingAs($admin)->post(route('admin.payment-methods.update', $paymentMethod), $this->qrisPayload([
+            'qris_image' => UploadedFile::fake()->image('new-qris.webp'),
+            'instructions' => 'Scan QRIS terbaru',
+            'is_active' => false,
+            '_method' => 'put',
+        ]));
+
+        $response->assertRedirect(route('admin.payment-methods.index'))->assertSessionHas('success');
+
+        $paymentMethod->refresh();
+
+        $this->assertSame('qris', $paymentMethod->type);
+        $this->assertSame('Scan QRIS terbaru', $paymentMethod->instructions);
+        $this->assertFalse($paymentMethod->is_active);
+        $this->assertStringStartsWith('payment-methods/', $paymentMethod->qris_image_path);
+        $this->assertNotSame('payment-methods/old-qris.png', $paymentMethod->qris_image_path);
+        $this->assertTrue(Storage::disk('public')->exists($paymentMethod->qris_image_path));
+    }
+
+    public function test_active_admin_can_keep_existing_qris_image_when_updating_without_upload(): void
+    {
+        $admin = $this->createAdmin();
+        $paymentMethod = $this->createPaymentMethod([
+            'type' => 'qris',
+            'qris_image_path' => 'payment-methods/existing-qris.png',
+        ]);
+
+        $response = $this->actingAs($admin)->post(route('admin.payment-methods.update', $paymentMethod), [
+            'type' => 'qris',
+            'bank_name' => null,
+            'account_number' => null,
+            'account_holder_name' => null,
+            'instructions' => 'Scan QRIS existing',
+            'is_active' => true,
+            '_method' => 'put',
+        ]);
+
+        $response->assertRedirect(route('admin.payment-methods.index'))->assertSessionHas('success');
+
+        $this->assertDatabaseHas('payment_methods', [
+            'id' => $paymentMethod->id,
+            'type' => 'qris',
+            'qris_image_path' => 'payment-methods/existing-qris.png',
+            'instructions' => 'Scan QRIS existing',
+        ]);
+    }
+
     public function test_invalid_payment_method_fields_are_rejected(): void
     {
         $admin = $this->createAdmin();
@@ -130,7 +194,9 @@ class AdminPaymentMethodTest extends TestCase
 
         $this->actingAs($admin)->post(route('admin.payment-methods.store'), array_merge($this->bankTransferPayload(), ['type' => 'bad']))->assertSessionHasErrors('type');
         $this->actingAs($admin)->post(route('admin.payment-methods.store'), array_merge($this->bankTransferPayload(), ['bank_name' => null]))->assertSessionHasErrors('bank_name');
-        $this->actingAs($admin)->post(route('admin.payment-methods.store'), array_merge($this->qrisPayload(), ['qris_image_path' => null]))->assertSessionHasErrors('qris_image_path');
+        $this->actingAs($admin)->post(route('admin.payment-methods.store'), array_merge($this->qrisPayload(), ['qris_image' => null]))->assertSessionHasErrors('qris_image');
+        $this->actingAs($admin)->post(route('admin.payment-methods.store'), array_merge($this->qrisPayload(), ['qris_image' => UploadedFile::fake()->create('qris.pdf', 100, 'application/pdf')]))->assertSessionHasErrors('qris_image');
+        $this->actingAs($admin)->put(route('admin.payment-methods.update', $paymentMethod), array_merge($this->qrisPayload(), ['qris_image' => null]))->assertSessionHasErrors('qris_image');
         $this->actingAs($admin)->put(route('admin.payment-methods.update', $paymentMethod), array_merge($this->bankTransferPayload(), ['is_active' => null]))->assertSessionHasErrors('is_active');
     }
 
@@ -249,7 +315,7 @@ class AdminPaymentMethodTest extends TestCase
             'bank_name' => null,
             'account_number' => null,
             'account_holder_name' => null,
-            'qris_image_path' => 'payment-methods/qris-1.png',
+            'qris_image' => UploadedFile::fake()->image('qris.png'),
             'instructions' => 'Scan QRIS',
             'is_active' => true,
         ], $overrides);

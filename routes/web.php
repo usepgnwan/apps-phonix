@@ -48,6 +48,7 @@ Route::post('/cart/items', [CartController::class, 'store'])->name('cart.items.s
 Route::patch('/cart/items/{cartItem}', [CartController::class, 'update'])->name('cart.items.update');
 Route::delete('/cart/items/{cartItem}', [CartController::class, 'destroy'])->name('cart.items.destroy');
 Route::get('/checkout', [CheckoutController::class, 'show'])->name('checkout.show');
+Route::post('/checkout/validate-voucher', [CheckoutController::class, 'validateVoucher'])->middleware('throttle:10,1')->name('checkout.validate-voucher');
 Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
 Route::get('/orders/lookup', [OrderLookupController::class, 'create'])->name('orders.lookup.create');
 Route::post('/orders/lookup', [OrderLookupController::class, 'store'])->middleware('throttle:10,1')->name('orders.lookup.store');
@@ -73,6 +74,8 @@ Route::middleware('auth')->group(function () {
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard.index');
         Route::get('/reports', [AdminReportController::class, 'index'])->name('reports.index');
+        Route::get('/reports/export/xlsx', [AdminReportController::class, 'exportXlsx'])->name('reports.export.xlsx');
+        Route::get('/reports/export/pdf', [AdminReportController::class, 'exportPdf'])->name('reports.export.pdf');
 
         Route::get('/settings', [\App\Http\Controllers\Admin\SettingController::class, 'index'])->name('settings.index');
         Route::post('/settings', [\App\Http\Controllers\Admin\SettingController::class, 'update'])->name('settings.update');
@@ -99,6 +102,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('vouchers', AdminVoucherController::class);
 
         Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
+        Route::get('/orders/export/shipping', [AdminOrderController::class, 'exportShipping'])->name('orders.export.shipping');
         Route::get('/orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
         Route::patch('orders/{order}/shipping', [AdminOrderController::class, 'updateShipping'])->name('orders.shipping.update');
         Route::patch('orders/{order}/payment', [AdminOrderController::class, 'updatePayment'])->name('orders.payment.update');
@@ -106,6 +110,7 @@ Route::middleware('auth')->group(function () {
         Route::get('orders/{order}/invoice', [AdminOrderController::class, 'invoice'])->name('orders.invoice');
 
         Route::get('/offline-sales', [AdminOfflineSaleController::class, 'index'])->name('offline-sales.index');
+        Route::post('/offline-sales/validate-voucher', [AdminOfflineSaleController::class, 'validateVoucher'])->name('offline-sales.validate-voucher');
         Route::post('/offline-sales', [AdminOfflineSaleController::class, 'store'])->name('offline-sales.store');
         Route::get('/offline-sales/{offlineSale}', [AdminOfflineSaleController::class, 'show'])->name('offline-sales.show');
         Route::get('/offline-sales/{offlineSale}/print', [AdminOfflineSaleController::class, 'print'])->name('offline-sales.print');

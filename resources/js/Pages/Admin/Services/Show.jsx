@@ -94,6 +94,12 @@ function AdminLayananShow({ service }) {
                         <div className="md:col-span-2">
                             <DetailRow label="Deskripsi">{service.description || '-'}</DetailRow>
                         </div>
+                        <div className="md:col-span-2">
+                            <DetailRow label="Keunggulan & Fitur Utama">{service.key_features || '-'}</DetailRow>
+                        </div>
+                        <div className="md:col-span-2">
+                            <DetailRow label="Manfaat">{service.benefits || '-'}</DetailRow>
+                        </div>
                     </div>
                 </AdminCard>
             </div>

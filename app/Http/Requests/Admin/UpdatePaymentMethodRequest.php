@@ -21,9 +21,19 @@ class UpdatePaymentMethodRequest extends FormRequest
             'bank_name' => ['required_if:type,bank_transfer', 'nullable', 'string', 'max:255'],
             'account_number' => ['required_if:type,bank_transfer', 'nullable', 'string', 'max:255'],
             'account_holder_name' => ['required_if:type,bank_transfer', 'nullable', 'string', 'max:255'],
-            'qris_image_path' => ['required_if:type,qris', 'nullable', 'string', 'max:255'],
+            'qris_image_path' => ['nullable', 'string', 'max:255'],
+            'qris_image' => [Rule::requiredIf($this->requiresQrisImage()), 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'instructions' => ['nullable', 'string'],
             'is_active' => ['required', 'boolean'],
         ];
+    }
+
+    private function requiresQrisImage(): bool
+    {
+        $paymentMethod = $this->route('payment_method');
+
+        return $this->input('type') === 'qris'
+            && ! $this->hasFile('qris_image')
+            && ! $paymentMethod?->qris_image_path;
     }
 }

@@ -16,7 +16,7 @@ function formatNumber(value) {
 }
 
 function serviceName(examination) {
-    return examination.booking?.service?.name ?? examination.booking?.booking_number ?? '-';
+    return examination.service_type ?? examination.booking?.service?.name ?? examination.booking?.booking_number ?? '-';
 }
 
 function recommendations(examination) {
@@ -75,10 +75,16 @@ function AdminPemeriksaanIndex({ examinations = [] }) {
                                         <p className="mt-1 line-clamp-2 font-body-sm text-sm text-[#333333]">{examination.complaint}</p>
                                     </div>
                                     <div className="rounded-2xl bg-[#F6F7F7] px-4 py-3">
-                                        <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400">Ringkasan</p>
-                                        <p className="mt-1 line-clamp-2 font-body-sm text-sm text-[#333333]">{examination.summary}</p>
+                                        <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400">Staff Bertugas</p>
+                                        <p className="mt-1 line-clamp-2 font-body-sm text-sm text-[#333333]">{examination.assigned_staff?.name ?? '-'}</p>
                                     </div>
                                 </div>
+                                {examination.result_pdf_path ? (
+                                    <div className="mt-3 rounded-2xl bg-[#A8C5B3]/20 px-4 py-3">
+                                        <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-[#1E4D3A]">Hasil PDF</p>
+                                        <a className="mt-1 inline-block font-body-sm text-sm font-bold text-[#1E4D3A] underline-offset-4 hover:underline" href={`/storage/${examination.result_pdf_path}`} target="_blank" rel="noreferrer">Lihat PDF</a>
+                                    </div>
+                                ) : null}
                                 <div className="mt-4 flex justify-end">
                                     <Link className="rounded-full border border-[#1E4D3A] px-4 py-2 font-body-sm text-sm font-bold text-[#1E4D3A] transition hover:bg-[#1E4D3A] hover:text-white" href={route('admin.examinations.show', examination.id)}>
                                         Lihat Detail

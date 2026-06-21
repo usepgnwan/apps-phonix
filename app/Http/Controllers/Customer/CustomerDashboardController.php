@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\CustomerProfile;
 use App\Models\Order;
+use App\Models\Product;
+use App\Models\Service;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -20,6 +22,36 @@ class CustomerDashboardController extends Controller
         if ($customerProfile === null) {
             return $this->redirectToProfile();
         }
+
+        $generalProductRecommendations = Product::query()
+            ->with('productCategory:id,name,slug')
+            ->where('is_active', true)
+            ->orderByDesc('is_featured')
+            ->latest()
+            ->limit(3)
+            ->get(['id', 'product_category_id', 'name', 'slug', 'price', 'short_description', 'image_path', 'is_featured']);
+
+        $featuredServiceRecommendation = Service::query()
+            ->where('is_active', true)
+            ->orderByDesc('is_featured')
+            ->latest()
+            ->limit(1)
+            ->get(['id', 'name', 'slug', 'description', 'price', 'visit_type', 'image_path', 'is_featured']);
+
+        $miniCatalogProducts = Product::query()
+            ->with('productCategory:id,name,slug')
+            ->where('is_active', true)
+            ->orderByDesc('is_featured')
+            ->latest()
+            ->limit(6)
+            ->get(['id', 'product_category_id', 'name', 'slug', 'price', 'short_description', 'image_path', 'is_featured']);
+
+        $miniCatalogServices = Service::query()
+            ->where('is_active', true)
+            ->orderByDesc('is_featured')
+            ->latest()
+            ->limit(3)
+            ->get(['id', 'name', 'slug', 'description', 'price', 'visit_type', 'image_path', 'is_featured']);
 
         return Inertia::render('Customer/Dashboard/Index', [
             'page' => 'customer.dashboard.index',
@@ -50,6 +82,12 @@ class CustomerDashboardController extends Controller
                 ->latest()
                 ->limit(5)
                 ->get(['id', 'customer_profile_id', 'product_id', 'examination_id', 'notes', 'created_at']),
+            'generalProductRecommendations' => $generalProductRecommendations,
+            'featuredServiceRecommendation' => $featuredServiceRecommendation,
+            'miniCatalog' => [
+                'products' => $miniCatalogProducts,
+                'services' => $miniCatalogServices,
+            ],
         ]);
     }
 

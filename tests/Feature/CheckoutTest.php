@@ -113,6 +113,52 @@ class CheckoutTest extends TestCase
         $this->assertDatabaseCount('cart_items', 0);
     }
 
+    public function test_member_can_validate_checkout_voucher_before_submit(): void
+    {
+        [$user] = $this->createCustomer(memberStatus: 'member');
+        $product = $this->createProduct(price: 200000, stockQuantity: 5);
+        $this->createVoucher([
+            'code' => 'MEMBER50',
+            'discount_type' => 'fixed',
+            'discount_value' => 50000,
+            'minimum_purchase' => 100000,
+        ]);
+
+        $this->actingAs($user)->post(route('cart.items.store'), [
+            'product_id' => $product->id,
+            'quantity' => 1,
+        ]);
+
+        $this->actingAs($user)
+            ->postJson(route('checkout.validate-voucher'), [
+                'voucher_code' => 'member50',
+            ])
+            ->assertOk()
+            ->assertJsonPath('valid', true)
+            ->assertJsonPath('voucher.code', 'MEMBER50')
+            ->assertJsonPath('subtotal', 200000)
+            ->assertJsonPath('discount_amount', 50000)
+            ->assertJsonPath('total', 150000);
+    }
+
+    public function test_guest_cannot_validate_checkout_member_voucher(): void
+    {
+        $product = $this->createProduct(price: 100000);
+        $this->createVoucher(['code' => 'MEMBERONLY']);
+
+        $this->post(route('cart.items.store'), [
+            'product_id' => $product->id,
+            'quantity' => 1,
+        ]);
+
+        $this->postJson(route('checkout.validate-voucher'), [
+            'voucher_code' => 'MEMBERONLY',
+        ])
+            ->assertStatus(422)
+            ->assertJsonPath('valid', false)
+            ->assertJsonPath('errors.voucher_code.0', 'Voucher hanya dapat digunakan oleh customer member yang sudah login.');
+    }
+
     public function test_member_checkout_with_valid_voucher_creates_redemption(): void
     {
         [$user, $profile] = $this->createCustomer(memberStatus: 'member');
