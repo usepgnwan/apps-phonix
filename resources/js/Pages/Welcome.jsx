@@ -259,7 +259,7 @@ function getYouTubeId(url) {
     return (match && match[2].length === 11) ? match[2] : null;
 }
 
-function DynamicVideoPlayer({ url, title }) {
+function DynamicVideoPlayer({ url, title, className = "w-full h-full object-contain absolute inset-0" }) {
     const isYouTube = url?.includes('youtube.com') || url?.includes('youtu.be');
 
     if (isYouTube) {
@@ -269,7 +269,7 @@ function DynamicVideoPlayer({ url, title }) {
                 <iframe
                     src={`https://www.youtube.com/embed/${videoId}?rel=0`}
                     title={title || "Video Testimoni"}
-                    className="w-full h-full absolute inset-0"
+                    className={className}
                     allowFullScreen
                     style={{ border: 0 }}
                 ></iframe>
@@ -280,14 +280,14 @@ function DynamicVideoPlayer({ url, title }) {
     const videoSrc = storageImage(url);
 
     return (
-        <video className="w-full h-full object-contain absolute inset-0" controls playsInline preload="metadata">
+        <video className={className} controls playsInline preload="metadata">
             <source src={`${videoSrc}#t=0.001`} />
             Browser Anda tidak mendukung video HTML5.
         </video>
     );
 }
 
-export default function Welcome({ auth, featuredProducts = [], featuredServices = [], testimonials = [], videos = [] }) {
+export default function Welcome({ auth, featuredProducts = [], featuredServices = [], testimonials = [], videos = [], pinnedVideo = null }) {
     const [isScrolled, setIsScrolled] = useState(false);
     const [flyingProduct, setFlyingProduct] = useState(null);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -935,15 +935,23 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                             {/* Left Content (Video) */}
                             <div className="w-full lg:w-1/2">
                                 <div className="rounded-3xl overflow-hidden shadow-lg border border-outline-variant bg-white aspect-[4/3] relative">
-                                    <video
-                                        className="w-full h-full object-cover"
-                                        controls
-                                        preload="metadata"
-                                        playsInline
-                                    >
-                                        <source src="/images/video1.mp4#t=0.001" type="video/mp4" />
-                                        Browser Anda tidak mendukung video HTML5.
-                                    </video>
+                                    {pinnedVideo ? (
+                                        <DynamicVideoPlayer
+                                            url={pinnedVideo.video_link}
+                                            title={pinnedVideo.title}
+                                            className="w-full h-full object-cover absolute inset-0"
+                                        />
+                                    ) : (
+                                        <video
+                                            className="w-full h-full object-cover absolute inset-0"
+                                            controls
+                                            preload="metadata"
+                                            playsInline
+                                        >
+                                            <source src="/images/video1.mp4#t=0.001" type="video/mp4" />
+                                            Browser Anda tidak mendukung video HTML5.
+                                        </video>
+                                    )}
                                 </div>
                             </div>
 
@@ -952,15 +960,15 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="rounded-3xl overflow-hidden shadow-lg border border-outline-variant bg-white aspect-[4/5] relative">
                                         <BeforeAfterSlider
-                                            beforeImage="/images/before_treatment_real.jpg"
-                                            afterImage="/images/after_treatment_real.jpg"
+                                            beforeImage="/images/before/a1.jpeg"
+                                            afterImage="/images/before/b1.jpeg"
                                             className="w-full h-full"
                                         />
                                     </div>
                                     <div className="rounded-3xl overflow-hidden shadow-lg border border-outline-variant bg-white aspect-[4/5] relative">
                                         <BeforeAfterSlider
-                                            beforeImage="/images/card2_before.jpg"
-                                            afterImage="/images/card2_after.jpg"
+                                            beforeImage="/images/before/a2.jpeg"
+                                            afterImage="/images/before/b2.jpeg"
                                             className="w-full h-full"
                                         />
                                     </div>
@@ -997,6 +1005,146 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                         )}
                     </Reveal>
                 </section>
+                {/* 4 Jenis Kekuatan GenQi BES */}
+                <section className=" py-10 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto">
+                    <Reveal delay={80}>
+                        <div className="mb-12 text-center max-w-2xl mx-auto">
+                            <h2 className="font-headline-lg text-headline-lg text-primary mb-2">4 Jenis Kekuatan</h2>
+                            <h3 className="font-headline-md text-headline-md text-primary mb-0">GenQi Bio Elektrik Stimulasi (BES)</h3>
+                        </div>
+                        {/* Scroll horizontal di mobile, grid 4 col di desktop */}
+                        <div className="flex gap-5 overflow-x-auto snap-x snap-mandatory no-scrollbar md:grid md:grid-cols-4 md:overflow-visible pb-4 md:pb-0">
+                            {[
+                                {
+                                    img: '/images/front/1.png',
+                                    number: '1',
+                                    title: 'Kekuatan Penetrasi',
+                                    desc: 'Memberikan pijatan dalam yang menenangkan otot-otot hingga ke akarnya.',
+                                },
+                                {
+                                    img: '/images/front/3.png',
+                                    number: '2',
+                                    title: 'Kekuatan Penyebar',
+                                    desc: 'Meningkatkan keselarasan antara sel yang memberikan efek relaksasi.',
+                                },
+                                {
+                                    img: '/images/front/4.png',
+                                    number: '3',
+                                    title: 'Kekuatan Extract',
+                                    desc: 'Meningkatkan metabolisme dan mengeluarkan racun dari tubuh melalui berbagai cara, seperti: keringat, bersendawa, kentut, kaki/tangan dingin, dan lain-lain.',
+                                },
+                                {
+                                    img: '/images/front/5.png',
+                                    number: '4',
+                                    title: 'Kekuatan Gerak',
+                                    desc: 'Berfungsi untuk menjaga keselarasan sendi, otot, ligamen, dan tulang.',
+                                },
+                            ].map((card, i) => (
+                                <div
+                                    key={i}
+                                    className="flex-shrink-0 w-[75vw] sm:w-[55vw] md:w-full snap-start rounded-3xl overflow-hidden shadow-md bg-white flex flex-col"
+                                >
+                                    {/* Image */}
+                                    <div className="aspect-[4/3] overflow-hidden">
+                                        <img
+                                            src={card.img}
+                                            alt={card.title}
+                                            className="w-full h-full object-cover"
+                                            loading="lazy"
+                                        />
+                                    </div>
+                                    {/* Content */}
+                                    <div className="p-5 flex flex-col gap-2 flex-1">
+                                        <span className="inline-flex items-center gap-2 bg-primary text-white text-sm font-semibold px-4 py-1.5 rounded-full w-fit">
+                                            {card.number}. {card.title}
+                                        </span>
+                                        <div className="w-8 h-0.5 bg-primary/40 rounded-full mt-1"></div>
+                                        <p className="font-body-sm text-sm text-on-surface-variant leading-relaxed mt-1">
+                                            {card.desc}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </Reveal>
+                </section>
+
+                {/* Metode Inhaler Hidrogen */}
+                <section className=" py-10 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto">
+                    <Reveal delay={80}>
+                        <div className="flex flex-col lg:flex-row gap-10 lg:gap-16 items-center">
+                            {/* Image */}
+                            <div className="w-full lg:w-5/12 flex-shrink-0">
+                                <div className="rounded-3xl overflow-hidden shadow-xl">
+                                    <img
+                                        src="/images/front/pinned.png"
+                                        alt="Inhaler Hidrogen GenQi"
+                                        className="w-full h-full object-cover"
+                                        loading="lazy"
+                                    />
+                                </div>
+                            </div>
+                            {/* Text */}
+                            <div className="w-full lg:w-7/12 flex flex-col gap-5">
+                                <span className="inline-flex items-center gap-2 border border-primary text-primary text-sm font-semibold px-4 py-1.5 rounded-full w-fit">
+                                    ⚛ Metode Inhaler Hidrogen
+                                </span>
+                                <h2 className="font-headline-lg text-headline-lg text-primary leading-tight">
+                                    Pulihkan Vitalitas Seluler Secara Alami
+                                </h2>
+                                <p className="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+                                    Inhaler Hidrogen Molekuler adalah perangkat kesehatan inovatif yang memanfaatkan teknologi elektrolisis air tingkat lanjut untuk menghasilkan gas hidrogen (H₂) murni dengan konsentrasi tinggi. Alat ini dirancang khusus sebagai solusi terapi pendukung kesehatan di rumah yang aman, efektif, dan non-invasif. Dengan output gas yang stabil, perangkat ini bekerja dengan memisahkan molekul air menjadi gas hidrogen dan oksigen, memberikan metode alami untuk melawan stres oksidatif langsung dari sumbernya serta mendukung proses regenerasi sel secara optimal bagi vitalitas jangka panjang.
+                                </p>
+                                <p className="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+                                    Keunggulan utama alat ini terletak pada performa teknisnya yang mendukung kesehatan tubuh secara menyeluruh. Dengan kemampuan menghasilkan output gas mencapai <strong>1200ml/min</strong> untuk hidrogen dan <strong>600ml/min</strong> untuk oksigen, alat ini memastikan tubuh mendapatkan asupan antioksidan yang kuat sekaligus meningkatkan suplai oksigen ke seluruh jaringan organ. Desainnya yang ergonomis dan antarmuka yang intuitif menjadikan perangkat ini investasi kesehatan keluarga yang sangat praktis, memungkinkan siapa saja untuk menikmati manfaat terapi tingkat profesional dengan kenyamanan penggunaan yang maksimal di mana pun Anda berada.
+                                </p>
+                            </div>
+                        </div>
+                    </Reveal>
+                </section>
+
+                {/* Kondisi yang Kami Tangani */}
+                <section className=" py-10 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto">
+                    <Reveal delay={80}>
+                        <div className="mb-5    text-center max-w-2xl mx-auto">
+                            <h4 className="font-body-md text-body-md text-on-surface-variant">Perawatan Inhaler Hidrogen (GenQi Inhalasi Hidrogen)</h4>
+                        </div>
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-6 md:gap-8">
+                            {[
+                                { img: '/images/front/6.png', label: 'Antioksidan Kuat' },
+                                { img: '/images/front/7.png', label: 'Anti Inflamasi' },
+                                { img: '/images/front/9.png', label: 'Anti Aging' },
+                                { img: '/images/front/10.png', label: 'Anti Nyeri (Arthritis)' },
+                                { img: '/images/front/11.png', label: 'Anti Apoptosis Lindungi Neuron Dari Kematian (Stroke)' },
+                                { img: '/images/front/12.png', label: 'Lindungi Fungsi Kognitif (Alzheimer)' },
+                                { img: '/images/front/13.png', label: 'Sensitivitas Insulin (Diabetes)' },
+                                { img: '/images/front/14.png', label: 'Kurangi Efek Samping Kemoterapi' },
+                                { img: '/images/front/15.png', label: 'Lindungi Daya Memori' },
+                                { img: '/images/front/16.png', label: 'Lindungi Fungsi Mata' },
+                                { img: '/images/front/Your paragraph text (2).png', label: 'Kurangi Gejala Sinus' },
+                                { img: '/images/front/Your paragraph text (1).png', label: 'Perbaiki Kualitas Tidur' },
+                            ].map((item, i) => (
+                                <div
+                                    key={i}
+                                    className="flex flex-col items-center gap-3 group cursor-default"
+                                >
+                                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-surface flex items-center justify-center p-3 transition-all duration-300 group-hover:shadow-md group-hover:-translate-y-1">
+                                        <img
+                                            src={item.img}
+                                            alt={item.label}
+                                            className="w-full h-full object-contain"
+                                            loading="lazy"
+                                        />
+                                    </div>
+                                    <span className="text-center font-label-sm text-xs text-on-surface-variant group-hover:text-primary transition-colors duration-200 leading-tight">
+                                        {item.label}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </Reveal>
+                </section>
+
                 {/* Kategori Produk & Layanan (Carousel Section) */}
                 <section className="py-24 bg-surface-container-low px-margin-mobile md:px-margin-desktop overflow-hidden">
                     <Reveal className="max-w-container-max mx-auto" delay={80}>

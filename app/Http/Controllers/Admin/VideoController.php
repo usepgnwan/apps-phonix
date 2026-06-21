@@ -30,10 +30,16 @@ class VideoController extends Controller
             'is_pinned' => 'boolean'
         ]);
 
+        $isPinned = $validated['is_pinned'] ?? false;
+
+        if ($isPinned) {
+            Video::query()->update(['is_pinned' => false]);
+        }
+
         Video::create([
             'title' => $validated['title'],
             'video_link' => $validated['video_link'],
-            'is_pinned' => $validated['is_pinned'] ?? false,
+            'is_pinned' => $isPinned,
         ]);
 
         return redirect()->route('admin.videos.index')->with('success', 'Video berhasil ditambahkan.');
@@ -54,10 +60,16 @@ class VideoController extends Controller
             'is_pinned' => 'boolean'
         ]);
 
+        $isPinned = $validated['is_pinned'] ?? false;
+
+        if ($isPinned) {
+            Video::query()->where('id', '!=', $video->id)->update(['is_pinned' => false]);
+        }
+
         $video->update([
             'title' => $validated['title'],
             'video_link' => $validated['video_link'],
-            'is_pinned' => $validated['is_pinned'] ?? false,
+            'is_pinned' => $isPinned,
         ]);
 
         return redirect()->route('admin.videos.index')->with('success', 'Video berhasil diperbarui.');
@@ -68,5 +80,18 @@ class VideoController extends Controller
         $video->delete();
 
         return redirect()->route('admin.videos.index')->with('success', 'Video berhasil dihapus.');
+    }
+
+    public function togglePin(Video $video)
+    {
+        $newStatus = !$video->is_pinned;
+
+        if ($newStatus) {
+            Video::query()->where('id', '!=', $video->id)->update(['is_pinned' => false]);
+        }
+
+        $video->update(['is_pinned' => $newStatus]);
+
+        return back()->with('success', $newStatus ? 'Video berhasil disematkan.' : 'Penyematan video dibatalkan.');
     }
 }

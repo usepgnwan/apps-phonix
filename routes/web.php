@@ -86,6 +86,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('events', AdminEventController::class);
         Route::resource('payment-methods', AdminPaymentMethodController::class);
         Route::resource('videos', AdminVideoController::class);
+        Route::patch('videos/{video}/pin', [AdminVideoController::class, 'togglePin'])->name('videos.pin.toggle');
         Route::resource('testimonials', AdminTestimonialController::class);
         Route::resource('lead-sources', AdminLeadSourceController::class);
         Route::resource('positions', AdminPositionController::class)->except(['create', 'show', 'edit']);
