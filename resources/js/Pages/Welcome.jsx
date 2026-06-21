@@ -1016,25 +1016,25 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                         <div className="flex gap-5 overflow-x-auto snap-x snap-mandatory no-scrollbar md:grid md:grid-cols-4 md:overflow-visible pb-4 md:pb-0">
                             {[
                                 {
-                                    img: '/images/front/1.png',
+                                    img: '/images/front/1.jpg',
                                     number: '1',
                                     title: 'Kekuatan Penetrasi',
                                     desc: 'Memberikan pijatan dalam yang menenangkan otot-otot hingga ke akarnya.',
                                 },
                                 {
-                                    img: '/images/front/3.png',
+                                    img: '/images/front/3.jpg',
                                     number: '2',
                                     title: 'Kekuatan Penyebar',
                                     desc: 'Meningkatkan keselarasan antara sel yang memberikan efek relaksasi.',
                                 },
                                 {
-                                    img: '/images/front/4.png',
+                                    img: '/images/front/4.jpg',
                                     number: '3',
                                     title: 'Kekuatan Extract',
                                     desc: 'Meningkatkan metabolisme dan mengeluarkan racun dari tubuh melalui berbagai cara, seperti: keringat, bersendawa, kentut, kaki/tangan dingin, dan lain-lain.',
                                 },
                                 {
-                                    img: '/images/front/5.png',
+                                    img: '/images/front/5.jpg',
                                     number: '4',
                                     title: 'Kekuatan Gerak',
                                     desc: 'Berfungsi untuk menjaga keselarasan sendi, otot, ligamen, dan tulang.',
@@ -1077,7 +1077,7 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                             <div className="w-full lg:w-5/12 flex-shrink-0">
                                 <div className="rounded-3xl overflow-hidden shadow-xl">
                                     <img
-                                        src="/images/front/pinned.png"
+                                        src="/images/front/pinned.jpg"
                                         alt="Inhaler Hidrogen GenQi"
                                         className="w-full h-full object-cover"
                                         loading="lazy"
