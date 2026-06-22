@@ -9,11 +9,23 @@
 
         <link rel="icon" type="image/png" href="{{ asset('images/logo-transparent.png') }}">
 
-        <!-- Fonts -->
+        <!-- Preload LCP image — paling penting untuk skor LCP -->
+        <link rel="preload" as="image" href="{{ asset('images/banner-welcome.webp') }}" type="image/webp" fetchpriority="high">
+
+        <!-- Preconnects ke domain eksternal -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
-        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+        <link rel="preconnect" href="https://www.youtube.com">
+        <link rel="preconnect" href="https://i.ytimg.com" crossorigin>
+        <link rel="dns-prefetch" href="https://wa.me">
+
+        <!-- Fonts (Non-blocking) -->
+        <link rel="preload" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Playfair+Display:wght@600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+        <link rel="preload" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+        <noscript>
+            <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Playfair+Display:wght@600;700&display=swap">
+            <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap">
+        </noscript>
 
         <!-- PWA Meta Tags -->
         <link rel="manifest" href="/manifest.json">

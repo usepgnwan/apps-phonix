@@ -1,5 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 
+// Helper: ganti ekstensi ke WebP untuk picture source
+// Jika src sudah .webp, kembalikan langsung tanpa konversi
+const toWebP = (src) => {
+    if (!src) return src;
+    if (/\.webp$/i.test(src)) return src; // sudah WebP, skip convert
+    return src.replace(/\.(jpe?g|png)$/i, '.webp');
+};
+
 export default function BeforeAfterSlider({ beforeImage, afterImage, className = '' }) {
     const [sliderPosition, setSliderPosition] = useState(50);
     const containerRef = useRef(null);
@@ -61,15 +69,23 @@ export default function BeforeAfterSlider({ beforeImage, afterImage, className =
             }}
         >
             {/* Before Image (Bottom Layer) */}
-            <img src={beforeImage} alt="Before" className="absolute top-0 left-0 w-full h-full object-cover pointer-events-none" />
+            <picture>
+                <source srcSet={toWebP(beforeImage)} type="image/webp" />
+                <img src={beforeImage} alt="Before" className="absolute top-0 left-0 w-full h-full object-cover pointer-events-none" loading="lazy" decoding="async" />
+            </picture>
             
             {/* After Image (Top Layer) */}
-            <img 
-                src={afterImage} 
-                alt="After" 
-                className="absolute top-0 left-0 w-full h-full object-cover pointer-events-none"
-                style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}
-            />
+            <picture>
+                <source srcSet={toWebP(afterImage)} type="image/webp" />
+                <img 
+                    src={afterImage} 
+                    alt="After" 
+                    className="absolute top-0 left-0 w-full h-full object-cover pointer-events-none"
+                    style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}
+                    loading="lazy"
+                    decoding="async"
+                />
+            </picture>
             
             {/* Slider Line & Handle */}
             <div 
