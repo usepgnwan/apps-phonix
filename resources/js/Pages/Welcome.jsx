@@ -17,6 +17,13 @@ const storageImage = (path) => {
     return path.startsWith('/') ? path : `/storage/${path}`;
 };
 
+// Helper: convert path gambar ke WebP (untuk lokal, bukan URL eksternal)
+const toWebP = (src) => {
+    if (!src) return null;
+    if (src.startsWith('http://') || src.startsWith('https://')) return null; // skip eksternal
+    return src.replace(/\.(jpe?g|png)$/i, '.webp');
+};
+
 function BotanicalFallback({ label = 'Phoenix Herbal' }) {
     return (
         <div className="flex h-full w-full items-center justify-center bg-primary-fixed/25 text-primary">
@@ -137,7 +144,18 @@ function ProductCard({ onAddedToCart, product }) {
         <div className="min-w-[280px] md:min-w-[calc(25%-18px)] snap-start overflow-hidden rounded-2xl border border-outline-variant bg-white shadow-sm group/card cursor-pointer" style={{ opacity: '1', transform: 'translateY(0px)', transition: '0.6s ease-out' }}>
             <div className="relative h-48 overflow-hidden bg-[#F6F7F7]" ref={imageRef}>
                 {imageSrc ? (
-                    <img className="h-full w-full object-cover transition-transform duration-500 group-hover/card:scale-105" src={imageSrc} alt={product.name} />
+                    <picture>
+                        {toWebP(imageSrc) && <source srcSet={toWebP(imageSrc)} type="image/webp" />}
+                        <img
+                            className="h-full w-full object-cover transition-transform duration-500 group-hover/card:scale-105"
+                            src={imageSrc}
+                            alt={product.name}
+                            loading="lazy"
+                            decoding="async"
+                            width="280"
+                            height="192"
+                        />
+                    </picture>
                 ) : (
                     <BotanicalFallback label={productCategoryLabel(product)} />
                 )}
@@ -176,7 +194,18 @@ function ServiceCard({ service, consultationHref }) {
         <div className="min-w-[280px] md:min-w-[calc(25%-18px)] snap-start overflow-hidden rounded-2xl border border-outline-variant bg-white shadow-sm group/card cursor-pointer" style={{ opacity: '1', transform: 'translateY(0px)', transition: '0.6s ease-out' }}>
             <div className="relative h-48 overflow-hidden bg-[#F6F7F7]">
                 {imageSrc ? (
-                    <img className="h-full w-full object-cover transition-transform duration-500 group-hover/card:scale-105" src={imageSrc} alt={service.name} />
+                    <picture>
+                        {toWebP(imageSrc) && <source srcSet={toWebP(imageSrc)} type="image/webp" />}
+                        <img
+                            className="h-full w-full object-cover transition-transform duration-500 group-hover/card:scale-105"
+                            src={imageSrc}
+                            alt={service.name}
+                            loading="lazy"
+                            decoding="async"
+                            width="280"
+                            height="192"
+                        />
+                    </picture>
                 ) : (
                     <BotanicalFallback label="Layanan Phoenix" />
                 )}
@@ -238,7 +267,18 @@ function TestimonialCard({ testimonial }) {
             <p className="text-on-surface font-body-md leading-relaxed flex-1 italic">“{testimonial.content}”</p>
             <div className="flex items-center gap-3 pt-2 border-t border-outline-variant">
                 {avatarSrc ? (
-                    <img src={avatarSrc} alt={testimonial.customer_name} className="w-10 h-10 rounded-full object-cover border-2 border-primary-container shrink-0" />
+                    <picture>
+                        {toWebP(avatarSrc) && <source srcSet={toWebP(avatarSrc)} type="image/webp" />}
+                        <img
+                            src={avatarSrc}
+                            alt={testimonial.customer_name}
+                            className="w-10 h-10 rounded-full object-cover border-2 border-primary-container shrink-0"
+                            loading="lazy"
+                            decoding="async"
+                            width="40"
+                            height="40"
+                        />
+                    </picture>
                 ) : (
                     <div className="flex w-10 h-10 rounded-full border-2 border-primary-container bg-primary-fixed/35 text-primary shrink-0 items-center justify-center font-bold">
                         {(testimonial.customer_name ?? 'P').charAt(0).toUpperCase()}
@@ -429,42 +469,8 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
         handleScroll();
         window.addEventListener('scroll', handleScroll);
 
-        // Load jQuery first, expose globally, then load SpriteSpin
-        const initSpriteSpin = async () => {
-            const spriteSpinContainer = document.getElementById('spritespin-container');
-
-            if (!spriteSpinContainer) {
-                return;
-            }
-
-            const { default: jQuery } = await import('jquery');
-            window.jQuery = jQuery;
-            window.$ = jQuery;
-
-            await import('spritespin');
-
-            const frames = Array.from({ length: 7 }, (_, i) => `/360-frames/genqi/${i + 1}.png`);
-
-            jQuery(spriteSpinContainer).spritespin({
-                source: frames,
-                width: 400,
-                height: 400,
-                sense: -1,
-                animate: false,
-                responsive: true,
-                mods: ['drag', '360'],
-            });
-        };
-
-        initSpriteSpin();
-
         return () => {
             window.removeEventListener('scroll', handleScroll);
-            const spriteSpinContainer = document.getElementById('spritespin-container');
-
-            if (spriteSpinContainer && window.$?.(spriteSpinContainer).data('spritespin')) {
-                window.$(spriteSpinContainer).spritespin('destroy');
-            }
         };
     }, []);
 
@@ -560,7 +566,10 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
             <nav className={`fixed top-0 left-0 w-full z-50 border-b backdrop-blur-xl transition-all duration-300 ${isScrolled ? 'bg-white/95 border-[#E5E7EB] shadow-sm' : 'bg-white/80 border-white/70 shadow-none'}`}>
                 <div className="flex h-20 w-full max-w-container-max items-center justify-between px-margin-mobile md:px-margin-desktop mx-auto">
                     <SmoothAnchor className="rounded-2xl pr-3 transition-all duration-300 hover:opacity-80" href="#beranda" onClick={handleAnchorClick} aria-label="Phoenix Terapi & Herbal">
-                        <img src="/images/logo_blue_box.png" alt="Phoenix Terapi &amp; Herbal" className="h-12 w-auto rounded-xl object-contain shadow-sm shadow-black/10 md:h-14" />
+                        <picture>
+                            <source srcSet="/images/logo_blue_box.webp" type="image/webp" />
+                            <img src="/images/logo_blue_box.png" alt="Phoenix Terapi &amp; Herbal" className="h-12 w-auto rounded-xl object-contain shadow-sm shadow-black/10 md:h-14" width="56" height="56" decoding="async" />
+                        </picture>
                     </SmoothAnchor>
                     <div className="hidden items-center gap-8 md:flex">
                         <SmoothAnchor className="font-body-md text-body-md font-semibold text-[#1E4D3A] transition-colors hover:text-[#6FA788]" href="#beranda" onClick={handleAnchorClick}>Beranda</SmoothAnchor>
@@ -614,7 +623,19 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
             <main className="pt-20">
                 {/* Hero Section */}
                 <section id="beranda" className="relative isolate overflow-hidden bg-[#F6F7F7]">
-                    <img alt="Ruang terapi herbal dan wellness Phoenix" className="absolute inset-0 h-full w-full object-cover object-[70%_center] md:object-[74%_center] lg:object-[78%_center]" src="/images/banner-welcome.png" />
+                    {/* LCP Image — WebP dengan PNG fallback, fetchpriority high */}
+                    <picture>
+                        <source srcSet="/images/banner-welcome.webp" type="image/webp" />
+                        <img
+                            alt="Ruang terapi herbal dan wellness Phoenix"
+                            className="absolute inset-0 h-full w-full object-cover object-[70%_center] md:object-[74%_center] lg:object-[78%_center]"
+                            src="/images/banner-welcome.png"
+                            fetchpriority="high"
+                            decoding="async"
+                            width="1672"
+                            height="941"
+                        />
+                    </picture>
                     <div className="absolute inset-0 bg-gradient-to-r from-[#FFFDF7] via-[#FFFDF7]/90 to-[#FFFDF7]/30 md:from-[#FFFDF7] md:via-[#FFFDF7]/82 md:to-transparent lg:via-[#FFFDF7]/72 lg:to-transparent"></div>
                     <div className="absolute inset-0 bg-gradient-to-b from-white/55 via-transparent to-[#F6F7F7]/35"></div>
                     <div className="absolute left-0 top-0 h-72 w-72 rounded-full bg-[#A8C5B3]/30 blur-3xl"></div>
@@ -732,12 +753,16 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                                     {/* Soft shadow bawah produk */}
                                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-3/4 h-8 rounded-full blur-2xl" style={{ background: 'rgba(30,77,58,0.12)' }}></div>
 
-                                    {/* Product image — langsung besar */}
+                                    {/* Product image — above fold, eager load */}
                                     <img
                                         src='/360-frames/1.png'
                                         alt="GenQi Product"
                                         className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-105 group-hover:-translate-y-3"
                                         style={{ filter: 'drop-shadow(0 24px 48px rgba(30,77,58,0.18))' }}
+                                        fetchpriority="high"
+                                        decoding="async"
+                                        width="400"
+                                        height="400"
                                     />
 
                                     {/* 360° label
@@ -866,11 +891,18 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                             {/* Left Content (Image) */}
                             <div className="w-full lg:w-1/2">
                                 <div className="rounded-3xl overflow-hidden shadow-lg border border-outline-variant bg-white aspect-[4/3] relative">
-                                    <img
-                                        src="/images/genqi_bioscan.jpeg"
-                                        alt="Terapi GenQi Bio Elektrik"
-                                        className="w-full h-full object-cover object-[center_15%]"
-                                    />
+                                    <picture>
+                                        <source srcSet="/images/genqi_bioscan.webp" type="image/webp" />
+                                        <img
+                                            src="/images/genqi_bioscan.jpeg"
+                                            alt="Terapi GenQi Bio Elektrik"
+                                            className="w-full h-full object-cover object-[center_15%]"
+                                            loading="lazy"
+                                            decoding="async"
+                                            width="1600"
+                                            height="1200"
+                                        />
+                                    </picture>
                                 </div>
                             </div>
 
@@ -945,10 +977,11 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                                         <video
                                             className="w-full h-full object-cover absolute inset-0"
                                             controls
-                                            preload="metadata"
+                                            preload="none"
                                             playsInline
+                                            poster="/images/genqi_bioscan.webp"
                                         >
-                                            <source src="/images/video1.mp4#t=0.001" type="video/mp4" />
+                                            <source src="/images/video1.mp4" type="video/mp4" />
                                             Browser Anda tidak mendukung video HTML5.
                                         </video>
                                     )}
@@ -960,15 +993,15 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="rounded-3xl overflow-hidden shadow-lg border border-outline-variant bg-white aspect-[4/5] relative">
                                         <BeforeAfterSlider
-                                            beforeImage="/images/before/a1.jpeg"
-                                            afterImage="/images/before/b1.jpeg"
+                                            beforeImage="/images/before/b1.webp"
+                                            afterImage="/images/before/a1.webp"
                                             className="w-full h-full"
                                         />
                                     </div>
                                     <div className="rounded-3xl overflow-hidden shadow-lg border border-outline-variant bg-white aspect-[4/5] relative">
                                         <BeforeAfterSlider
-                                            beforeImage="/images/before/a2.jpeg"
-                                            afterImage="/images/before/b2.jpeg"
+                                            beforeImage="/images/before/b2.webp"
+                                            afterImage="/images/before/a2.webp"
                                             className="w-full h-full"
                                         />
                                     </div>
@@ -993,10 +1026,10 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                                         <video
                                             className="w-full h-full object-contain absolute inset-0"
                                             controls
-                                            preload="metadata"
+                                            preload="none"
                                             playsInline
                                         >
-                                            <source src={`/videos/${num}.mp4#t=0.001`} type="video/mp4" />
+                                            <source src={`/videos/${num}.mp4`} type="video/mp4" />
                                             Browser Anda tidak mendukung video HTML5.
                                         </video>
                                     </div>
@@ -1046,12 +1079,18 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                                 >
                                     {/* Image */}
                                     <div className="aspect-[4/3] overflow-hidden">
-                                        <img
-                                            src={card.img}
-                                            alt={card.title}
-                                            className="w-full h-full object-cover"
-                                            loading="lazy"
-                                        />
+                                        <picture>
+                                            <source srcSet={card.img.replace(/\.jpg$/, '.webp')} type="image/webp" />
+                                            <img
+                                                src={card.img}
+                                                alt={card.title}
+                                                className="w-full h-full object-cover"
+                                                loading="lazy"
+                                                decoding="async"
+                                                width="400"
+                                                height="300"
+                                            />
+                                        </picture>
                                     </div>
                                     {/* Content */}
                                     <div className="p-5 flex flex-col gap-2 flex-1">
@@ -1076,12 +1115,18 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                             {/* Image */}
                             <div className="w-full lg:w-5/12 flex-shrink-0">
                                 <div className="rounded-3xl overflow-hidden shadow-xl">
-                                    <img
-                                        src="/images/front/pinned.jpg"
-                                        alt="Inhaler Hidrogen GenQi"
-                                        className="w-full h-full object-cover"
-                                        loading="lazy"
-                                    />
+                                    <picture>
+                                        <source srcSet="/images/front/pinned.webp" type="image/webp" />
+                                        <img
+                                            src="/images/front/pinned.jpg"
+                                            alt="Inhaler Hidrogen GenQi"
+                                            className="w-full h-full object-cover"
+                                            loading="lazy"
+                                            decoding="async"
+                                            width="800"
+                                            height="600"
+                                        />
+                                    </picture>
                                 </div>
                             </div>
                             {/* Text */}
@@ -1121,20 +1166,26 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                                 { img: '/images/front/14.png', label: 'Kurangi Efek Samping Kemoterapi' },
                                 { img: '/images/front/15.png', label: 'Lindungi Daya Memori' },
                                 { img: '/images/front/16.png', label: 'Lindungi Fungsi Mata' },
-                                { img: '/images/front/Your paragraph text (2).png', label: 'Kurangi Gejala Sinus' },
-                                { img: '/images/front/Your paragraph text (1).png', label: 'Perbaiki Kualitas Tidur' },
+                                { img: '/images/front/kondisi-sinus.png', label: 'Kurangi Gejala Sinus' },
+                                { img: '/images/front/kondisi-tidur.png', label: 'Perbaiki Kualitas Tidur' },
                             ].map((item, i) => (
                                 <div
                                     key={i}
                                     className="flex flex-col items-center gap-3 group cursor-default"
                                 >
                                     <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-surface flex items-center justify-center p-3 transition-all duration-300 group-hover:shadow-md group-hover:-translate-y-1">
-                                        <img
-                                            src={item.img}
-                                            alt={item.label}
-                                            className="w-full h-full object-contain"
-                                            loading="lazy"
-                                        />
+                                        <picture>
+                                            <source srcSet={item.img.replace(/\.png$/, '.webp')} type="image/webp" />
+                                            <img
+                                                src={item.img}
+                                                alt={item.label}
+                                                className="w-full h-full object-contain"
+                                                loading="lazy"
+                                                decoding="async"
+                                                width="96"
+                                                height="96"
+                                            />
+                                        </picture>
                                     </div>
                                     <span className="text-center font-label-sm text-xs text-on-surface-variant group-hover:text-primary transition-colors duration-200 leading-tight">
                                         {item.label}
@@ -1249,11 +1300,18 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                         </div>
                         {/* Kanan: Gambar */}
                         <div className="w-full md:w-[42%] h-64 md:h-auto md:self-stretch shrink-0 flex items-center justify-center p-4">
-                            <img
-                                src="/images/capture_web.png"
-                                alt="Capture Website Phoenix"
-                                className="w-full h-full object-contain"
-                            />
+                            <picture>
+                                <source srcSet="/images/capture_web.webp" type="image/webp" />
+                                <img
+                                    src="/images/capture_web.png"
+                                    alt="Capture Website Phoenix"
+                                    className="w-full h-full object-contain"
+                                    loading="lazy"
+                                    decoding="async"
+                                    width="2878"
+                                    height="1636"
+                                />
+                            </picture>
                         </div>
                     </div>
                 </Reveal>
@@ -1261,7 +1319,10 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
             {/* Footer */}
             <footer className="w-full py-16 px-margin-mobile md:px-margin-desktop flex flex-col items-center gap-8 text-center bg-primary text-on-primary">
                 <div className="font-headline-md text-headline-md font-bold text-on-primary">
-                    <img alt="Phoenix Terapi &amp; Herbal" className="h-24 w-auto rounded-2xl object-contain shadow-lg shadow-black/10 md:h-28" src="/images/logo_blue_box.png" />
+                    <picture>
+                        <source srcSet="/images/logo_blue_box.webp" type="image/webp" />
+                        <img alt="Phoenix Terapi &amp; Herbal" className="h-24 w-auto rounded-2xl object-contain shadow-lg shadow-black/10 md:h-28" src="/images/logo_blue_box.png" width="112" height="112" loading="lazy" decoding="async" />
+                    </picture>
                 </div>
                 <div className="flex flex-wrap justify-center gap-x-12 gap-y-4">
                     <a className="font-body-sm text-body-sm text-on-primary/80 hover:text-on-primary transition-opacity" href="mailto:info@phoenixherbal.test">Hubungi Kami</a>
