@@ -1,5 +1,6 @@
-import { Head, Link } from '@inertiajs/react';
-import { Plus } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { Plus, Search } from 'lucide-react';
+import { useState } from 'react';
 
 import AdminDeleteButton from '@/Components/Admin/AdminDeleteButton';
 import AdminCard from '@/Components/Admin/AdminCard';
@@ -7,6 +8,7 @@ import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
 import EmptyState from '@/Components/Admin/EmptyState';
 import StatusBadge from '@/Components/Admin/StatusBadge';
 import AdminLayout from '@/Layouts/AdminLayout';
+import Pagination from '@/Components/Admin/Pagination';
 
 const visitTipeLabels = { home_visit: 'Home Visit', office_visit: 'Office Visit', both: 'Home & Office' };
 
@@ -36,7 +38,30 @@ const storageImage = (path) => {
     return path.startsWith('/') ? path : `/storage/${path}`;
 };
 
-function AdminLayananIndex({ services = [] }) {
+function AdminLayananIndex({ services, filters }) {
+    const items = services?.data ?? services ?? [];
+
+    const [search, setSearch] = useState(filters?.search || '');
+    const [perPage, setPerPage] = useState(filters?.per_page || 10);
+
+    const handleFilterChange = (newSearch, newPerPage) => {
+        router.get(route('admin.services.index'), { search: newSearch, per_page: newPerPage }, {
+            preserveState: true,
+            replace: true,
+            preserveScroll: true
+        });
+    };
+
+    const handleSearch = (e) => {
+        setSearch(e.target.value);
+        handleFilterChange(e.target.value, perPage);
+    };
+
+    const handleLimitChange = (e) => {
+        setPerPage(e.target.value);
+        handleFilterChange(search, e.target.value);
+    };
+
     return (
         <>
             <Head title="Admin Layanan" />
@@ -55,7 +80,35 @@ function AdminLayananIndex({ services = [] }) {
                     eyebrow="Catalog / Layanan"
                     title="Layanan"
                 />
-                {services.length === 0 ? (
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="relative w-full max-w-md">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="Cari layanan..."
+                            value={search}
+                            onChange={handleSearch}
+                            className="w-full rounded-2xl border border-[#E5E7EB] py-2.5 pl-10 pr-4 text-sm focus:border-[#1E4D3A] focus:outline-none focus:ring-1 focus:ring-[#1E4D3A] font-body-sm bg-white shadow-sm"
+                        />
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <span>Tampilkan</span>
+                        <select
+                            value={perPage}
+                            onChange={handleLimitChange}
+                            className="rounded-xl border border-[#E5E7EB] py-2 pl-3 pr-8 text-sm focus:border-[#1E4D3A] focus:outline-none focus:ring-1 focus:ring-[#1E4D3A] font-body-sm bg-white shadow-sm"
+                        >
+                            <option value={10}>10</option>
+                            <option value={25}>25</option>
+                            <option value={50}>50</option>
+                            <option value={100}>100</option>
+                        </select>
+                        <span>data</span>
+                    </div>
+                </div>
+
+                {items.length === 0 ? (
                     <AdminCard className="p-5">
                         <EmptyState
                             description="Layanan akan tampil di sini setelah dibuat."
@@ -64,7 +117,7 @@ function AdminLayananIndex({ services = [] }) {
                     </AdminCard>
                 ) : (
                     <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-                        {services.map((service) => (
+                        {items.map((service) => (
                             <AdminCard className="p-5" key={service.id}>
                                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                                     <div className="flex gap-4">
@@ -132,6 +185,11 @@ function AdminLayananIndex({ services = [] }) {
                                 </div>
                             </AdminCard>
                         ))}
+                        {services.links?.length > 0 && (
+                            <div className="col-span-1 xl:col-span-2 flex justify-center mt-2">
+                                <Pagination links={services.links} />
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

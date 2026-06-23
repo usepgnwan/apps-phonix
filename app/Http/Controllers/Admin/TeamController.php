@@ -20,17 +20,18 @@ class TeamController extends Controller
         $this->authorizeAdmin();
 
         $search = $request->input('search');
+        $perPage = $request->input('per_page', 10);
         $teams = Team::query()
             ->when($search, function ($query, $search) {
                 $query->where('name', 'like', "%{$search}%");
             })
             ->latest()
-            ->paginate(10)
+            ->paginate($perPage)
             ->withQueryString();
 
         return Inertia::render('Admin/Teams/Index', [
             'teams' => $teams,
-            'filters' => $request->only(['search']),
+            'filters' => $request->only(['search', 'per_page']),
         ]);
     }
 

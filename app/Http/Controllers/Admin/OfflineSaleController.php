@@ -129,9 +129,9 @@ class OfflineSaleController extends Controller
                     $query->whereBetween('sold_at', [$startDate, $endDate]);
                 })
                 ->latest()
-                ->paginate(10)
+                ->paginate(request('per_page', 10))
                 ->withQueryString(),
-            'filters' => request()->only(['search', 'start_date', 'end_date']),
+            'filters' => request()->only(['search', 'start_date', 'end_date', 'per_page']),
             'products' => Product::query()->where('is_active', true)->orderBy('name')->get(),
             'services' => Service::query()->where('is_active', true)->orderBy('name')->get(),
             'customerProfiles' => CustomerProfile::query()->orderBy('name')->get(),

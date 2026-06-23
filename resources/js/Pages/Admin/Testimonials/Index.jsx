@@ -1,10 +1,11 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Edit, MessageSquare, Plus, Star, Trash2 } from 'lucide-react';
+import { Edit, MessageSquare, Plus, Star, Trash2, Search } from 'lucide-react';
 import { useState } from 'react';
 
 import AdminCard from '@/Components/Admin/AdminCard.jsx';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader.jsx';
 import AdminLayout from '@/Layouts/AdminLayout.jsx';
+import Pagination from '@/Components/Admin/Pagination.jsx';
 
 function StatusBadge({ isActive }) {
     if (isActive) {
@@ -13,7 +14,28 @@ function StatusBadge({ isActive }) {
     return <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800">Tidak Aktif</span>;
 }
 
-function AdminTestimonialIndex({ testimonials = [] }) {
+function AdminTestimonialIndex({ testimonials, filters }) {
+    const [search, setSearch] = useState(filters?.search || '');
+    const [perPage, setPerPage] = useState(filters?.per_page || 10);
+
+    const handleFilterChange = (newSearch, newPerPage) => {
+        router.get(route('admin.testimonials.index'), { search: newSearch, per_page: newPerPage }, {
+            preserveState: true,
+            replace: true,
+            preserveScroll: true
+        });
+    };
+
+    const handleSearch = (e) => {
+        setSearch(e.target.value);
+        handleFilterChange(e.target.value, perPage);
+    };
+
+    const handleLimitChange = (e) => {
+        setPerPage(e.target.value);
+        handleFilterChange(search, e.target.value);
+    };
+
     function handleDelete(testimonial) {
         if (confirm(`Apakah Anda yakin ingin menghapus testimoni dari "${testimonial.customer_name}"? Tindakan ini tidak dapat dibatalkan.`)) {
             router.delete(route('admin.testimonials.destroy', testimonial.id));
@@ -40,7 +62,34 @@ function AdminTestimonialIndex({ testimonials = [] }) {
                 />
 
                 <AdminCard className="overflow-hidden">
-                    {testimonials.length > 0 ? (
+                    <div className="border-b border-[#E5E7EB] px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="relative w-full max-w-md">
+                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                            <input
+                                type="text"
+                                placeholder="Cari nama atau isi ulasan..."
+                                value={search}
+                                onChange={handleSearch}
+                                className="w-full rounded-2xl border border-[#E5E7EB] py-2.5 pl-10 pr-4 text-sm focus:border-[#1E4D3A] focus:outline-none focus:ring-1 focus:ring-[#1E4D3A] font-body-sm bg-[#F9FAFB]"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                            <span>Tampilkan</span>
+                            <select
+                                value={perPage}
+                                onChange={handleLimitChange}
+                                className="rounded-xl border border-[#E5E7EB] py-2 pl-3 pr-8 text-sm focus:border-[#1E4D3A] focus:outline-none focus:ring-1 focus:ring-[#1E4D3A] font-body-sm bg-[#F9FAFB]"
+                            >
+                                <option value={10}>10</option>
+                                <option value={25}>25</option>
+                                <option value={50}>50</option>
+                                <option value={100}>100</option>
+                            </select>
+                            <span>data</span>
+                        </div>
+                    </div>
+
+                    {testimonials.data.length > 0 ? (
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm text-on-surface">
                                 <thead className="border-b border-outline-variant bg-surface-container-low text-xs uppercase text-on-surface-variant">
@@ -53,7 +102,7 @@ function AdminTestimonialIndex({ testimonials = [] }) {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-outline-variant">
-                                    {testimonials.map((testimonial) => (
+                                    {testimonials.data.map((testimonial) => (
                                         <tr className="transition hover:bg-surface-container-low/50" key={testimonial.id}>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
@@ -99,6 +148,9 @@ function AdminTestimonialIndex({ testimonials = [] }) {
                                     ))}
                                 </tbody>
                             </table>
+                            <div className="p-5 border-t border-outline-variant">
+                                <Pagination links={testimonials.links} />
+                            </div>
                         </div>
                     ) : (
                         <div className="flex flex-col items-center justify-center py-16 text-center">

@@ -1,6 +1,6 @@
 import { Head, Link, useForm, router } from '@inertiajs/react';
 import { useState } from 'react';
-import { CheckCircle2, ClipboardList, Minus, Package, Plus, Receipt, Search, ShoppingCart, Trash2, X, Printer, FileText, DollarSign, Award, Calculator, TrendingUp, Users } from 'lucide-react';
+import { CheckCircle2, ClipboardList, AlertCircle, Minus, Package, Plus, Receipt, Search, ShoppingCart, Trash2, X, Printer, FileText, DollarSign, Award, Calculator, TrendingUp, Users } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
 
 import AdminCard from '@/Components/Admin/AdminCard';
@@ -9,6 +9,7 @@ import EmptyState from '@/Components/Admin/EmptyState';
 import MetricCard from '@/Components/Admin/MetricCard';
 import Modal from '@/Components/Modal';
 import AdminLayout from '@/Layouts/AdminLayout';
+import Pagination from '@/Components/Admin/Pagination';
 
 function formatCurrency(value) {
     return new Intl.NumberFormat('id-ID', { currency: 'IDR', maximumFractionDigits: 0, style: 'currency' }).format(Number(value ?? 0));
@@ -231,7 +232,9 @@ function OfflineSalePosForm({ products, services, customerProfiles, leads, field
             setVoucherCheck({ status: 'invalid', data: null, message: 'Cek voucher terlebih dahulu sebelum menyimpan transaksi.' });
             return;
         }
-        form.transform(() => submitData).post(route('admin.offline-sales.store'), {
+        
+        form.transform(() => submitData);
+        form.post(route('admin.offline-sales.store'), {
             onSuccess: (page) => {
                 if (page.props.recentSale) {
                     setSuccessModalData(page.props.recentSale);
@@ -266,6 +269,23 @@ function OfflineSalePosForm({ products, services, customerProfiles, leads, field
 
     return (
         <form onSubmit={submit} className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_420px]">
+            {Object.keys(form.errors).length > 0 && (
+                <div className="col-span-1 xl:col-span-2 mb-2 rounded-xl border border-red-200 bg-red-50 p-4 shadow-sm">
+                    <div className="flex items-start gap-3">
+                        <div className="rounded-full bg-red-100 p-1.5 mt-0.5">
+                            <AlertCircle className="h-4 w-4 text-red-600" />
+                        </div>
+                        <div>
+                            <h3 className="font-body-sm text-sm font-bold text-red-800">Mohon perbaiki kesalahan berikut:</h3>
+                            <ul className="mt-1 list-inside list-disc font-body-sm text-sm text-red-700">
+                                {Object.entries(form.errors).map(([field, msg]) => (
+                                    <li key={field}>{msg}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            )}
             {/* ── LEFT: Products List ── */}
             <div className="space-y-4">
                 {/* Search */}
@@ -625,8 +645,10 @@ function OfflineSalePosForm({ products, services, customerProfiles, leads, field
 function OfflineSaleList({ offlineSales, filters, historyMetrics }) {
     const items = offlineSales.data ?? [];
     const [search, setSearch] = useState(filters?.search || '');
-    function handleFilter(overrideSearch = search) {
-        router.get(route('admin.offline-sales.index'), { search: overrideSearch, start_date: filters?.start_date, end_date: filters?.end_date }, {
+    const [perPage, setPerPage] = useState(filters?.per_page || 10);
+    
+    function handleFilter(overrideSearch = search, overridePerPage = perPage) {
+        router.get(route('admin.offline-sales.index'), { search: overrideSearch, start_date: filters?.start_date, end_date: filters?.end_date, per_page: overridePerPage }, {
             preserveState: true,
             replace: true,
             preserveScroll: true
@@ -635,7 +657,12 @@ function OfflineSaleList({ offlineSales, filters, historyMetrics }) {
 
     function handleSearchChange(e) {
         setSearch(e.target.value);
-        handleFilter(e.target.value);
+        handleFilter(e.target.value, perPage);
+    }
+    
+    function handleLimitChange(e) {
+        setPerPage(e.target.value);
+        handleFilter(search, e.target.value);
     }
 
     const sourceChartOption = {
@@ -832,16 +859,31 @@ function OfflineSaleList({ offlineSales, filters, historyMetrics }) {
 
             <AdminCard className="overflow-hidden mt-2">
                 <div className="border-b border-[#E5E7EB] px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <p className="font-bold text-[#333333] text-sm">Daftar Penjualan Offline Terbaru</p>
-                    <div className="relative w-full max-w-sm">
-                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                        <input
-                            type="text"
-                            placeholder="Cari customer, invoice, staff, lead, atau event..."
-                            value={search}
-                            onChange={handleSearchChange}
-                            className="w-full rounded-2xl border border-[#E5E7EB] py-2 pl-10 pr-4 text-sm focus:border-[#1E4D3A] focus:outline-none focus:ring-1 focus:ring-[#1E4D3A] font-body-sm"
-                        />
+                    <p className="font-bold text-[#333333] text-sm shrink-0">Daftar Penjualan Offline Terbaru</p>
+                    <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                        <div className="relative w-full sm:w-64">
+                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                            <input
+                                type="text"
+                                placeholder="Cari transaksi..."
+                                value={search}
+                                onChange={handleSearchChange}
+                                className="w-full rounded-2xl border border-[#E5E7EB] py-2 pl-10 pr-4 text-sm focus:border-[#1E4D3A] focus:outline-none focus:ring-1 focus:ring-[#1E4D3A] font-body-sm"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-500 shrink-0">
+                            <span>Tampilkan</span>
+                            <select
+                                value={perPage}
+                                onChange={handleLimitChange}
+                                className="rounded-xl border border-[#E5E7EB] py-2 pl-3 pr-8 text-sm focus:border-[#1E4D3A] focus:outline-none focus:ring-1 focus:ring-[#1E4D3A] font-body-sm bg-[#F9FAFB]"
+                            >
+                                <option value={10}>10</option>
+                                <option value={25}>25</option>
+                                <option value={50}>50</option>
+                                <option value={100}>100</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
                 <div className="overflow-x-auto">
@@ -938,29 +980,8 @@ function OfflineSaleList({ offlineSales, filters, historyMetrics }) {
         </AdminCard>
 
         {offlineSales.links?.length > 0 && (
-            <div className="flex flex-wrap gap-2 justify-center mt-4">
-                {offlineSales.links.map((link, i) => (
-                    link.url ? (
-                        <Link
-                            key={i}
-                            href={link.url}
-                            dangerouslySetInnerHTML={{ __html: link.label }}
-                            preserveScroll
-                            preserveState
-                            className={`rounded-full px-3 py-1.5 font-body-sm text-xs font-bold ${
-                                link.active
-                                    ? 'bg-[#1E4D3A] text-white'
-                                    : 'border border-[#E5E7EB] text-[#1E4D3A] hover:bg-[#A8C5B3]/20'
-                            }`}
-                        />
-                    ) : (
-                        <span
-                            key={i}
-                            dangerouslySetInnerHTML={{ __html: link.label }}
-                            className="rounded-full border border-[#E5E7EB] px-3 py-1.5 font-body-sm text-xs font-bold text-gray-400"
-                        />
-                    )
-                ))}
+            <div className="flex justify-center mt-4">
+                <Pagination links={offlineSales.links} preserveState={true} preserveScroll={true} />
             </div>
         )}
         </div>
@@ -970,7 +991,8 @@ function OfflineSaleList({ offlineSales, filters, historyMetrics }) {
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 function AdminOfflineSalesIndex({ offlineSales, filters, metrics, historyMetrics, products = [], services = [], customerProfiles = [], leads = [], fieldStaff = [], events = [], sources = [], paymentMethods = [] }) {
-    const [activeTab, setActiveTab] = useState(filters?.search ? 'history' : 'pos');
+    const isHistoryActive = filters?.search || filters?.start_date || filters?.end_date || (typeof window !== 'undefined' && window.location.search.includes('page='));
+    const [activeTab, setActiveTab] = useState(isHistoryActive ? 'history' : 'pos');
     const [startDate, setStartDate] = useState(filters?.start_date || '');
     const [endDate, setEndDate] = useState(filters?.end_date || '');
 

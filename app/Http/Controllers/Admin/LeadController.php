@@ -35,16 +35,39 @@ class LeadController extends Controller
             ->orderBy('name');
     }
 
-    public function index(): Response
+    public function index(\Illuminate\Http\Request $request): Response
     {
         $this->authorizeAdmin();
 
+        $search = $request->input('search');
+        $perPage = $request->input('per_page', 10);
+
+        $metrics = [
+            'total' => Lead::count(),
+            'newLead' => Lead::where('follow_up_status', 'new')->count(),
+            'interested' => Lead::where('follow_up_status', 'interested')->count(),
+            'needsFollowUp' => Lead::where('follow_up_status', 'needs_follow_up')->count(),
+            'purchased' => Lead::where('follow_up_status', 'purchased')->count(),
+        ];
+
+        $leads = Lead::query()
+            ->with(['leadSource:id,name,slug,is_active', 'assignedStaff:id,name,email', 'customerProfile:id,name,whatsapp_number', 'event:id,name,event_date'])
+            ->when($search, function ($query, $search) {
+                $query->where('name', 'like', "%{$search}%")
+                      ->orWhere('whatsapp_number', 'like', "%{$search}%")
+                      ->orWhereHas('assignedStaff', function ($query) use ($search) {
+                          $query->where('name', 'like', "%{$search}%");
+                      });
+            })
+            ->latest()
+            ->paginate($perPage)
+            ->withQueryString();
+
         return Inertia::render('Admin/Leads/Index', [
             'page' => 'admin.leads.index',
-            'leads' => Lead::query()
-                ->with(['leadSource:id,name,slug,is_active', 'assignedStaff:id,name,email', 'customerProfile:id,name,whatsapp_number', 'event:id,name,event_date'])
-                ->latest()
-                ->get(),
+            'leads' => $leads,
+            'metrics' => $metrics,
+            'filters' => $request->only(['search', 'per_page']),
         ]);
     }
 

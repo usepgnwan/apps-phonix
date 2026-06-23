@@ -23,15 +23,36 @@ class ExaminationController extends Controller
         abort_unless($user !== null && $user->role === 'admin' && $user->is_active, 403);
     }
 
-    public function index(): Response
+    public function index(\Illuminate\Http\Request $request): Response
     {
         $this->authorizeAdmin();
 
+        $search = $request->input('search');
+        $perPage = $request->input('per_page', 10);
+
+        $metrics = [
+            'total' => Examination::count(),
+            'withRecommendations' => Examination::has('productRecommendations')->count(),
+            'assignedToStaff' => Examination::whereNotNull('assigned_staff_id')->count(),
+        ];
+
+        $examinations = Examination::query()
+            ->with(['customerProfile', 'booking', 'creator', 'assignedStaff', 'productRecommendations.product'])
+            ->when($search, function ($query, $search) {
+                $query->whereHas('customerProfile', function ($query) use ($search) {
+                    $query->where('name', 'like', "%{$search}%");
+                })->orWhereHas('assignedStaff', function ($query) use ($search) {
+                    $query->where('name', 'like', "%{$search}%");
+                });
+            })
+            ->latest()
+            ->paginate($perPage)
+            ->withQueryString();
+
         return Inertia::render('Admin/Examinations/Index', [
-            'examinations' => Examination::query()
-                ->with(['customerProfile', 'booking', 'creator', 'assignedStaff', 'productRecommendations.product'])
-                ->latest()
-                ->get(),
+            'examinations' => $examinations,
+            'metrics' => $metrics,
+            'filters' => $request->only(['search', 'per_page']),
         ]);
     }
 

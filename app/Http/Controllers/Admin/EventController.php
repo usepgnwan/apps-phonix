@@ -19,15 +19,34 @@ class EventController extends Controller
         abort_unless($user !== null && $user->role === 'admin' && $user->is_active, 403);
     }
 
-    public function index(): Response
+    public function index(\Illuminate\Http\Request $request): Response
     {
         $this->authorizeAdmin();
 
+        $search = $request->input('search');
+        $perPage = $request->input('per_page', 10);
+
+        $metrics = [
+            'total' => Event::count(),
+            'active' => Event::where('is_active', true)->where('start_date', '<=', now())->where('end_date', '>=', now())->count(),
+            'upcoming' => Event::where('start_date', '>', now())->count(),
+            'past' => Event::where('end_date', '<', now())->count(),
+        ];
+
+        $events = Event::query()
+            ->withCount(['leads', 'offlineSales'])
+            ->when($search, function ($query, $search) {
+                $query->where('name', 'like', "%{$search}%")
+                      ->orWhere('location', 'like', "%{$search}%");
+            })
+            ->latest()
+            ->paginate($perPage)
+            ->withQueryString();
+
         return Inertia::render('Admin/Events/Index', [
-            'events' => Event::query()
-                ->withCount(['leads', 'offlineSales'])
-                ->latest()
-                ->get(),
+            'events' => $events,
+            'metrics' => $metrics,
+            'filters' => $request->only(['search', 'per_page']),
         ]);
     }
 

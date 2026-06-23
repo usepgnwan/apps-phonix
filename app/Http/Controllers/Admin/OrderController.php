@@ -79,7 +79,9 @@ class OrderController extends Controller
             }
         }
 
-        $orders = $query->latest()->paginate(15)->withQueryString();
+        $perPage = request('per_page', 10);
+        
+        $orders = $query->latest()->paginate($perPage)->withQueryString();
 
         $allOrders = Order::select('status', 'payment_status', 'shipping_status')->get();
         $metrics = [
@@ -101,6 +103,7 @@ class OrderController extends Controller
                 'start_date' => $startDate,
                 'end_date' => $endDate,
                 'status' => $status,
+                'per_page' => $perPage,
             ],
         ]);
     }

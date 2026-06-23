@@ -1,6 +1,6 @@
 import { Link } from '@inertiajs/react';
 
-export default function Pagination({ links }) {
+export default function Pagination({ links, preserveState = false, preserveScroll = false }) {
     if (!links || links.length <= 3) return null;
 
     return (
@@ -25,6 +25,8 @@ export default function Pagination({ links }) {
                     <Link
                         key={index}
                         href={link.url}
+                        preserveState={preserveState}
+                        preserveScroll={preserveScroll}
                         className={`px-3 py-2 text-sm rounded border transition ${
                             link.active
                                 ? 'bg-[#1E4D3A] text-white border-[#1E4D3A] font-bold'

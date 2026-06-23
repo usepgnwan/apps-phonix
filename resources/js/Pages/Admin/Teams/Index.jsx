@@ -6,9 +6,11 @@ import AdminCard from '@/Components/Admin/AdminCard';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
 import EmptyState from '@/Components/Admin/EmptyState';
 import Modal from '@/Components/Modal';
+import Pagination from '@/Components/Admin/Pagination';
 
 export default function Index({ teams, filters }) {
     const [search, setSearch] = useState(filters?.search || '');
+    const [perPage, setPerPage] = useState(filters?.per_page || 10);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -19,13 +21,22 @@ export default function Index({ teams, filters }) {
         description: '',
     });
 
-    const handleSearch = (e) => {
-        setSearch(e.target.value);
-        router.get(route('admin.teams.index'), { search: e.target.value }, {
+    const handleFilterChange = (newSearch, newPerPage) => {
+        router.get(route('admin.teams.index'), { search: newSearch, per_page: newPerPage }, {
             preserveState: true,
             replace: true,
             preserveScroll: true
         });
+    };
+
+    const handleSearch = (e) => {
+        setSearch(e.target.value);
+        handleFilterChange(e.target.value, perPage);
+    };
+
+    const handleLimitChange = (e) => {
+        setPerPage(e.target.value);
+        handleFilterChange(search, e.target.value);
     };
 
     const openCreateModal = () => {
@@ -107,6 +118,20 @@ export default function Index({ teams, filters }) {
                             className="w-full rounded-2xl border border-[#E5E7EB] py-2.5 pl-10 pr-4 text-sm focus:border-[#1E4D3A] focus:outline-none focus:ring-1 focus:ring-[#1E4D3A] font-body-sm bg-[#F9FAFB]"
                         />
                     </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <span>Tampilkan</span>
+                        <select
+                            value={perPage}
+                            onChange={handleLimitChange}
+                            className="rounded-xl border border-[#E5E7EB] py-2 pl-3 pr-8 text-sm focus:border-[#1E4D3A] focus:outline-none focus:ring-1 focus:ring-[#1E4D3A] font-body-sm bg-[#F9FAFB]"
+                        >
+                            <option value={10}>10</option>
+                            <option value={25}>25</option>
+                            <option value={50}>50</option>
+                            <option value={100}>100</option>
+                        </select>
+                        <span>data</span>
+                    </div>
                 </div>
 
                 {teams.data.length > 0 ? (
@@ -146,6 +171,9 @@ export default function Index({ teams, filters }) {
                                 ))}
                             </tbody>
                         </table>
+                        <div className="p-5 border-t border-[#E5E7EB]">
+                            <Pagination links={teams.links} />
+                        </div>
                     </div>
                 ) : (
                     <div className="py-12">

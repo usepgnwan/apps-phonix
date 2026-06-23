@@ -1,4 +1,6 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
+import { Search } from 'lucide-react';
+import { useState } from 'react';
 
 import AdminCard from '@/Components/Admin/AdminCard';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
@@ -6,6 +8,7 @@ import EmptyState from '@/Components/Admin/EmptyState';
 import MetricCard from '@/Components/Admin/MetricCard';
 import StatusBadge from '@/Components/Admin/StatusBadge';
 import AdminLayout from '@/Layouts/AdminLayout';
+import Pagination from '@/Components/Admin/Pagination';
 
 function formatNumber(value) {
     return new Intl.NumberFormat('id-ID').format(Number(value ?? 0));
@@ -52,11 +55,27 @@ function discountDisplay(voucher) {
     return formatCurrency(voucher.discount_value);
 }
 
-function AdminVoucherPenukaranIndex({ voucher, redemptions = [] }) {
-    const totalDiskon = redemptions.reduce(
-        (total, redemption) => total + Number(redemption.discount_amount ?? 0),
-        0,
-    );
+function AdminVoucherPenukaranIndex({ voucher, redemptions, metrics, filters }) {
+    const [search, setSearch] = useState(filters?.search || '');
+    const [perPage, setPerPage] = useState(filters?.per_page || 10);
+
+    const handleFilterChange = (newSearch, newPerPage) => {
+        router.get(route('admin.vouchers.redemptions.index', voucher.id), { search: newSearch, per_page: newPerPage }, {
+            preserveState: true,
+            replace: true,
+            preserveScroll: true
+        });
+    };
+
+    const handleSearch = (e) => {
+        setSearch(e.target.value);
+        handleFilterChange(e.target.value, perPage);
+    };
+
+    const handleLimitChange = (e) => {
+        setPerPage(e.target.value);
+        handleFilterChange(search, e.target.value);
+    };
 
     return (
         <>
@@ -104,14 +123,14 @@ function AdminVoucherPenukaranIndex({ voucher, redemptions = [] }) {
                         icon="R"
                         label="Penukaran"
                         tone="blue"
-                        value={formatNumber(redemptions.length)}
+                        value={formatNumber(metrics.total_redemptions)}
                     />
                     <MetricCard
                         helper="Akumulasi diskon diberikan"
                         icon="T"
                         label="Nilai Diskon"
                         tone="brown"
-                        value={formatCurrency(totalDiskon)}
+                        value={formatCurrency(metrics.total_discount)}
                     />
                 </div>
 
@@ -132,8 +151,35 @@ function AdminVoucherPenukaranIndex({ voucher, redemptions = [] }) {
                             />
                         </div>
                     </div>
+                    
+                    <div className="border-b border-[#E5E7EB] px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="relative w-full max-w-md">
+                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                            <input
+                                type="text"
+                                placeholder="Cari profil customer atau order..."
+                                value={search}
+                                onChange={handleSearch}
+                                className="w-full rounded-2xl border border-[#E5E7EB] py-2.5 pl-10 pr-4 text-sm focus:border-[#1E4D3A] focus:outline-none focus:ring-1 focus:ring-[#1E4D3A] font-body-sm bg-white shadow-sm"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                            <span>Tampilkan</span>
+                            <select
+                                value={perPage}
+                                onChange={handleLimitChange}
+                                className="rounded-xl border border-[#E5E7EB] py-2 pl-3 pr-8 text-sm focus:border-[#1E4D3A] focus:outline-none focus:ring-1 focus:ring-[#1E4D3A] font-body-sm bg-white shadow-sm"
+                            >
+                                <option value={10}>10</option>
+                                <option value={25}>25</option>
+                                <option value={50}>50</option>
+                                <option value={100}>100</option>
+                            </select>
+                            <span>data</span>
+                        </div>
+                    </div>
 
-                    {redemptions.length === 0 ? (
+                    {redemptions.data.length === 0 ? (
                         <div className="p-5">
                             <EmptyState
                                 description="Customer redemption akan tampil di sini setelah voucher digunakan pada order."
@@ -157,7 +203,7 @@ function AdminVoucherPenukaranIndex({ voucher, redemptions = [] }) {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-[#E5E7EB] bg-white">
-                                    {redemptions.map((redemption) => (
+                                    {redemptions.data.map((redemption) => (
                                         <tr className="transition hover:bg-[#A8C5B3]/10" key={redemption.id}>
                                             <td className="whitespace-nowrap px-4 py-4 font-body-sm text-sm font-bold text-[#333333]">
                                                 {customerName(redemption)}
@@ -175,6 +221,11 @@ function AdminVoucherPenukaranIndex({ voucher, redemptions = [] }) {
                                     ))}
                                 </tbody>
                             </table>
+                            {redemptions.links?.length > 0 && (
+                                <div className="p-5 border-t border-[#E5E7EB]">
+                                    <Pagination links={redemptions.links} />
+                                </div>
+                            )}
                         </div>
                     )}
                 </AdminCard>

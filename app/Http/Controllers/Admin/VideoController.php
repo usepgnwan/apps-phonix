@@ -9,11 +9,22 @@ use Inertia\Inertia;
 
 class VideoController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $videos = Video::latest()->paginate(10);
+        $search = $request->input('search');
+        $perPage = $request->input('per_page', 10);
+
+        $videos = Video::query()
+            ->when($search, function ($query, $search) {
+                $query->where('title', 'like', "%{$search}%");
+            })
+            ->latest()
+            ->paginate($perPage)
+            ->withQueryString();
+
         return Inertia::render('Admin/Videos/Index', [
-            'videos' => $videos
+            'videos' => $videos,
+            'filters' => $request->only(['search', 'per_page']),
         ]);
     }
 

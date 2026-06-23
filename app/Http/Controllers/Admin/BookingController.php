@@ -19,19 +19,44 @@ class BookingController extends Controller
         abort_unless($user !== null && $user->role === 'admin' && $user->is_active, 403);
     }
 
-    public function index(): Response
+    public function index(\Illuminate\Http\Request $request): Response
     {
         $this->authorizeAdmin();
 
+        $search = $request->input('search');
+        $perPage = $request->input('per_page', 10);
+
+        $metrics = [
+            'totalBooking' => Booking::count(),
+            'waitingConfirmation' => Booking::where('status', 'waiting_confirmation')->count(),
+            'confirmed' => Booking::where('status', 'confirmed')->count(),
+            'completed' => Booking::where('status', 'completed')->count(),
+            'cancelled' => Booking::where('status', 'cancelled')->count(),
+        ];
+
+        $bookings = Booking::query()
+            ->with([
+                'user:id,name,email',
+                'customerProfile:id,user_id,name,whatsapp_number,primary_address,member_status',
+                'service:id,name,slug,description,price,visit_type,image_path',
+            ])
+            ->when($search, function ($query, $search) {
+                $query->where('booking_number', 'like', "%{$search}%")
+                      ->orWhereHas('customerProfile', function ($query) use ($search) {
+                          $query->where('name', 'like', "%{$search}%");
+                      })
+                      ->orWhereHas('service', function ($query) use ($search) {
+                          $query->where('name', 'like', "%{$search}%");
+                      });
+            })
+            ->latest()
+            ->paginate($perPage)
+            ->withQueryString();
+
         return Inertia::render('Admin/Bookings/Index', [
-            'bookings' => Booking::query()
-                ->with([
-                    'user:id,name,email',
-                    'customerProfile:id,user_id,name,whatsapp_number,primary_address,member_status',
-                    'service:id,name,slug,description,price,visit_type,image_path',
-                ])
-                ->latest()
-                ->get(),
+            'bookings' => $bookings,
+            'metrics' => $metrics,
+            'filters' => $request->only(['search', 'per_page']),
         ]);
     }
 

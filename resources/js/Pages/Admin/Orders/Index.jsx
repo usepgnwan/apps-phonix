@@ -138,6 +138,14 @@ function AdminOrderIndex({ orders = {}, filters = {}, metrics = {} }) {
         );
     };
 
+    const handleLimitChange = (e) => {
+        router.get(
+            route('admin.orders.index'),
+            { ...filters, per_page: e.target.value, page: 1 },
+            { preserveState: true, preserveScroll: true }
+        );
+    };
+
     const toggleCurrentPageSelection = () => {
         setSelectedOrderIds((currentIds) => {
             if (isAllCurrentPageSelected) {
@@ -227,6 +235,21 @@ function AdminOrderIndex({ orders = {}, filters = {}, metrics = {} }) {
                                     router.get(route('admin.orders.index'), { ...filters, end_date: e.target.value }, { preserveState: true, preserveScroll: true });
                                 }}
                             />
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-500 ml-auto">
+                            <span>Tampilkan</span>
+                            <select
+                                value={filters.per_page || 10}
+                                onChange={handleLimitChange}
+                                className="rounded-xl border border-gray-300 py-2 pl-3 pr-8 text-sm focus:border-[#1E4D3A] focus:outline-none focus:ring-1 focus:ring-[#1E4D3A] font-body-sm"
+                            >
+                                <option value={10}>10</option>
+                                <option value={15}>15</option>
+                                <option value={25}>25</option>
+                                <option value={50}>50</option>
+                                <option value={100}>100</option>
+                            </select>
+                            <span>data</span>
                         </div>
                     </div>
 
