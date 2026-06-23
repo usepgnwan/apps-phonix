@@ -23,13 +23,26 @@ class ServiceController extends Controller
         abort_unless($user !== null && $user->role === 'admin' && $user->is_active, 403);
     }
 
-    public function index(): Response
+    public function index(\Illuminate\Http\Request $request): Response
     {
         $this->authorizeAdmin();
 
+        $search = $request->input('search');
+        $perPage = $request->input('per_page', 10);
+
+        $services = Service::query()
+            ->when($search, function ($query, $search) {
+                $query->where('name', 'like', "%{$search}%")
+                      ->orWhere('description', 'like', "%{$search}%");
+            })
+            ->latest()
+            ->paginate($perPage)
+            ->withQueryString();
+
         return Inertia::render('Admin/Services/Index', [
             'page' => 'admin.services.index',
-            'services' => Service::query()->latest()->get(),
+            'services' => $services,
+            'filters' => $request->only(['search', 'per_page']),
         ]);
     }
 

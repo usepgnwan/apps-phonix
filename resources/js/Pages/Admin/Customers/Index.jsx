@@ -1,4 +1,6 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
+import { Search } from 'lucide-react';
+import { useState } from 'react';
 
 import AdminCard from '@/Components/Admin/AdminCard';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
@@ -6,6 +8,7 @@ import EmptyState from '@/Components/Admin/EmptyState';
 import MetricCard from '@/Components/Admin/MetricCard';
 import StatusBadge from '@/Components/Admin/StatusBadge';
 import AdminLayout from '@/Layouts/AdminLayout';
+import Pagination from '@/Components/Admin/Pagination';
 
 function formatNumber(value) {
     return new Intl.NumberFormat('id-ID').format(Number(value ?? 0));
@@ -35,13 +38,26 @@ function MemberBadge({ status }) {
     );
 }
 
-function AdminCustomerIndex({ customerProfiles = [] }) {
-    const metrics = {
-        total: customerProfiles.length,
-        members: customerProfiles.filter((profile) => profile.member_status === 'member').length,
-        nonMembers: customerProfiles.filter((profile) => profile.member_status === 'non_member').length,
-        orders: customerProfiles.reduce((total, profile) => total + Number(profile.orders_count ?? 0), 0),
-        bookings: customerProfiles.reduce((total, profile) => total + Number(profile.bookings_count ?? 0), 0),
+function AdminCustomerIndex({ customerProfiles, metrics, filters }) {
+    const [search, setSearch] = useState(filters?.search || '');
+    const [perPage, setPerPage] = useState(filters?.per_page || 10);
+
+    const handleFilterChange = (newSearch, newPerPage) => {
+        router.get(route('admin.customers.index'), { search: newSearch, per_page: newPerPage }, {
+            preserveState: true,
+            replace: true,
+            preserveScroll: true
+        });
+    };
+
+    const handleSearch = (e) => {
+        setSearch(e.target.value);
+        handleFilterChange(e.target.value, perPage);
+    };
+
+    const handleLimitChange = (e) => {
+        setPerPage(e.target.value);
+        handleFilterChange(search, e.target.value);
     };
 
     return (
@@ -64,16 +80,34 @@ function AdminCustomerIndex({ customerProfiles = [] }) {
                 </div>
 
                 <AdminCard className="overflow-hidden">
-                    <div className="border-b border-[#E5E7EB] px-5 py-4">
-                        <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
-                            Booking & Customer
-                        </p>
-                        <h2 className="mt-1 font-body-lg text-lg font-extrabold text-[#333333]">
-                            Customer List
-                        </h2>
+                    <div className="border-b border-[#E5E7EB] px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="relative w-full max-w-md">
+                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                            <input
+                                type="text"
+                                placeholder="Cari nama atau nomor HP..."
+                                value={search}
+                                onChange={handleSearch}
+                                className="w-full rounded-2xl border border-[#E5E7EB] py-2.5 pl-10 pr-4 text-sm focus:border-[#1E4D3A] focus:outline-none focus:ring-1 focus:ring-[#1E4D3A] font-body-sm bg-[#F9FAFB]"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                            <span>Tampilkan</span>
+                            <select
+                                value={perPage}
+                                onChange={handleLimitChange}
+                                className="rounded-xl border border-[#E5E7EB] py-2 pl-3 pr-8 text-sm focus:border-[#1E4D3A] focus:outline-none focus:ring-1 focus:ring-[#1E4D3A] font-body-sm bg-[#F9FAFB]"
+                            >
+                                <option value={10}>10</option>
+                                <option value={25}>25</option>
+                                <option value={50}>50</option>
+                                <option value={100}>100</option>
+                            </select>
+                            <span>data</span>
+                        </div>
                     </div>
 
-                    {customerProfiles.length === 0 ? (
+                    {customerProfiles.data.length === 0 ? (
                         <div className="p-5">
                             <EmptyState
                                 description="Profil customer akan tampil di sini setelah customer membuat profile atau melakukan transaksi."
@@ -97,7 +131,7 @@ function AdminCustomerIndex({ customerProfiles = [] }) {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-[#E5E7EB] bg-white">
-                                    {customerProfiles.map((profile) => (
+                                    {customerProfiles.data.map((profile) => (
                                         <tr className="transition hover:bg-[#A8C5B3]/10" key={profile.id}>
                                             <td className="whitespace-nowrap px-4 py-4 font-body-sm text-sm font-bold text-[#333333]">
                                                 {customerName(profile)}
@@ -132,6 +166,9 @@ function AdminCustomerIndex({ customerProfiles = [] }) {
                                     ))}
                                 </tbody>
                             </table>
+                            <div className="p-5 border-t border-[#E5E7EB]">
+                                <Pagination links={customerProfiles.links} />
+                            </div>
                         </div>
                     )}
                 </AdminCard>

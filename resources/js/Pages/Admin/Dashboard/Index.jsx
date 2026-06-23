@@ -29,9 +29,9 @@ const mainMetrics = [
 ];
 
 const secondaryMetrics = [
-    ['Aktivitas lapangan', 'fieldActivities', ClipboardPlus],
-    ['Penjualan offline', 'offlineSales', Store],
-    ['Pemeriksaan internal', 'examinations', ClipboardPlus],
+    ['Aktivitas lapangan', 'fieldActivities', ClipboardPlus, 'admin.leads.index'],
+    ['Penjualan offline', 'offlineSales', Store, 'admin.offline-sales.index'],
+    ['Pemeriksaan internal', 'examinations', ClipboardPlus, 'admin.examinations.index'],
 ];
 
 function formatNumber(value) {
@@ -335,7 +335,7 @@ function AdminDashboard({ summary = {}, recent = {}, lowStockProducts = [], tren
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    {secondaryMetrics.map(([label, key, IconComponent]) => (
+                    {secondaryMetrics.map(([label, key, IconComponent, routeName]) => (
                         <AdminCard className="flex items-center justify-between p-4" key={key}>
                             <div className="flex flex-col">
                                 <span className="font-body-lg text-2xl font-extrabold text-[#333333]">
@@ -345,9 +345,18 @@ function AdminDashboard({ summary = {}, recent = {}, lowStockProducts = [], tren
                                     {label}
                                 </span>
                             </div>
-                            <button className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-400 hover:text-gray-600">
-                                <span className="text-xl leading-none">+</span>
-                            </button>
+                            {routeName && routeExists(routeName) ? (
+                                <Link
+                                    href={route(routeName)}
+                                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-400 hover:text-[#1E4D3A] hover:border-[#1E4D3A] transition"
+                                >
+                                    <span className="text-xl leading-none">+</span>
+                                </Link>
+                            ) : (
+                                <button className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-400 hover:text-gray-600" disabled>
+                                    <span className="text-xl leading-none">+</span>
+                                </button>
+                            )}
                         </AdminCard>
                     ))}
                 </div>

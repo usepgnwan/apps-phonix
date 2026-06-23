@@ -19,16 +19,40 @@ class VoucherController extends Controller
         abort_unless($user !== null && $user->role === 'admin' && $user->is_active, 403);
     }
 
-    public function index(): Response
+    public function index(\Illuminate\Http\Request $request): Response
     {
         $this->authorizeAdmin();
 
+        $search = $request->input('search');
+        $perPage = $request->input('per_page', 10);
+
+        $metrics = [
+            'total' => Voucher::count(),
+            'active' => Voucher::where('is_active', true)->where(function ($query) {
+                $query->whereNull('valid_until')->orWhere('valid_until', '>=', now());
+            })->count(),
+            'expired' => Voucher::where('is_active', false)->orWhere(function ($query) {
+                $query->whereNotNull('valid_until')->where('valid_until', '<', now());
+            })->count(),
+            'orders' => Voucher::withCount('orders')->get()->sum('orders_count'),
+            'redemptions' => Voucher::withCount('voucherRedemptions')->get()->sum('voucher_redemptions_count'),
+        ];
+
+        $vouchers = Voucher::query()
+            ->withCount(['orders', 'voucherRedemptions'])
+            ->when($search, function ($query, $search) {
+                $query->where('code', 'like', "%{$search}%")
+                      ->orWhere('description', 'like', "%{$search}%");
+            })
+            ->latest()
+            ->paginate($perPage)
+            ->withQueryString();
+
         return Inertia::render('Admin/Vouchers/Index', [
             'page' => 'admin.vouchers.index',
-            'vouchers' => Voucher::query()
-                ->withCount(['orders', 'voucherRedemptions'])
-                ->latest()
-                ->get(),
+            'vouchers' => $vouchers,
+            'metrics' => $metrics,
+            'filters' => $request->only(['search', 'per_page']),
         ]);
     }
 
@@ -96,17 +120,39 @@ class VoucherController extends Controller
         return redirect()->route('admin.vouchers.index')->with('success', 'Voucher berhasil dihapus.');
     }
 
-    public function redemptions(Voucher $voucher): Response
+    public function redemptions(\Illuminate\Http\Request $request, Voucher $voucher): Response
     {
         $this->authorizeAdmin();
 
+        $search = $request->input('search');
+        $perPage = $request->input('per_page', 10);
+
         $voucher->loadCount(['orders', 'voucherRedemptions']);
-        $redemptions = $voucher->voucherRedemptions()->with(['customerProfile', 'order'])->latest()->get();
+        
+        $metrics = [
+            'total_redemptions' => $voucher->voucherRedemptions()->count(),
+            'total_discount' => $voucher->voucherRedemptions()->sum('discount_amount'),
+        ];
+        
+        $redemptions = $voucher->voucherRedemptions()
+            ->with(['customerProfile', 'order'])
+            ->when($search, function ($query, $search) {
+                $query->whereHas('customerProfile', function ($query) use ($search) {
+                    $query->where('name', 'like', "%{$search}%");
+                })->orWhereHas('order', function ($query) use ($search) {
+                    $query->where('order_number', 'like', "%{$search}%");
+                });
+            })
+            ->latest()
+            ->paginate($perPage)
+            ->withQueryString();
 
         return Inertia::render('Admin/Vouchers/Redemptions/Index', [
             'page' => 'admin.vouchers.redemptions.index',
             'voucher' => $voucher,
             'redemptions' => $redemptions,
+            'metrics' => $metrics,
+            'filters' => $request->only(['search', 'per_page']),
         ]);
     }
 }

@@ -19,16 +19,39 @@ class PaymentMethodController extends Controller
         abort_unless($user !== null && $user->role === 'admin' && $user->is_active, 403);
     }
 
-    public function index(): Response
+    public function index(\Illuminate\Http\Request $request): Response
     {
         $this->authorizeAdmin();
 
+        $search = $request->input('search');
+        $perPage = $request->input('per_page', 10);
+
+        $metrics = [
+            'total' => PaymentMethod::count(),
+            'active' => PaymentMethod::where('is_active', true)->count(),
+            'bankTransfer' => PaymentMethod::where('type', 'bank_transfer')->count(),
+            'qris' => PaymentMethod::where('type', 'qris')->count(),
+            'cash' => PaymentMethod::where('type', 'cash')->count(),
+            'orders' => PaymentMethod::withCount('orders')->get()->sum('orders_count'),
+        ];
+
+        $paymentMethods = PaymentMethod::query()
+            ->withCount('orders')
+            ->when($search, function ($query, $search) {
+                $query->where('type', 'like', "%{$search}%")
+                      ->orWhere('bank_name', 'like', "%{$search}%")
+                      ->orWhere('account_number', 'like', "%{$search}%")
+                      ->orWhere('account_name', 'like', "%{$search}%");
+            })
+            ->latest()
+            ->paginate($perPage)
+            ->withQueryString();
+
         return Inertia::render('Admin/PaymentMethods/Index', [
             'page' => 'admin.payment-methods.index',
-            'paymentMethods' => PaymentMethod::query()
-                ->withCount('orders')
-                ->latest()
-                ->get(),
+            'paymentMethods' => $paymentMethods,
+            'metrics' => $metrics,
+            'filters' => $request->only(['search', 'per_page']),
         ]);
     }
 

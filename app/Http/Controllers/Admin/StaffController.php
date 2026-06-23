@@ -35,6 +35,7 @@ class StaffController extends Controller
         $this->authorizeAdmin();
 
         $search = $request->input('search');
+        $perPage = $request->input('per_page', 10);
         $staff = User::query()
             ->where('role', 'field_staff')
             ->with(['position', 'team'])
@@ -45,14 +46,14 @@ class StaffController extends Controller
                 });
             })
             ->latest()
-            ->paginate(10)
+            ->paginate($perPage)
             ->withQueryString();
 
         return Inertia::render('Admin/Staff/Index', [
             'staff' => $staff,
             'positions' => $this->staffHierarchyPositions(),
             'teams' => Team::orderBy('name')->get(),
-            'filters' => $request->only(['search']),
+            'filters' => $request->only(['search', 'per_page']),
         ]);
     }
 

@@ -18,13 +18,26 @@ class TestimonialController extends Controller
         abort_unless($user !== null && $user->role === 'admin' && $user->is_active, 403);
     }
 
-    public function index(): Response
+    public function index(\Illuminate\Http\Request $request): Response
     {
         $this->authorizeAdmin();
 
+        $search = $request->input('search');
+        $perPage = $request->input('per_page', 10);
+
+        $testimonials = Testimonial::query()
+            ->when($search, function ($query, $search) {
+                $query->where('customer_name', 'like', "%{$search}%")
+                      ->orWhere('content', 'like', "%{$search}%");
+            })
+            ->latest()
+            ->paginate($perPage)
+            ->withQueryString();
+
         return Inertia::render('Admin/Testimonials/Index', [
             'page' => 'admin.testimonials.index',
-            'testimonials' => Testimonial::query()->latest()->get(),
+            'testimonials' => $testimonials,
+            'filters' => $request->only(['search', 'per_page']),
         ]);
     }
 

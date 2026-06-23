@@ -24,13 +24,26 @@ class ProductController extends Controller
         abort_unless($user !== null && $user->role === 'admin' && $user->is_active, 403);
     }
 
-    public function index(): Response
+    public function index(\Illuminate\Http\Request $request): Response
     {
         $this->authorizeAdmin();
 
+        $search = $request->input('search');
+        $perPage = $request->input('per_page', 10);
+        
+        $products = Product::query()
+            ->with('productCategory:id,name,slug')
+            ->when($search, function ($query, $search) {
+                $query->where('name', 'like', "%{$search}%");
+            })
+            ->latest()
+            ->paginate($perPage)
+            ->withQueryString();
+
         return Inertia::render('Admin/Products/Index', [
             'page' => 'admin.products.index',
-            'products' => Product::query()->with('productCategory:id,name,slug')->latest()->get(),
+            'products' => $products,
+            'filters' => $request->only(['search', 'per_page']),
         ]);
     }
 

@@ -640,7 +640,8 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                     <div className="absolute inset-0 bg-gradient-to-b from-white/55 via-transparent to-[#F6F7F7]/35"></div>
                     <div className="absolute left-0 top-0 h-72 w-72 rounded-full bg-[#A8C5B3]/30 blur-3xl"></div>
                     <div className="relative z-10 mx-auto flex w-full max-w-container-max items-center px-margin-mobile py-16 md:px-margin-desktop md:py-24 lg:min-h-[calc(100vh-5rem)]">
-                        <Reveal className="max-w-2xl py-10 md:py-16">
+                        <Reveal className="max-w-2xl  ">
+                            <img src="/images/logo-jumbotron.png" alt="Phoenix Terapi & Herbal" className="w-28 md:w-96 object-contain" decoding="async" />
                             <h1 className="font-headline-xl text-5xl font-bold leading-tight text-[#1E4D3A] md:text-6xl lg:text-7xl">
                                 Hidup Seimbang Secara Alami
                             </h1>

@@ -1,11 +1,13 @@
-import { Head, Link } from '@inertiajs/react';
-import { Plus } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { Plus, Search } from 'lucide-react';
+import { useState } from 'react';
 
 import AdminCard from '@/Components/Admin/AdminCard';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
 import EmptyState from '@/Components/Admin/EmptyState';
 import MetricCard from '@/Components/Admin/MetricCard';
 import AdminLayout from '@/Layouts/AdminLayout';
+import Pagination from '@/Components/Admin/Pagination';
 
 function formatDateTime(value) {
     return value ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '-';
@@ -23,13 +25,28 @@ function recommendations(examination) {
     return examination.product_recommendations ?? examination.productRecommendations ?? [];
 }
 
-function AdminPemeriksaanIndex({ examinations = [] }) {
+function AdminPemeriksaanIndex({ examinations, metrics, filters }) {
     const items = examinations?.data ?? examinations ?? [];
-    const metrics = {
-        total: items.length,
-        recommendations: items.reduce((total, examination) => total + recommendations(examination).length, 0),
-        withBooking: items.filter((examination) => Boolean(examination.booking_id ?? examination.booking?.id)).length,
-        manual: items.filter((examination) => !(examination.booking_id ?? examination.booking?.id)).length,
+    
+    const [search, setSearch] = useState(filters?.search || '');
+    const [perPage, setPerPage] = useState(filters?.per_page || 10);
+
+    const handleFilterChange = (newSearch, newPerPage) => {
+        router.get(route('admin.examinations.index'), { search: newSearch, per_page: newPerPage }, {
+            preserveState: true,
+            replace: true,
+            preserveScroll: true
+        });
+    };
+
+    const handleSearch = (e) => {
+        setSearch(e.target.value);
+        handleFilterChange(e.target.value, perPage);
+    };
+
+    const handleLimitChange = (e) => {
+        setPerPage(e.target.value);
+        handleFilterChange(search, e.target.value);
     };
 
     return (
@@ -46,11 +63,37 @@ function AdminPemeriksaanIndex({ examinations = [] }) {
                     eyebrow="Booking & Customer / Pemeriksaan"
                     title="Pemeriksaan"
                 />
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                     <MetricCard helper="Seluruh pemeriksaan" icon="E" label="Total" tone="forest" value={formatNumber(metrics.total)} />
-                    <MetricCard helper="Produk direkomendasikan" icon="R" label="Rekomendasi" tone="sage" value={formatNumber(metrics.recommendations)} />
-                    <MetricCard helper="Terhubung booking" icon="B" label="Dengan Booking" tone="blue" value={formatNumber(metrics.withBooking)} />
-                    <MetricCard helper="Pemeriksaan manual" icon="M" label="Manual" tone="brown" value={formatNumber(metrics.manual)} />
+                    <MetricCard helper="Produk direkomendasikan" icon="R" label="Dengan Rekomendasi" tone="sage" value={formatNumber(metrics.withRecommendations)} />
+                    <MetricCard helper="Di-assign ke staff" icon="S" label="Staff Assigned" tone="blue" value={formatNumber(metrics.assignedToStaff)} />
+                </div>
+                
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="relative w-full max-w-md">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="Cari customer atau staff..."
+                            value={search}
+                            onChange={handleSearch}
+                            className="w-full rounded-2xl border border-[#E5E7EB] py-2.5 pl-10 pr-4 text-sm focus:border-[#1E4D3A] focus:outline-none focus:ring-1 focus:ring-[#1E4D3A] font-body-sm bg-white shadow-sm"
+                        />
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <span>Tampilkan</span>
+                        <select
+                            value={perPage}
+                            onChange={handleLimitChange}
+                            className="rounded-xl border border-[#E5E7EB] py-2 pl-3 pr-8 text-sm focus:border-[#1E4D3A] focus:outline-none focus:ring-1 focus:ring-[#1E4D3A] font-body-sm bg-white shadow-sm"
+                        >
+                            <option value={10}>10</option>
+                            <option value={25}>25</option>
+                            <option value={50}>50</option>
+                            <option value={100}>100</option>
+                        </select>
+                        <span>data</span>
+                    </div>
                 </div>
                 {items.length === 0 ? (
                     <AdminCard className="p-5"><EmptyState description="Pemeriksaan akan tampil di sini setelah dibuat." title="Belum ada pemeriksaan." /></AdminCard>
@@ -92,6 +135,11 @@ function AdminPemeriksaanIndex({ examinations = [] }) {
                                 </div>
                             </AdminCard>
                         ))}
+                        {examinations.links?.length > 0 && (
+                            <div className="col-span-1 xl:col-span-2 flex justify-center mt-2">
+                                <Pagination links={examinations.links} />
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
