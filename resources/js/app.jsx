@@ -12,7 +12,9 @@ createInertiaApp({
     resolve: (name) =>
         resolvePageComponent(
             `./Pages/${name}.jsx`,
-            import.meta.glob('./Pages/**/*.jsx'),
+            // { eager: false } memungkinkan Vite code-split tiap halaman jadi chunk terpisah
+            // Browser hanya download JS halaman yang sedang dibuka
+            import.meta.glob('./Pages/**/*.jsx', { eager: false }),
         ),
     setup({ el, App, props }) {
         const root = createRoot(el);
