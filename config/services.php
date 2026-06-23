@@ -35,4 +35,6 @@ return [
         ],
     ],
 
+    'gtm' => env('GTM'),
+
 ];

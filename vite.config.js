@@ -13,7 +13,24 @@ export default defineConfig({
     define: {
         global: 'globalThis',
     },
-    optimizeDeps: {
-        include: ['jquery', 'spritespin'],
+    build: {
+        rollupOptions: {
+            output: {
+                // Pisahkan vendor besar ke chunk terpisah supaya browser bisa cache lebih efektif
+                manualChunks: (id) => {
+                    if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+                        return 'react-vendor';
+                    }
+                    if (id.includes('node_modules/@inertiajs')) {
+                        return 'inertia-vendor';
+                    }
+                    if (id.includes('node_modules/lucide-react')) {
+                        return 'icons-vendor';
+                    }
+                },
+            },
+        },
+        // Peringatan saat chunk > 500KB
+        chunkSizeWarningLimit: 500,
     },
 });
