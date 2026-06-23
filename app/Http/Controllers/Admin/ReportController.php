@@ -74,7 +74,48 @@ class ReportController extends Controller
 
         return $pdf->stream('laporan-phoenix-'.$period['start_date'].'-'.$period['end_date'].'.pdf');
     }
+    public function productSales(Request $request, \App\Models\Product $product)
+    {
+        $this->authorizeAdmin();
 
+        $period = $this->resolvePeriod($request);
+        $start = Carbon::parse($period['start_date'])->startOfDay();
+        $end = Carbon::parse($period['end_date'])->endOfDay();
+
+        $onlineSales = \Illuminate\Support\Facades\DB::table('order_items')
+            ->join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->where('order_items.product_id', $product->id)
+            ->whereBetween('orders.created_at', [$start, $end])
+            ->where(function ($query) {
+                $query->where('orders.payment_status', 'paid')
+                    ->orWhereIn('orders.status', ['payment_received', 'completed']);
+            })
+            ->selectRaw("
+                'Online' as source,
+                orders.order_number as reference,
+                orders.created_at as date,
+                order_items.quantity,
+                order_items.line_total as total
+            ");
+
+        $offlineSales = \Illuminate\Support\Facades\DB::table('offline_sale_items')
+            ->join('offline_sales', 'offline_sale_items.offline_sale_id', '=', 'offline_sales.id')
+            ->where('offline_sale_items.product_id', $product->id)
+            ->whereBetween('offline_sales.sold_at', [$start, $end])
+            ->selectRaw("
+                'Offline' as source,
+                offline_sales.sale_number as reference,
+                offline_sales.sold_at as date,
+                offline_sale_items.quantity,
+                offline_sale_items.line_total as total
+            ");
+
+        $transactions = $onlineSales->unionAll($offlineSales)
+            ->orderByDesc('date')
+            ->paginate($request->input('per_page', 10));
+
+        return response()->json($transactions);
+    }
 
     private function reportRows(array $period, array $reports): array
     {
@@ -97,6 +138,7 @@ class ReportController extends Controller
             'ordersByStatus' => 'Order Berdasarkan Status',
             'fieldActivitiesByType' => 'Aktivitas Lapangan Berdasarkan Jenis',
             'productRecommendationsByProduct' => 'Rekomendasi Produk Berdasarkan Produk',
+            'productStockAndSales' => 'Stok & Penjualan Produk',
         ];
 
         $rows = [
@@ -335,6 +377,7 @@ class ReportController extends Controller
             'ordersByStatus' => $this->ordersByStatus($start, $end),
             'fieldActivitiesByType' => $this->fieldActivitiesByType($start, $end),
             'productRecommendationsByProduct' => $this->productRecommendationsByProduct($start, $end),
+            'productStockAndSales' => $this->productStockAndSales($start, $end),
         ];
 
         $websiteOrderRevenue = $this->paidOrders($start, $end)->sum('total');
@@ -479,6 +522,42 @@ class ReportController extends Controller
                 'slug' => $recommendation->product?->slug,
                 'total' => (int) $recommendation->total,
             ]);
+    }
+
+    private function productStockAndSales(Carbon $start, Carbon $end)
+    {
+        return \App\Models\Product::query()
+            ->select('id', 'name', 'stock_quantity')
+            ->get()
+            ->map(function (\App\Models\Product $product) use ($start, $end): array {
+                $onlineSales = \Illuminate\Support\Facades\DB::table('order_items')
+                    ->join('orders', 'order_items.order_id', '=', 'orders.id')
+                    ->where('order_items.product_id', $product->id)
+                    ->whereBetween('orders.created_at', [$start, $end])
+                    ->where(function ($query) {
+                        $query->where('orders.payment_status', 'paid')
+                            ->orWhereIn('orders.status', ['payment_received', 'completed']);
+                    })
+                    ->sum('order_items.quantity');
+
+                $offlineSales = \Illuminate\Support\Facades\DB::table('offline_sale_items')
+                    ->join('offline_sales', 'offline_sale_items.offline_sale_id', '=', 'offline_sales.id')
+                    ->where('offline_sale_items.product_id', $product->id)
+                    ->whereBetween('offline_sales.sold_at', [$start, $end])
+                    ->sum('offline_sale_items.quantity');
+
+                $totalSold = (int) ($onlineSales + $offlineSales);
+
+                return [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'slug' => 'Stok Tersedia: ' . number_format($product->stock_quantity, 0, ',', '.'),
+                    'total' => $totalSold,
+                ];
+            })
+            ->sortByDesc('total')
+            ->values()
+            ->all();
     }
 
     private function trends(Carbon $start, Carbon $end): array

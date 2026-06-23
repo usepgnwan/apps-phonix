@@ -137,6 +137,11 @@ function AdminVouchersShow({ voucher }) {
                                 {voucher.minimum_purchase ? formatCurrency(voucher.minimum_purchase) : '-'}
                             </DetailRow>
                             <DetailRow label="Batas Penggunaan">{voucher.usage_limit ?? 'Tanpa batas'}</DetailRow>
+                            <DetailRow label="Target Audiens">
+                                {voucher.target_audience === 'member' ? 'Hanya Member' : 
+                                 voucher.target_audience === 'non_member' ? 'Hanya Non Member' : 
+                                 'Semua Pengguna'}
+                            </DetailRow>
                             <DetailRow label="Status">
                                 <StatusBadge
                                     label={voucher.is_published ? 'Dipublikasikan' : 'Draf'}

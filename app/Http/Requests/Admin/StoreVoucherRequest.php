@@ -38,6 +38,7 @@ class StoreVoucherRequest extends FormRequest
             'ends_at' => ['required', 'date', 'after_or_equal:starts_at'],
             'usage_limit' => ['required', 'integer', 'min:1'],
             'is_published' => ['required', 'boolean'],
+            'target_audience' => ['required', Rule::in(['all', 'member', 'non_member'])],
         ];
     }
 }

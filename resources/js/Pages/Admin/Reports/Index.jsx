@@ -1,5 +1,7 @@
 import { Head, router } from '@inertiajs/react';
-import { BarChart3, Banknote, CalendarCheck, ClipboardList, Download, FileText, ReceiptText, Store, UserRound, UsersRound } from 'lucide-react';
+import { useState } from 'react';
+import axios from 'axios';
+import { BarChart3, Banknote, CalendarCheck, ClipboardList, Download, FileText, ReceiptText, Store, UserRound, UsersRound, X, ExternalLink } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
 
 import AdminCard from '@/Components/Admin/AdminCard';
@@ -8,6 +10,7 @@ import EmptyState from '@/Components/Admin/EmptyState';
 import MetricCard from '@/Components/Admin/MetricCard';
 import StatusBadge from '@/Components/Admin/StatusBadge';
 import AdminLayout from '@/Layouts/AdminLayout';
+import Modal from '@/Components/Modal';
 
 const periodOptions = [
     ['today', 'Hari Ini'],
@@ -66,7 +69,7 @@ function SectionHeader({ eyebrow, title, description }) {
     );
 }
 
-function ReportRow({ title, meta, total, children }) {
+function ReportRow({ title, meta, total, children, onClickTotal }) {
     return (
         <div className="flex items-start justify-between gap-4 rounded-2xl border border-[#E5E7EB] bg-[#F6F7F7] px-4 py-3">
             <div className="min-w-0">
@@ -81,23 +84,38 @@ function ReportRow({ title, meta, total, children }) {
             </div>
             <div className="flex shrink-0 flex-col items-end gap-2 text-right">
                 {children}
-                <span className="font-body-sm text-sm font-extrabold text-[#1E4D3A]">
-                    {formatNumber(total)}
-                </span>
+                {onClickTotal ? (
+                    <button
+                        onClick={onClickTotal}
+                        className="font-body-sm text-sm font-extrabold text-[#1E4D3A] underline decoration-[#1E4D3A]/30 hover:decoration-[#1E4D3A] transition cursor-pointer flex items-center gap-1"
+                    >
+                        {formatNumber(total)} <ExternalLink className="h-3 w-3" />
+                    </button>
+                ) : (
+                    <span className="font-body-sm text-sm font-extrabold text-[#1E4D3A]">
+                        {formatNumber(total)}
+                    </span>
+                )}
             </div>
         </div>
     );
 }
 
-function ReportGroup({ eyebrow, title, description, rows = [], emptyTitle, emptyDeskripsi, renderRow }) {
+function ReportGroup({ eyebrow, title, description, rows = [], emptyTitle, emptyDeskripsi, renderRow, headers }) {
     return (
-        <AdminCard className="p-5">
+        <AdminCard className="p-5 flex flex-col h-full">
             <SectionHeader
                 description={description}
                 eyebrow={eyebrow}
                 title={title}
             />
-            <div className="space-y-3">
+            {headers && rows.length > 0 && (
+                <div className="flex items-center justify-between mb-3 border-b border-[#E5E7EB] pb-2 font-label-sm text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
+                    <div className="flex-1 text-left">{headers[0]}</div>
+                    <div className="shrink-0 text-right min-w-[80px] pr-1">{headers[1]}</div>
+                </div>
+            )}
+            <div className="space-y-3 flex-1">
                 {rows.length === 0 ? (
                     <EmptyState
                         description={emptyDeskripsi}
@@ -212,6 +230,35 @@ function PeriodFilter({ filters }) {
 }
 
 function AdminLaporan({ reports = {}, filters = {} }) {
+    const [selectedProduct, setSelectedProduct] = useState(null);
+    const [transactionsData, setTransactionsData] = useState(null);
+    const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
+
+    function fetchTransactions(productId, url = null) {
+        setIsLoadingTransactions(true);
+        const fetchUrl = url || route('admin.reports.product_sales', productId);
+        axios.get(fetchUrl, { params: filterParams(filters) })
+            .then(res => {
+                setTransactionsData(res.data);
+                setIsLoadingTransactions(false);
+            })
+            .catch(err => {
+                console.error(err);
+                setIsLoadingTransactions(false);
+            });
+    }
+
+    function openTransactionsModal(product) {
+        setSelectedProduct(product);
+        setTransactionsData(null);
+        fetchTransactions(product.id);
+    }
+
+    function closeTransactionsModal() {
+        setSelectedProduct(null);
+        setTransactionsData(null);
+    }
+
     const kpis = reports.kpis ?? {};
     const charts = reports.charts ?? {};
     const leadsBySource = reports.leadsBySource ?? [];
@@ -221,6 +268,7 @@ function AdminLaporan({ reports = {}, filters = {} }) {
     const ordersByStatus = reports.ordersByStatus ?? [];
     const fieldActivitiesByType = reports.fieldActivitiesByType ?? [];
     const productRecommendationsByProduct = reports.productRecommendationsByProduct ?? [];
+    const productStockAndSales = reports.productStockAndSales ?? [];
 
     return (
         <>
@@ -334,9 +382,119 @@ function AdminLaporan({ reports = {}, filters = {} }) {
                             rows={productRecommendationsByProduct}
                             title="Rekomendasi Produk per Produk"
                         />
+                        
+                        <ReportGroup
+                            description="Informasi stok produk tersedia dan jumlah terjual pada periode terkait."
+                            emptyDeskripsi="Stok dan penjualan produk akan tampil di sini."
+                            emptyTitle="Belum ada data stok produk."
+                            eyebrow="Inventaris"
+                            headers={['Produk', 'Terjual']}
+                            renderRow={(product) => (
+                                <ReportRow
+                                    key={product.id ?? product.name}
+                                    meta={product.slug ?? 'Tidak ada data'}
+                                    title={product.name}
+                                    total={product.total}
+                                    onClickTotal={product.total > 0 ? () => openTransactionsModal(product) : undefined}
+                                />
+                            )}
+                            rows={productStockAndSales}
+                            title="Stok & Penjualan Produk"
+                        />
                     </div>
                 </div>
             </div>
+
+            <Modal show={selectedProduct !== null} onClose={closeTransactionsModal} maxWidth="2xl">
+                <div className="p-6">
+                    <div className="flex items-start justify-between">
+                        <div>
+                            <h2 className="font-body-lg text-lg font-extrabold text-[#333333]">
+                                Transaksi: {selectedProduct?.name}
+                            </h2>
+                            <p className="mt-1 font-body-sm text-sm text-gray-500">
+                                Rincian penjualan online dan offline.
+                            </p>
+                        </div>
+                        <button
+                            className="rounded-xl p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition"
+                            onClick={closeTransactionsModal}
+                        >
+                            <X className="h-5 w-5" />
+                        </button>
+                    </div>
+
+                    <div className="mt-6 border border-[#E5E7EB] rounded-2xl overflow-hidden bg-white">
+                        <div className="overflow-x-auto overflow-y-auto max-h-[50vh]">
+                            <table className="w-full text-left font-body-sm text-sm">
+                                <thead className="bg-[#F6F7F7] sticky top-0 z-10 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+                                    <tr>
+                                        <th className="px-4 py-3 font-bold text-gray-600">Tanggal</th>
+                                        <th className="px-4 py-3 font-bold text-gray-600">Referensi</th>
+                                        <th className="px-4 py-3 font-bold text-gray-600">Sumber</th>
+                                        <th className="px-4 py-3 font-bold text-gray-600 text-right">Qty</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-[#E5E7EB]">
+                                    {isLoadingTransactions && !transactionsData ? (
+                                        <tr>
+                                            <td colSpan="4" className="px-4 py-8 text-center text-gray-500">
+                                                Memuat data transaksi...
+                                            </td>
+                                        </tr>
+                                    ) : transactionsData?.data?.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="4" className="px-4 py-8 text-center text-gray-500">
+                                                Tidak ada transaksi pada periode ini.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        transactionsData?.data?.map((trx, i) => (
+                                            <tr key={i} className="hover:bg-gray-50 transition">
+                                                <td className="px-4 py-3 whitespace-nowrap">
+                                                    {new Date(trx.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                </td>
+                                                <td className="px-4 py-3 text-gray-600 font-medium">
+                                                    {trx.reference ?? '-'}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <StatusBadge tone={trx.source === 'Online' ? 'forest' : 'blue'} label={trx.source} />
+                                                </td>
+                                                <td className="px-4 py-3 text-right font-bold text-[#333333]">
+                                                    {trx.quantity}
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {transactionsData?.links?.length > 3 && (
+                        <div className="mt-4 flex justify-center">
+                            <div className="flex flex-wrap items-center justify-center gap-1">
+                                {transactionsData.links.map((link, index) => {
+                                    const label = link.label.replace('&laquo;', '«').replace('&raquo;', '»');
+                                    if (link.url === null) {
+                                        return (
+                                            <div key={index} className="px-3 py-2 text-sm text-gray-400 border border-transparent rounded cursor-not-allowed" dangerouslySetInnerHTML={{ __html: label }} />
+                                        );
+                                    }
+                                    return (
+                                        <button
+                                            key={index}
+                                            onClick={() => fetchTransactions(selectedProduct.id, link.url)}
+                                            className={`px-3 py-2 text-sm rounded border transition ${link.active ? 'bg-[#1E4D3A] text-white border-[#1E4D3A] font-bold' : 'text-gray-600 bg-white border-gray-300 hover:bg-gray-50'}`}
+                                            dangerouslySetInnerHTML={{ __html: label }}
+                                        />
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </Modal>
         </>
     );
 }
