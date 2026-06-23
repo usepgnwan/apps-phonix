@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['code', 'name', 'description', 'discount_type', 'discount_value', 'minimum_purchase', 'starts_at', 'ends_at', 'usage_limit', 'is_published'])]
+#[Fillable(['code', 'name', 'description', 'discount_type', 'discount_value', 'minimum_purchase', 'starts_at', 'ends_at', 'usage_limit', 'is_published', 'target_audience'])]
 class Voucher extends Model
 {
     protected function casts(): array

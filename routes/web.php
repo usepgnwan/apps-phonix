@@ -76,6 +76,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/reports', [AdminReportController::class, 'index'])->name('reports.index');
         Route::get('/reports/export/xlsx', [AdminReportController::class, 'exportXlsx'])->name('reports.export.xlsx');
         Route::get('/reports/export/pdf', [AdminReportController::class, 'exportPdf'])->name('reports.export.pdf');
+        Route::get('/reports/product-sales/{product}', [AdminReportController::class, 'productSales'])->name('reports.product_sales');
 
         Route::get('/settings', [\App\Http\Controllers\Admin\SettingController::class, 'index'])->name('settings.index');
         Route::post('/settings', [\App\Http\Controllers\Admin\SettingController::class, 'update'])->name('settings.update');

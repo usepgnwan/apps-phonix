@@ -40,6 +40,7 @@
             'ordersByStatus' => 'Order Berdasarkan Status',
             'fieldActivitiesByType' => 'Aktivitas Lapangan Berdasarkan Jenis',
             'productRecommendationsByProduct' => 'Rekomendasi Produk Berdasarkan Produk',
+            'productStockAndSales' => 'Stok & Penjualan Produk',
         ];
 
         $readable = fn ($value) => ucwords(str_replace(['_', '-'], ' ', (string) $value));

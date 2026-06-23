@@ -28,11 +28,11 @@ class VoucherController extends Controller
 
         $metrics = [
             'total' => Voucher::count(),
-            'active' => Voucher::where('is_active', true)->where(function ($query) {
-                $query->whereNull('valid_until')->orWhere('valid_until', '>=', now());
+            'active' => Voucher::where('is_published', true)->where(function ($query) {
+                $query->whereNull('ends_at')->orWhere('ends_at', '>=', now());
             })->count(),
-            'expired' => Voucher::where('is_active', false)->orWhere(function ($query) {
-                $query->whereNotNull('valid_until')->where('valid_until', '<', now());
+            'expired' => Voucher::where('is_published', false)->orWhere(function ($query) {
+                $query->whereNotNull('ends_at')->where('ends_at', '<', now());
             })->count(),
             'orders' => Voucher::withCount('orders')->get()->sum('orders_count'),
             'redemptions' => Voucher::withCount('voucherRedemptions')->get()->sum('voucher_redemptions_count'),

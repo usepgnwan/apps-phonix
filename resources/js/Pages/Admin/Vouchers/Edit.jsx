@@ -109,6 +109,7 @@ function AdminVouchersEdit({ voucher }) {
         ends_at: formatDateTimeInput(voucher.ends_at),
         usage_limit: voucher.usage_limit ?? '',
         is_published: Boolean(voucher.is_published),
+        target_audience: voucher.target_audience ?? 'all',
     });
 
     function submit(event) {
@@ -129,7 +130,7 @@ function AdminVouchersEdit({ voucher }) {
                             Detail
                         </Link>
                     )}
-                    description="Perbarui kode, nilai diskon, masa berlaku, dan status publish voucher."
+                    description="Perbarui kode, nilai diskon, masa berlaku, target audiens, dan status publish voucher."
                     eyebrow="Commerce / Voucher"
                     title={`Edit ${voucher.code}`}
                 />
@@ -156,6 +157,16 @@ function AdminVouchersEdit({ voucher }) {
                             >
                                 <option value="fixed">Nominal Tetap</option>
                                 <option value="percentage">Persentase</option>
+                            </SelectField>
+                            <SelectField
+                                error={form.errors.target_audience}
+                                label="Target Audiens"
+                                onChange={(event) => form.setData('target_audience', event.target.value)}
+                                value={form.data.target_audience}
+                            >
+                                <option value="all">Semua Pengguna</option>
+                                <option value="member">Hanya Member</option>
+                                <option value="non_member">Hanya Non Member</option>
                             </SelectField>
                             <TextField
                                 error={form.errors.discount_value}

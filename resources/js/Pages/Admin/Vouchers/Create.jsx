@@ -95,6 +95,7 @@ function AdminVouchersTambah() {
         ends_at: '',
         usage_limit: '',
         is_published: true,
+        target_audience: 'all',
     });
 
     function submit(event) {
@@ -142,6 +143,16 @@ function AdminVouchersTambah() {
                             >
                                 <option value="fixed">Nominal Tetap</option>
                                 <option value="percentage">Persentase</option>
+                            </SelectField>
+                            <SelectField
+                                error={form.errors.target_audience}
+                                label="Target Audiens"
+                                onChange={(event) => form.setData('target_audience', event.target.value)}
+                                value={form.data.target_audience}
+                            >
+                                <option value="all">Semua Pengguna</option>
+                                <option value="member">Hanya Member</option>
+                                <option value="non_member">Hanya Non Member</option>
                             </SelectField>
                             <TextField
                                 error={form.errors.discount_value}
