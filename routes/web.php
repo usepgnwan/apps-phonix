@@ -135,6 +135,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/customer/dashboard', [CustomerDashboardController::class, 'index'])->name('customer.dashboard.index');
     Route::get('/customer/dashboard/orders/{order}', [CustomerDashboardController::class, 'showOrder'])->name('customer.dashboard.orders.show');
+    Route::get('/customer/dashboard/orders/{order}/invoice', [CustomerDashboardController::class, 'invoiceOrder'])->name('customer.dashboard.orders.invoice');
     Route::get('/customer/dashboard/bookings/{booking}', [CustomerDashboardController::class, 'showBooking'])->name('customer.dashboard.bookings.show');
     Route::get('/customer/profile', [CustomerProfileController::class, 'show'])->name('customer.profile.show');
     Route::get('/customer/profile/create', [CustomerProfileController::class, 'create'])->name('customer.profile.create');

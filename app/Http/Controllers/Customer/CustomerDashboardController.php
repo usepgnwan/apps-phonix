@@ -144,4 +144,28 @@ class CustomerDashboardController extends Controller
             ->route('customer.profile.create')
             ->with('error', 'Lengkapi profil customer sebelum membuka dashboard customer.');
     }
+
+    public function invoiceOrder(Request $request, Order $order)
+    {
+        $customerProfile = $this->resolveCustomerProfile($request);
+
+        if ($customerProfile === null) {
+            return $this->redirectToProfile();
+        }
+
+        abort_unless($order->customer_profile_id === $customerProfile->id && $order->user_id === $request->user()->id, 404);
+
+        $order->load([
+            'user',
+            'customerProfile',
+            'orderItems.product',
+            'paymentMethod',
+        ]);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.orders.invoice', [
+            'order' => $order,
+        ]);
+
+        return $pdf->stream('Invoice-' . $order->order_number . '.pdf');
+    }
 }

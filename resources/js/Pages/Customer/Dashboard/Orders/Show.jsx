@@ -65,13 +65,24 @@ export default function CustomerOrderShow({ order }) {
             <div className="space-y-8">
                 <CustomerPageHeader
                     action={(
-                        <Link
-                            className="inline-flex items-center gap-2 rounded-full border border-primary-container bg-white px-4 py-2 font-body-sm text-sm font-bold text-primary-container transition hover:bg-primary-container hover:text-white"
-                            href={route('customer.dashboard.index')}
-                        >
-                            <ArrowLeft aria-hidden="true" className="h-4 w-4" />
-                            Dashboard
-                        </Link>
+                        <div className="flex flex-wrap items-center gap-3">
+                            <Link
+                                className="inline-flex items-center gap-2 rounded-full border border-primary-container bg-white px-4 py-2 font-body-sm text-sm font-bold text-primary-container transition hover:bg-primary-container hover:text-white"
+                                href={route('customer.dashboard.index')}
+                            >
+                                <ArrowLeft aria-hidden="true" className="h-4 w-4" />
+                                Dashboard
+                            </Link>
+                            <a
+                                href={route('customer.dashboard.orders.invoice', order.id)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-2 rounded-full bg-primary-container px-4 py-2 font-body-sm text-sm font-bold text-white transition hover:bg-primary-container/90"
+                            >
+                                <ReceiptText aria-hidden="true" className="h-4 w-4" />
+                                Download Invoice
+                            </a>
+                        </div>
                     )}
                     description="Detail order produk Phoenix Anda, termasuk status pembayaran, pengiriman, dan item yang dipesan."
                     eyebrow="Detail Order"
