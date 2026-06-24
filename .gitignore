@@ -30,3 +30,5 @@ Thumbs.db
 !/public/images/products/.gitignore
 /public/images/services/*
 !/public/images/services/.gitignore
+/public/images/testimonials/*
+!/public/images/testimonials/.gitignore

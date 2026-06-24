@@ -7,8 +7,13 @@ use App\Http\Requests\Admin\StoreTestimonialRequest;
 use App\Http\Requests\Admin\UpdateTestimonialRequest;
 use App\Models\Testimonial;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
+use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\Encoders\JpegEncoder;
+use Intervention\Image\ImageManager;
 
 class TestimonialController extends Controller
 {
@@ -16,6 +21,28 @@ class TestimonialController extends Controller
     {
         $user = request()->user();
         abort_unless($user !== null && $user->role === 'admin' && $user->is_active, 403);
+    }
+
+    private function processAndSavePhoto($file): ?string
+    {
+        if (!$file) {
+            return null;
+        }
+
+        $dir = public_path('images/testimonials');
+        if (!File::exists($dir)) {
+            File::makeDirectory($dir, 0755, true);
+        }
+
+        $manager = new ImageManager(new Driver());
+        $filename = Str::random(40) . '.jpg';
+        $destPath = $dir . '/' . $filename;
+
+        $image = $manager->decode($file->getRealPath());
+        $image->scaleDown(width: 500); // 500px is enough for testimonial avatar
+        $image->encode(new JpegEncoder(quality: 80))->save($destPath);
+
+        return '/images/testimonials/' . $filename;
     }
 
     public function index(\Illuminate\Http\Request $request): Response
@@ -53,6 +80,12 @@ class TestimonialController extends Controller
     public function store(StoreTestimonialRequest $request): RedirectResponse
     {
         $data = $request->validated();
+        
+        if ($request->hasFile('photo')) {
+            $data['photo_path'] = $this->processAndSavePhoto($request->file('photo'));
+        }
+        unset($data['photo']);
+
         Testimonial::query()->create($data);
 
         return redirect()
@@ -73,6 +106,16 @@ class TestimonialController extends Controller
     public function update(UpdateTestimonialRequest $request, Testimonial $testimonial): RedirectResponse
     {
         $data = $request->validated();
+        
+        if ($request->hasFile('photo')) {
+            // Hapus foto lama jika ada
+            if ($testimonial->photo_path && File::exists(public_path($testimonial->photo_path))) {
+                File::delete(public_path($testimonial->photo_path));
+            }
+            $data['photo_path'] = $this->processAndSavePhoto($request->file('photo'));
+        }
+        unset($data['photo']);
+
         $testimonial->update($data);
 
         return redirect()

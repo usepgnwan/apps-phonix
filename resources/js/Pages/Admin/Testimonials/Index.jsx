@@ -106,9 +106,17 @@ function AdminTestimonialIndex({ testimonials, filters }) {
                                         <tr className="transition hover:bg-surface-container-low/50" key={testimonial.id}>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-fixed-dim text-primary-container">
-                                                        <MessageSquare className="h-5 w-5" />
-                                                    </div>
+                                                    {testimonial.photo_path ? (
+                                                        <img
+                                                            src={testimonial.photo_path.startsWith('http') || testimonial.photo_path.startsWith('/') ? testimonial.photo_path : `/storage/${testimonial.photo_path}`}
+                                                            alt={testimonial.customer_name}
+                                                            className="h-10 w-10 shrink-0 rounded-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-fixed-dim text-primary-container">
+                                                            <MessageSquare className="h-5 w-5" />
+                                                        </div>
+                                                    )}
                                                     <span className="font-bold text-primary-container">{testimonial.customer_name}</span>
                                                 </div>
                                             </td>
