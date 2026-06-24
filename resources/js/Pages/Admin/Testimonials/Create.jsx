@@ -62,17 +62,38 @@ function RatingSelectField({ label, error, value, onChange }) {
     );
 }
 
+function FileField({ label, error, file, onChange }) {
+    return (
+        <label className="block">
+            <span className="mb-2 block font-label-sm text-xs font-bold uppercase tracking-[0.14em] text-on-surface-variant">
+                {label}
+            </span>
+            <input
+                accept="image/jpeg,image/png,image/webp"
+                className={`block w-full rounded-2xl border bg-surface-container-low px-4 py-3 font-body-sm text-sm text-on-surface shadow-sm file:mr-4 file:rounded-full file:border-0 file:bg-[#1E4D3A] file:px-4 file:py-2 file:font-body-sm file:text-sm file:font-bold file:text-white focus:ring-primary-container ${error ? 'border-error focus:border-error focus:ring-error' : 'border-outline-variant focus:border-primary-container'}`}
+                onChange={onChange}
+                type="file"
+            />
+            <p className="mt-2 font-body-sm text-xs text-on-surface-variant">
+                {file ? `File dipilih: ${file.name}` : 'Pilih foto JPG, PNG, atau WebP (opsional).'}
+            </p>
+            <FieldError message={error} />
+        </label>
+    );
+}
+
 function AdminTestimonialCreate() {
     const form = useForm({
         customer_name: '',
         content: '',
         rating: 5,
         is_active: true,
+        photo: null,
     });
 
     function submit(event) {
         event.preventDefault();
-        form.post(route('admin.testimonials.store'));
+        form.post(route('admin.testimonials.store'), { forceFormData: true });
     }
 
     return (
@@ -109,6 +130,15 @@ function AdminTestimonialCreate() {
                                 onChange={(event) => form.setData('rating', parseInt(event.target.value))}
                                 value={form.data.rating}
                             />
+
+                            <div className="md:col-span-2">
+                                <FileField
+                                    error={form.errors.photo}
+                                    file={form.data.photo}
+                                    label="Foto (Opsional)"
+                                    onChange={(event) => form.setData('photo', event.target.files[0] ?? null)}
+                                />
+                            </div>
 
                             <div className="md:col-span-2">
                                 <TextAreaField

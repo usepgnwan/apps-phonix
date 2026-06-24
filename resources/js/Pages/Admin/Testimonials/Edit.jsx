@@ -63,23 +63,49 @@ function RatingSelectField({ label, error, value, onChange }) {
     );
 }
 
+function FileField({ label, error, file, onChange, currentPhotoPath }) {
+    return (
+        <label className="block">
+            <span className="mb-2 block font-label-sm text-xs font-bold uppercase tracking-[0.14em] text-on-surface-variant">
+                {label}
+            </span>
+            <input
+                accept="image/jpeg,image/png,image/webp"
+                className={`block w-full rounded-2xl border bg-surface-container-low px-4 py-3 font-body-sm text-sm text-on-surface shadow-sm file:mr-4 file:rounded-full file:border-0 file:bg-[#1E4D3A] file:px-4 file:py-2 file:font-body-sm file:text-sm file:font-bold file:text-white focus:ring-primary-container ${error ? 'border-error focus:border-error focus:ring-error' : 'border-outline-variant focus:border-primary-container'}`}
+                onChange={onChange}
+                type="file"
+            />
+            <p className="mt-2 font-body-sm text-xs text-on-surface-variant">
+                {file ? `File dipilih: ${file.name}` : (currentPhotoPath ? 'Upload file baru jika ingin mengganti foto saat ini.' : 'Pilih foto JPG, PNG, atau WebP (opsional).')}
+            </p>
+            {currentPhotoPath && !file && (
+                <div className="mt-3">
+                    <img src={currentPhotoPath.startsWith('http') || currentPhotoPath.startsWith('/') ? currentPhotoPath : `/storage/${currentPhotoPath}`} alt="Foto saat ini" className="w-16 h-16 rounded-full object-cover border" />
+                </div>
+            )}
+            <FieldError message={error} />
+        </label>
+    );
+}
+
 function AdminTestimonialEdit({ testimonial }) {
     const form = useForm({
-        _method: 'patch',
-        customer_name: testimonial.customer_name ?? '',
-        content: testimonial.content ?? '',
-        rating: testimonial.rating ?? 5,
-        is_active: Boolean(testimonial.is_active),
+        _method: 'PUT',
+        customer_name: testimonial.customer_name,
+        content: testimonial.content,
+        rating: testimonial.rating,
+        is_active: testimonial.is_active,
+        photo: null,
     });
 
     function submit(event) {
         event.preventDefault();
-        form.post(route('admin.testimonials.update', testimonial.id));
+        form.post(route('admin.testimonials.update', testimonial.id), { forceFormData: true });
     }
 
     return (
         <>
-            <Head title={`Edit Testimoni ${testimonial.customer_name}`} />
+            <Head title={`Edit Testimoni - ${testimonial.customer_name}`} />
             <div className="space-y-8">
                 <AdminPageHeader
                     action={(
@@ -90,9 +116,9 @@ function AdminTestimonialEdit({ testimonial }) {
                             Kembali
                         </Link>
                     )}
-                    description="Ubah ulasan pelanggan beserta rating."
+                    description="Perbarui informasi ulasan pelanggan dan status penampilannya."
                     eyebrow="Testimoni"
-                    title={`Edit Testimoni ${testimonial.customer_name}`}
+                    title={`Edit Testimoni: ${testimonial.customer_name}`}
                 />
 
                 <AdminCard className="p-5">
@@ -111,6 +137,16 @@ function AdminTestimonialEdit({ testimonial }) {
                                 onChange={(event) => form.setData('rating', parseInt(event.target.value))}
                                 value={form.data.rating}
                             />
+
+                            <div className="md:col-span-2">
+                                <FileField
+                                    error={form.errors.photo}
+                                    file={form.data.photo}
+                                    label="Foto (Opsional)"
+                                    onChange={(event) => form.setData('photo', event.target.files[0] ?? null)}
+                                    currentPhotoPath={testimonial.photo_path}
+                                />
+                            </div>
 
                             <div className="md:col-span-2">
                                 <TextAreaField

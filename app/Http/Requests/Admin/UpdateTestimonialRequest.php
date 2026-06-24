@@ -29,6 +29,7 @@ class UpdateTestimonialRequest extends FormRequest
             'content' => ['required', 'string'],
             'rating' => ['required', 'integer', 'min:1', 'max:5'],
             'is_active' => ['required', 'boolean'],
+            'photo' => ['nullable', 'image', 'max:5120'], // Max 5MB before compression
         ];
     }
 }

@@ -254,8 +254,6 @@ function SmoothAnchor({ children, className, href, onClick, ...props }) {
 }
 
 function TestimonialCard({ testimonial }) {
-    const avatarSrc = storageImage(testimonial.photo_path);
-
     return (
         <div className="min-w-[280px] snap-start md:min-w-0 bg-white rounded-2xl p-6 border border-outline-variant shadow-sm flex flex-col gap-4 shrink-0">
             <span className="font-headline-lg text-3xl leading-none text-[#6FA788]">“</span>
@@ -266,24 +264,9 @@ function TestimonialCard({ testimonial }) {
             </div>
             <p className="text-on-surface font-body-md leading-relaxed flex-1 italic">“{testimonial.content}”</p>
             <div className="flex items-center gap-3 pt-2 border-t border-outline-variant">
-                {avatarSrc ? (
-                    <picture>
-                        {toWebP(avatarSrc) && <source srcSet={toWebP(avatarSrc)} type="image/webp" />}
-                        <img
-                            src={avatarSrc}
-                            alt={testimonial.customer_name}
-                            className="w-10 h-10 rounded-full object-cover border-2 border-primary-container shrink-0"
-                            loading="lazy"
-                            decoding="async"
-                            width="40"
-                            height="40"
-                        />
-                    </picture>
-                ) : (
-                    <div className="flex w-10 h-10 rounded-full border-2 border-primary-container bg-primary-fixed/35 text-primary shrink-0 items-center justify-center font-bold">
-                        {(testimonial.customer_name ?? 'P').charAt(0).toUpperCase()}
-                    </div>
-                )}
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant">
+                    <span className="material-symbols-outlined text-xl">person</span>
+                </div>
                 <div>
                     <p className="font-bold text-primary text-sm">{testimonial.customer_name ?? 'Pelanggan Phoenix'}</p>
                     <p className="text-on-surface-variant text-xs">Pelanggan Phoenix</p>
@@ -331,6 +314,14 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
     const [isScrolled, setIsScrolled] = useState(false);
     const [flyingProduct, setFlyingProduct] = useState(null);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const socialProofScrollRef = useRef(null);
+
+    const scrollSocialProof = (direction) => {
+        if (socialProofScrollRef.current) {
+            const scrollAmount = direction === 'left' ? -300 : 300;
+            socialProofScrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+        }
+    };
     const cartCount = Number(usePage().props.cartSummary?.count ?? 0);
     const isAuthenticated = Boolean(auth?.user);
     const accountHref = (() => {
@@ -1403,6 +1394,65 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                         )}
                     </Reveal>
                 </section>
+                {/* Social Proof Database Images */}
+                {testimonials.filter(t => t.photo_path).length > 0 && (
+                    <section className="w-full bg-[#124B38] mb-24 overflow-hidden relative">
+                        <Reveal delay={80} className="w-full">
+                            <div className="flex flex-col lg:flex-row relative w-full">
+                                {/* Left side */}
+                                <div className="px-margin-mobile md:px-margin-desktop lg:pr-0 lg:pl-[calc((100vw-min(100vw,1280px))/2+2rem)] py-16 lg:w-5/12 flex flex-col justify-center items-start text-left text-white relative z-10">
+                                    <div className="flex items-center gap-4 mb-8">
+                                        <div className="w-16 h-16 bg-white rounded-xl flex items-center justify-center shadow-lg p-2">
+                                            <img src="/images/logo_blue_box.png" alt="Phoenix" className="w-full h-full object-contain" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-xl leading-tight text-[#F08A2B]">PHOENIX SEHAT</h3>
+                                            <p className="text-[10px] tracking-widest text-white/90 uppercase">Terapi Regenerasi & Suplemen Herbal</p>
+                                        </div>
+                                    </div>
+                                    <h2 className="text-6xl lg:text-7xl font-bold mb-6 tracking-tight text-white drop-shadow-md" style={{ fontFamily: '"Playfair Display", serif', fontStyle: 'italic' }}>
+                                        Social<br />Proof
+                                    </h2>
+                                    <div className="flex items-center gap-3 mt-4 bg-white/10 hover:bg-white/20 transition-colors px-6 py-3 rounded-full border border-white/20 backdrop-blur-sm cursor-pointer w-fit">
+                                        <span className="material-symbols-outlined text-white">smart_display</span>
+                                        <span className="font-body-sm font-bold tracking-wider">@phoenixsehat</span>
+                                    </div>
+                                    <div className="absolute -bottom-10 -right-10 opacity-10 pointer-events-none">
+                                        <span className="material-symbols-outlined" style={{ fontSize: '280px', fontVariationSettings: '"wght" 200' }}>acupuncture</span>
+                                    </div>
+                                </div>
+                                
+                                {/* Right side (Images Carousel Wrapper) */}
+                                <div className="lg:w-7/12 relative bg-[#0d3b2a] flex items-center">
+                                    <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
+                                    
+                                    {/* Navigation Buttons */}
+                                    <div className="absolute left-2 md:left-6 top-1/2 -translate-y-1/2 z-30">
+                                        <button onClick={() => scrollSocialProof('left')} className="w-10 h-10 md:w-12 md:h-12 bg-[#F08A2B] hover:bg-[#d97c27] text-white rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-90 border-2 border-white/20 backdrop-blur-sm" aria-label="Previous">
+                                            <span className="material-symbols-outlined text-[20px] md:text-[24px]">chevron_left</span>
+                                        </button>
+                                    </div>
+                                    <div className="absolute right-2 md:right-6 top-1/2 -translate-y-1/2 z-30">
+                                        <button onClick={() => scrollSocialProof('right')} className="w-10 h-10 md:w-12 md:h-12 bg-[#F08A2B] hover:bg-[#d97c27] text-white rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-90 border-2 border-white/20 backdrop-blur-sm" aria-label="Next">
+                                            <span className="material-symbols-outlined text-[20px] md:text-[24px]">chevron_right</span>
+                                        </button>
+                                    </div>
+
+                                    {/* Scrolling Container */}
+                                    <div ref={socialProofScrollRef} className="w-full py-12 lg:py-16 pl-margin-mobile md:pl-margin-desktop lg:pl-16 flex gap-6 overflow-x-auto snap-x snap-mandatory no-scrollbar relative z-10 items-center scroll-smooth">
+                                        {testimonials.filter(t => t.photo_path).map((t) => (
+                                            <div key={t.id} className="snap-center shrink-0 w-[240px] md:w-[280px] aspect-[9/16] bg-white rounded-3xl shadow-[0_12px_40px_rgba(0,0,0,0.3)] overflow-hidden flex-none border-8 border-white relative z-20">
+                                                <img src={storageImage(t.photo_path)} alt={`Testimoni ${t.customer_name}`} className="w-full h-full object-cover" />
+                                            </div>
+                                        ))}
+                                        {/* Spacer padding for right edge scroll */}
+                                        <div className="shrink-0 w-8 md:w-16"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </Reveal>
+                    </section>
+                )}
                 {/* Newsletter / CTA */}
                 <Reveal as="section" className="py-16 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto" delay={80}>
                     <div className="rounded-3xl overflow-hidden flex flex-col md:flex-row items-center bg-[#F6F7F7] border border-[#E5E7EB]">
