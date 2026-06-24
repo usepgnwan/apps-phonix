@@ -160,9 +160,10 @@ export function ProductImage({ alt, className = '', imagePath }) {
         return <BotanicalPlaceholder className={className} />;
     }
 
-    // Jika path sudah absolut (dimulai dengan /), gunakan langsung
+    // Jika path sudah absolut (dimulai dengan /) atau URL eksternal, gunakan langsung
     // Jika tidak (path lama dari storage), prefix dengan /storage/
-    const src = imagePath.startsWith('/') ? imagePath : `/storage/${imagePath}`;
+    const isExternal = imagePath.startsWith('http://') || imagePath.startsWith('https://');
+    const src = (imagePath.startsWith('/') || isExternal) ? imagePath : `/storage/${imagePath}`;
 
     return <img alt={alt} className={`object-cover ${className}`} src={src} />;
 }
