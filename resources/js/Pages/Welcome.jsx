@@ -641,7 +641,7 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                     <div className="absolute left-0 top-0 h-72 w-72 rounded-full bg-[#A8C5B3]/30 blur-3xl"></div>
                     <div className="relative z-10 mx-auto flex w-full max-w-container-max items-center px-margin-mobile py-16 md:px-margin-desktop md:py-24 lg:min-h-[calc(100vh-5rem)]">
                         <Reveal className="max-w-2xl  ">
-                            <img src="/images/logo-jumbotron.png" alt="Phoenix Terapi & Herbal" className="w-28 md:w-96 object-contain" decoding="async" />
+                            <img src="/images/logo-jumbotron.png" alt="Phoenix Terapi & Herbal" className="w-60 md:w-96 object-contain" decoding="async" />
                             <h1 className="font-headline-xl text-5xl font-bold leading-tight text-[#1E4D3A] md:text-6xl lg:text-7xl">
                                 Hidup Seimbang Secara Alami
                             </h1>
@@ -1193,6 +1193,138 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                                     </span>
                                 </div>
                             ))}
+                        </div>
+                    </Reveal>
+                </section>
+
+                {/* Keluhan Section */}
+                <section className="py-16 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto">
+                    <Reveal delay={80}>
+                        <div className="text-center max-w-3xl mx-auto mb-20 md:mb-24">
+                            <h2 className="font-headline-lg text-3xl md:text-4xl text-[#333333] font-bold mb-5">Sering Mengalami Keluhan Ini?</h2>
+                            <p className="font-body-md text-on-surface-variant text-[17px] md:text-lg leading-relaxed px-4 md:px-0">
+                                Bangun kembali keseimbangan holistik tubuh Anda melalui pendekatan alami, bersih, dan terpercaya. Jangan biarkan keluhan fisik menghambat aktivitas Anda.
+                            </p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 gap-y-20 mt-16">
+                            {/* Card 1 */}
+                            <div className="bg-white rounded-[24px] pt-20 pb-8 px-6 shadow-sm border border-outline-variant flex flex-col items-center text-center relative group hover:shadow-md transition-shadow">
+                                <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-32 h-32 bg-[#1E4D3A] rounded-full flex items-center justify-center group-hover:scale-105 transition-transform duration-300 shadow-[0_8px_24px_rgba(30,77,58,0.2)]">
+                                    <span className="material-symbols-outlined text-white text-6xl" style={{ fontVariationSettings: '"wght" 300' }}>personal_injury</span>
+                                </div>
+                                <h3 className="font-bold text-[#1E4D3A] text-lg mb-3">Nyeri Sendi & Saraf</h3>
+                                <p className="text-sm text-on-surface-variant flex-1">
+                                    Sakit punggung, pundak, saraf kejepit, atau frozen shoulder yang mengganggu aktivitas.
+                                </p>
+                                <Link href={route('services.index')} className="mt-6 inline-block font-bold text-xs tracking-widest uppercase text-[#1E4D3A] hover:text-[#6FA788] transition-colors">
+                                    Atasi Sekarang →
+                                </Link>
+                            </div>
+                            {/* Card 2 */}
+                            <div className="bg-white rounded-[24px] pt-20 pb-8 px-6 shadow-sm border border-outline-variant flex flex-col items-center text-center relative group hover:shadow-md transition-shadow">
+                                <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-32 h-32 bg-[#1E4D3A] rounded-full flex items-center justify-center group-hover:scale-105 transition-transform duration-300 shadow-[0_8px_24px_rgba(30,77,58,0.2)]">
+                                    <span className="material-symbols-outlined text-white text-6xl" style={{ fontVariationSettings: '"wght" 300' }}>psychology</span>
+                                </div>
+                                <h3 className="font-bold text-[#1E4D3A] text-lg mb-3">Kelelahan & Stres Seluler</h3>
+                                <p className="text-sm text-on-surface-variant flex-1">
+                                    Perlu detoksifikasi, pulihkan energi sel, dan lawan stres oksidatif penyebab pusing.
+                                </p>
+                                <Link href={route('services.index')} className="mt-6 inline-block font-bold text-xs tracking-widest uppercase text-[#1E4D3A] hover:text-[#6FA788] transition-colors">
+                                    Atasi Sekarang →
+                                </Link>
+                            </div>
+                            {/* Card 3 */}
+                            <div className="bg-white rounded-[24px] pt-20 pb-8 px-6 shadow-sm border border-outline-variant flex flex-col items-center text-center relative group hover:shadow-md transition-shadow">
+                                <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-32 h-32 bg-[#1E4D3A] rounded-full flex items-center justify-center group-hover:scale-105 transition-transform duration-300 shadow-[0_8px_24px_rgba(30,77,58,0.2)]">
+                                    <span className="material-symbols-outlined text-white text-6xl" style={{ fontVariationSettings: '"wght" 300' }}>health_and_safety</span>
+                                </div>
+                                <h3 className="font-bold text-[#1E4D3A] text-lg mb-3">Imunitas & Kebugaran Lemah</h3>
+                                <p className="text-sm text-on-surface-variant flex-1">
+                                    Badan cepat lelah, susah tidur (insomnia), dan daya tahan tubuh menurun.
+                                </p>
+                                <Link href={route('services.index')} className="mt-6 inline-block font-bold text-xs tracking-widest uppercase text-[#1E4D3A] hover:text-[#6FA788] transition-colors">
+                                    Atasi Sekarang →
+                                </Link>
+                            </div>
+                            {/* Card 4 */}
+                            <div className="bg-white rounded-[24px] pt-20 pb-8 px-6 shadow-sm border border-outline-variant flex flex-col items-center text-center relative group hover:shadow-md transition-shadow">
+                                <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-32 h-32 bg-[#1E4D3A] rounded-full flex items-center justify-center group-hover:scale-105 transition-transform duration-300 shadow-[0_8px_24px_rgba(30,77,58,0.2)]">
+                                    <span className="material-symbols-outlined text-white text-6xl" style={{ fontVariationSettings: '"wght" 300' }}>visibility</span>
+                                </div>
+                                <h3 className="font-bold text-[#1E4D3A] text-lg mb-3">Mata Lelah & Gangguan<br />Penglihatan</h3>
+                                <p className="text-sm text-on-surface-variant flex-1">
+                                    Pemeriksaan refraksi lengkap (minus, plus, silinder), deteksi dini katarak/glaukoma, dan dukungan nutrisi untuk mata lelah.
+                                </p>
+                                <Link href={route('services.index')} className="mt-6 inline-block font-bold text-xs tracking-widest uppercase text-[#1E4D3A] hover:text-[#6FA788] transition-colors">
+                                    Atasi Sekarang →
+                                </Link>
+                            </div>
+                        </div>
+                    </Reveal>
+                </section>
+
+                {/* Banner Solusi Holistik */}
+                <section className="py-8 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto">
+                    <Reveal delay={100}>
+                        <div className="rounded-3xl p-10 md:p-16 text-center text-white relative overflow-hidden flex flex-col items-center justify-center bg-gradient-to-r from-[#00A3FF] to-[#FFA000] shadow-lg">
+                            <div className="w-16 h-16 mb-6 flex items-center justify-center">
+                                <img src="/images/logo_blue_box.png" alt="Phoenix Logo" className="w-full h-full object-contain filter brightness-0 invert" />
+                            </div>
+                            <h2 className="font-headline-lg text-3xl md:text-4xl font-bold mb-4 drop-shadow-md">Phoenix Sehat Hadir Sebagai Solusi Holistik</h2>
+                            <p className="font-body-md text-lg mb-10 max-w-3xl drop-shadow-sm text-white/90">
+                                Tim ahli kami siap mengunjungi Anda dengan layanan terapi bioelektrik, inhalasi hidrogen, dan suplemen herbal alami.
+                            </p>
+                            <a href={`https://wa.me/${usePage().props.siteSettings?.whatsappNumber || '6281234567890'}?text=${encodeURIComponent('Halo Phoenix, saya ingin booking layanan home/office visit.')}`} target="_blank" rel="noopener noreferrer" className="bg-white text-[#1E4D3A] font-bold px-8 py-3.5 rounded-sm hover:bg-gray-100 transition-colors shadow-md text-sm">
+                                BOOKING SEKARANG
+                            </a>
+                        </div>
+                    </Reveal>
+                </section>
+
+                {/* 5 Langkah Booking */}
+                <section className="py-16 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto">
+                    <Reveal delay={120}>
+                        <div className="bg-[#1E4D3A] rounded-2xl py-5 px-6 text-center mb-4 shadow-md">
+                            <h2 className="font-headline-lg text-2xl md:text-3xl font-bold text-white tracking-wide">5 Langkah Booking Layanan Phoenix Sehat</h2>
+                        </div>
+                        <p className="text-center font-body-md text-on-surface-variant mb-16 text-lg">Kemudahan Booking dalam 5 Tahapan</p>
+
+                        <div className="relative max-w-5xl mx-auto">
+                            {/* Connecting line (desktop) */}
+                            <div className="hidden md:block absolute top-[64px] left-[10%] right-[10%] h-0.5 bg-[#333333] z-0"></div>
+
+                            <div className="flex flex-col md:flex-row justify-between gap-10 md:gap-4 relative z-10">
+                                {/* Step 1 */}
+                                <div className="flex flex-col items-center text-center flex-1">
+                                    <img src="/images/step/1.png" alt="1. Pilih Layanan & Lokasi" className="w-32 h-32 object-contain mb-4 hover:scale-105 transition-transform drop-shadow-sm" />
+                                    <h3 className="font-bold text-[#333333] text-sm mb-2">1. Pilih Layanan & Lokasi</h3>
+                                    <p className="text-xs text-on-surface-variant leading-relaxed px-2">Tentukan jenis terapi/pemeriksaan dan lokasinya (Home/Office Visit).</p>
+                                </div>
+                                {/* Step 2 */}
+                                <div className="flex flex-col items-center text-center flex-1">
+                                    <img src="/images/step/2.png" alt="2. Hubungi Admin" className="w-32 h-32 object-contain mb-4 hover:scale-105 transition-transform drop-shadow-sm" />
+                                    <h3 className="font-bold text-[#333333] text-sm mb-2">2. Hubungi Admin</h3>
+                                    <p className="text-xs text-on-surface-variant leading-relaxed px-2">Chat Customer Service (via WhatsApp/Web) untuk mengajukan tanggal dan waktu.</p>
+                                </div>
+                                {/* Step 3 */}
+                                <div className="flex flex-col items-center text-center flex-1">
+                                    <img src="/images/step/3.png" alt="3. Konfirmasi & Alamat" className="w-32 h-32 object-contain mb-4 hover:scale-105 transition-transform drop-shadow-sm" />
+                                    <h3 className="font-bold text-[#333333] text-sm mb-2">3. Konfirmasi & Alamat</h3>
+                                    <p className="text-xs text-on-surface-variant leading-relaxed px-2">Admin akan mengonfirmasi ketersediaan jadwal dan meminta <i>share loc</i> alamat Anda</p>
+                                </div>
+                                {/* Step 4 */}
+                                <div className="flex flex-col items-center text-center flex-1">
+                                    <img src="/images/step/4.png" alt="4. Sesi Terapi/Check Up" className="w-32 h-32 object-contain mb-4 hover:scale-105 transition-transform drop-shadow-sm" />
+                                    <h3 className="font-bold text-[#333333] text-sm mb-2">4. Sesi Terapi/Check Up</h3>
+                                    <p className="text-xs text-on-surface-variant leading-relaxed px-2">Tentukan jenis terapi/pemeriksaan dan lokasinya (Home/Office Visit).</p>
+                                </div>
+                                {/* Step 5 */}
+                                <div className="flex flex-col items-center text-center flex-1">
+                                    <img src="/images/step/5.png" alt="5. Rekomendasi Suplemen" className="w-32 h-32 object-contain mb-4 hover:scale-105 transition-transform drop-shadow-sm" />
+                                    <h3 className="font-bold text-[#333333] text-sm mb-2">5. Rekomendasi Suplemen</h3>
+                                    <p className="text-xs text-on-surface-variant leading-relaxed px-2">Tentukan jenis terapi/pemeriksaan dan lokasinya (Home/Office Visit).</p>
+                                </div>
+                            </div>
                         </div>
                     </Reveal>
                 </section>
