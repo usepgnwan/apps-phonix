@@ -59,9 +59,9 @@ function MetricTile({ icon: IconComponent, label, value, helper }) {
     );
 }
 
-function ListItem({ amount, helper, href, meta, status, title }) {
+function ListItem({ amount, helper, href, meta, status, title, actionNode }) {
     const content = (
-        <div className="flex items-start justify-between gap-4 rounded-2xl border border-outline-variant/80 bg-surface-container-low px-4 py-3 transition hover:border-primary-fixed-dim hover:bg-white">
+        <div className="flex items-start justify-between gap-4 px-4 py-3">
             <div className="min-w-0">
                 <p className="truncate font-body-sm text-sm font-bold text-on-surface">
                     {title}
@@ -88,7 +88,16 @@ function ListItem({ amount, helper, href, meta, status, title }) {
         </div>
     );
 
-    return href ? <Link className="block" href={href}>{content}</Link> : content;
+    return (
+        <div className="overflow-hidden rounded-2xl border border-outline-variant/80 bg-surface-container-low transition hover:border-primary-fixed-dim hover:bg-white">
+            {href ? <Link className="block hover:bg-white/50" href={href}>{content}</Link> : content}
+            {actionNode && (
+                <div className="flex justify-end px-4 pb-3 border-t border-outline-variant/40 pt-3 bg-surface-container-lowest">
+                    {actionNode}
+                </div>
+            )}
+        </div>
+    );
 }
 
 function orderNextAction(order) {
@@ -124,6 +133,17 @@ function RecentOrders({ orders = [] }) {
                             meta={formatDate(order.created_at)}
                             status={order.status}
                             title={order.order_number ?? `Order #${order.id}`}
+                            actionNode={
+                                <a
+                                    href={routeExists('customer.dashboard.orders.invoice') ? route('customer.dashboard.orders.invoice', order.id) : '#'}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-2 rounded-full bg-primary-container/10 px-3 py-1.5 font-body-sm text-xs font-bold text-primary-container transition hover:bg-primary-container hover:text-white"
+                                >
+                                    <ReceiptText aria-hidden="true" className="h-3.5 w-3.5" />
+                                    Download Invoice
+                                </a>
+                            }
                         />
                     ))
                 )}
