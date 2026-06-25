@@ -255,14 +255,14 @@ function SmoothAnchor({ children, className, href, onClick, ...props }) {
 
 function TestimonialCard({ testimonial }) {
     return (
-        <div className="min-w-[280px] snap-start md:min-w-0 bg-white rounded-2xl p-6 border border-outline-variant shadow-sm flex flex-col gap-4 shrink-0">
+        <div className="w-[280px] md:w-[320px] shrink-0 snap-start bg-white rounded-2xl p-6 border border-outline-variant shadow-sm flex flex-col gap-4">
             <span className="font-headline-lg text-3xl leading-none text-[#6FA788]">“</span>
             <div className="flex gap-0.5">
                 {Array.from({ length: 5 }, (_, star) => star + 1).map((star) => (
                     <span key={star} className="material-symbols-outlined text-base text-tertiary" style={{ fontVariationSettings: '"FILL" 1' }}>star</span>
                 ))}
             </div>
-            <p className="text-on-surface font-body-md leading-relaxed flex-1 italic">“{testimonial.content}”</p>
+            <p className="text-on-surface font-body-md leading-relaxed flex-1 italic whitespace-normal break-words">“{testimonial.content}”</p>
             <div className="flex items-center gap-3 pt-2 border-t border-outline-variant">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant">
                     <span className="material-symbols-outlined text-xl">person</span>
@@ -1004,17 +1004,17 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
 
                         {/* Testimonial Videos Slider/Grid */}
                         {videos.length > 0 ? (
-                            <div className="flex overflow-x-auto lg:grid lg:grid-cols-4 gap-4 md:gap-6 pb-4 snap-x snap-mandatory no-scrollbar">
+                            <div className="flex overflow-x-auto gap-4 md:gap-6 pb-4 snap-x snap-mandatory no-scrollbar">
                                 {videos.map((video) => (
-                                    <div key={video.id} className="w-[260px] sm:w-[320px] lg:w-full snap-start rounded-3xl overflow-hidden shadow-sm border border-outline-variant bg-black aspect-[9/16] relative flex-shrink-0">
+                                    <div key={video.id} className="w-[260px] sm:w-[320px] snap-start rounded-3xl overflow-hidden shadow-sm border border-outline-variant bg-black aspect-[9/16] relative flex-shrink-0">
                                         <DynamicVideoPlayer url={video.video_link} title={video.title} />
                                     </div>
                                 ))}
                             </div>
                         ) : (
-                            <div className="flex overflow-x-auto lg:grid lg:grid-cols-4 gap-4 md:gap-6 pb-4 snap-x snap-mandatory no-scrollbar">
+                            <div className="flex overflow-x-auto gap-4 md:gap-6 pb-4 snap-x snap-mandatory no-scrollbar">
                                 {[1, 2, 3, 4].map((num) => (
-                                    <div key={num} className="w-[260px] sm:w-[320px] lg:w-full snap-start rounded-3xl overflow-hidden shadow-sm border border-outline-variant bg-black aspect-[9/16] relative flex-shrink-0">
+                                    <div key={num} className="w-[260px] sm:w-[320px] snap-start rounded-3xl overflow-hidden shadow-sm border border-outline-variant bg-black aspect-[9/16] relative flex-shrink-0">
                                         <video
                                             className="w-full h-full object-contain absolute inset-0"
                                             controls
@@ -1200,8 +1200,8 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 gap-y-20 mt-16">
                             {/* Card 1 */}
                             <div className="bg-white rounded-[24px] pt-20 pb-8 px-6 shadow-sm border border-outline-variant flex flex-col items-center text-center relative group hover:shadow-md transition-shadow">
-                                <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-32 h-32 bg-[#1E4D3A] rounded-full flex items-center justify-center group-hover:scale-105 transition-transform duration-300 shadow-[0_8px_24px_rgba(30,77,58,0.2)]">
-                                    <span className="material-symbols-outlined text-white text-6xl" style={{ fontVariationSettings: '"wght" 300' }}>personal_injury</span>
+                                <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-32 h-32 flex items-center justify-center group-hover:scale-105 transition-transform duration-300 drop-shadow-md">
+                                    <img src="/images/keluhan/1.png" alt="Nyeri Sendi & Saraf" className="w-full h-full object-contain" />
                                 </div>
                                 <h3 className="font-bold text-[#1E4D3A] text-lg mb-3">Nyeri Sendi & Saraf</h3>
                                 <p className="text-sm text-on-surface-variant flex-1">
@@ -1213,8 +1213,8 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                             </div>
                             {/* Card 2 */}
                             <div className="bg-white rounded-[24px] pt-20 pb-8 px-6 shadow-sm border border-outline-variant flex flex-col items-center text-center relative group hover:shadow-md transition-shadow">
-                                <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-32 h-32 bg-[#1E4D3A] rounded-full flex items-center justify-center group-hover:scale-105 transition-transform duration-300 shadow-[0_8px_24px_rgba(30,77,58,0.2)]">
-                                    <span className="material-symbols-outlined text-white text-6xl" style={{ fontVariationSettings: '"wght" 300' }}>psychology</span>
+                                <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-32 h-32 flex items-center justify-center group-hover:scale-105 transition-transform duration-300 drop-shadow-md">
+                                    <img src="/images/keluhan/2.png" alt="Kelelahan & Stres Seluler" className="w-full h-full object-contain" />
                                 </div>
                                 <h3 className="font-bold text-[#1E4D3A] text-lg mb-3">Kelelahan & Stres Seluler</h3>
                                 <p className="text-sm text-on-surface-variant flex-1">
@@ -1226,8 +1226,8 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                             </div>
                             {/* Card 3 */}
                             <div className="bg-white rounded-[24px] pt-20 pb-8 px-6 shadow-sm border border-outline-variant flex flex-col items-center text-center relative group hover:shadow-md transition-shadow">
-                                <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-32 h-32 bg-[#1E4D3A] rounded-full flex items-center justify-center group-hover:scale-105 transition-transform duration-300 shadow-[0_8px_24px_rgba(30,77,58,0.2)]">
-                                    <span className="material-symbols-outlined text-white text-6xl" style={{ fontVariationSettings: '"wght" 300' }}>health_and_safety</span>
+                                <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-32 h-32 flex items-center justify-center group-hover:scale-105 transition-transform duration-300 drop-shadow-md">
+                                    <img src="/images/keluhan/3.png" alt="Imunitas & Kebugaran Lemah" className="w-full h-full object-contain" />
                                 </div>
                                 <h3 className="font-bold text-[#1E4D3A] text-lg mb-3">Imunitas & Kebugaran Lemah</h3>
                                 <p className="text-sm text-on-surface-variant flex-1">
@@ -1239,8 +1239,8 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                             </div>
                             {/* Card 4 */}
                             <div className="bg-white rounded-[24px] pt-20 pb-8 px-6 shadow-sm border border-outline-variant flex flex-col items-center text-center relative group hover:shadow-md transition-shadow">
-                                <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-32 h-32 bg-[#1E4D3A] rounded-full flex items-center justify-center group-hover:scale-105 transition-transform duration-300 shadow-[0_8px_24px_rgba(30,77,58,0.2)]">
-                                    <span className="material-symbols-outlined text-white text-6xl" style={{ fontVariationSettings: '"wght" 300' }}>visibility</span>
+                                <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-32 h-32 flex items-center justify-center group-hover:scale-105 transition-transform duration-300 drop-shadow-md">
+                                    <img src="/images/keluhan/4.png" alt="Mata Lelah & Gangguan Penglihatan" className="w-full h-full object-contain" />
                                 </div>
                                 <h3 className="font-bold text-[#1E4D3A] text-lg mb-3">Mata Lelah & Gangguan<br />Penglihatan</h3>
                                 <p className="text-sm text-on-surface-variant flex-1">
@@ -1258,8 +1258,8 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                 <section className="py-8 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto">
                     <Reveal delay={100}>
                         <div className="rounded-3xl p-10 md:p-16 text-center text-white relative overflow-hidden flex flex-col items-center justify-center bg-gradient-to-r from-[#00A3FF] to-[#FFA000] shadow-lg">
-                            <div className="w-16 h-16 mb-6 flex items-center justify-center">
-                                <img src="/images/logo_blue_box.png" alt="Phoenix Logo" className="w-full h-full object-contain filter brightness-0 invert" />
+                            <div className="w-20 h-20 mb-6 flex items-center justify-center">
+                                <img src="/images/step/logo-white.png" alt="Phoenix Logo" className="w-full h-full object-contain filter brightness-0 invert" />
                             </div>
                             <h2 className="font-headline-lg text-3xl md:text-4xl font-bold mb-4 drop-shadow-md">Phoenix Sehat Hadir Sebagai Solusi Holistik</h2>
                             <p className="font-body-md text-lg mb-10 max-w-3xl drop-shadow-sm text-white/90">
@@ -1377,7 +1377,7 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                             <h2 className="font-headline-lg text-headline-lg text-primary">Kisah Sukses Mereka</h2>
                         </div>
                         {testimonials.length > 0 ? (
-                            <div className="flex gap-5 overflow-x-auto no-scrollbar snap-x pb-2 md:grid md:grid-cols-3 md:overflow-visible">
+                            <div className="flex gap-5 overflow-x-auto no-scrollbar snap-x pb-4">
                                 {testimonials.map((testimonial) => (
                                     <TestimonialCard key={testimonial.id ?? testimonial.customer_name} testimonial={testimonial} />
                                 ))}
@@ -1395,58 +1395,56 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                     </Reveal>
                 </section>
                 {/* Social Proof Database Images */}
+                {/* Social Proof Database Images */}
                 {testimonials.filter(t => t.photo_path).length > 0 && (
-                    <section className="w-full bg-[#124B38] mb-24 overflow-hidden relative">
+                    <section className="w-full bg-[#0d3626] mb-24 overflow-hidden relative">
+                        {/* Background Pattern */}
+                        <div className="absolute inset-0 z-0 opacity-30" style={{ backgroundImage: 'url(/images/pattern/pattern.png)', backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
+
                         <Reveal delay={80} className="w-full">
-                            <div className="flex flex-col lg:flex-row relative w-full">
+                            <div className="flex flex-col lg:flex-row relative w-full items-center py-16 lg:py-24">
                                 {/* Left side */}
-                                <div className="px-margin-mobile md:px-margin-desktop lg:pr-0 lg:pl-[calc((100vw-min(100vw,1280px))/2+2rem)] py-16 lg:w-5/12 flex flex-col justify-center items-start text-left text-white relative z-10">
-                                    <div className="flex items-center gap-4 mb-8">
-                                        <div className="w-16 h-16 bg-white rounded-xl flex items-center justify-center shadow-lg p-2">
-                                            <img src="/images/logo_blue_box.png" alt="Phoenix" className="w-full h-full object-contain" />
-                                        </div>
-                                        <div>
-                                            <h3 className="font-bold text-xl leading-tight text-[#F08A2B]">PHOENIX SEHAT</h3>
-                                            <p className="text-[10px] tracking-widest text-white/90 uppercase">Terapi Regenerasi & Suplemen Herbal</p>
+                                <div className="px-margin-mobile md:px-margin-desktop lg:pr-8 lg:pl-[calc((100vw-min(100vw,1280px))/2+2rem)] lg:w-5/12 flex flex-col justify-center items-center lg:items-start text-center lg:text-left text-white relative z-10 mb-12 lg:mb-0">
+                                    <div className="relative z-10 w-full flex justify-center lg:justify-start">
+                                        <img src="/images/pattern/logo.png" alt="Phoenix" className="w-48 md:w-64 lg:w-72 object-contain drop-shadow-md relative z-20" onError={(e) => { e.target.src = '/images/logo_blue_box.png'; }} />
+                                    </div>
+
+                                    <div className="relative z-20 flex items-center gap-6 -top-10 lg:-top-16">
+                                        <h2 className="text-5xl lg:text-6xl font-bold mb-2 tracking-tight text-white drop-shadow-md leading-tight" style={{ fontFamily: '"Playfair Display", serif', fontStyle: 'italic' }}>
+                                            Social<br />Proof
+                                        </h2>
+                                        <div className="hidden lg:flex gap-1 opacity-60">
+                                            <span className="material-symbols-outlined text-5xl">chevron_right</span>
+                                            <span className="material-symbols-outlined text-5xl -ml-6">chevron_right</span>
                                         </div>
                                     </div>
-                                    <h2 className="text-6xl lg:text-7xl font-bold mb-6 tracking-tight text-white drop-shadow-md" style={{ fontFamily: '"Playfair Display", serif', fontStyle: 'italic' }}>
-                                        Social<br />Proof
-                                    </h2>
-                                    <div className="flex items-center gap-3 mt-4 bg-white/10 hover:bg-white/20 transition-colors px-6 py-3 rounded-full border border-white/20 backdrop-blur-sm cursor-pointer w-fit">
+                                    <div className="flex items-center gap-3 bg-transparent hover:bg-white/10 transition-colors px-5 py-2 rounded-full border border-white/30 backdrop-blur-sm cursor-pointer w-fit relative z-20 -top-8 lg:-top-14">
                                         <span className="material-symbols-outlined text-white">smart_display</span>
                                         <span className="font-body-sm font-bold tracking-wider">@phoenixsehat</span>
                                     </div>
-                                    <div className="absolute -bottom-10 -right-10 opacity-10 pointer-events-none">
-                                        <span className="material-symbols-outlined" style={{ fontSize: '280px', fontVariationSettings: '"wght" 200' }}>acupuncture</span>
-                                    </div>
                                 </div>
-                                
-                                {/* Right side (Images Carousel Wrapper) */}
-                                <div className="lg:w-7/12 relative bg-[#0d3b2a] flex items-center">
-                                    <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
-                                    
-                                    {/* Navigation Buttons */}
-                                    <div className="absolute left-2 md:left-6 top-1/2 -translate-y-1/2 z-30">
-                                        <button onClick={() => scrollSocialProof('left')} className="w-10 h-10 md:w-12 md:h-12 bg-[#F08A2B] hover:bg-[#d97c27] text-white rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-90 border-2 border-white/20 backdrop-blur-sm" aria-label="Previous">
-                                            <span className="material-symbols-outlined text-[20px] md:text-[24px]">chevron_left</span>
-                                        </button>
-                                    </div>
-                                    <div className="absolute right-2 md:right-6 top-1/2 -translate-y-1/2 z-30">
-                                        <button onClick={() => scrollSocialProof('right')} className="w-10 h-10 md:w-12 md:h-12 bg-[#F08A2B] hover:bg-[#d97c27] text-white rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-90 border-2 border-white/20 backdrop-blur-sm" aria-label="Next">
-                                            <span className="material-symbols-outlined text-[20px] md:text-[24px]">chevron_right</span>
-                                        </button>
-                                    </div>
 
-                                    {/* Scrolling Container */}
-                                    <div ref={socialProofScrollRef} className="w-full py-12 lg:py-16 pl-margin-mobile md:pl-margin-desktop lg:pl-16 flex gap-6 overflow-x-auto snap-x snap-mandatory no-scrollbar relative z-10 items-center scroll-smooth">
-                                        {testimonials.filter(t => t.photo_path).map((t) => (
-                                            <div key={t.id} className="snap-center shrink-0 w-[240px] md:w-[280px] aspect-[9/16] bg-white rounded-3xl shadow-[0_12px_40px_rgba(0,0,0,0.3)] overflow-hidden flex-none border-8 border-white relative z-20">
-                                                <img src={storageImage(t.photo_path)} alt={`Testimoni ${t.customer_name}`} className="w-full h-full object-cover" />
-                                            </div>
-                                        ))}
-                                        {/* Spacer padding for right edge scroll */}
-                                        <div className="shrink-0 w-8 md:w-16"></div>
+                                {/* Right side (Images Carousel Wrapper) */}
+                                <div className="w-full lg:w-7/12 relative flex justify-center items-center px-4 md:px-12 lg:pr-[calc((100vw-min(100vw,1280px))/2+2rem)] z-10">
+                                    {/* Device Frame */}
+                                    <div className="bg-white w-full max-w-4xl relative p-3 md:p-5 shadow-2xl" style={{ clipPath: 'polygon(24px 0, calc(100% - 24px) 0, 100% 24px, 100% calc(100% - 24px), calc(100% - 24px) 100%, 24px 100%, 0 calc(100% - 24px), 0 24px)' }}>
+
+                                        {/* Navigation Buttons (Triangles) */}
+                                        <div className="absolute -left-2 md:-left-4 top-1/2 -translate-y-1/2 z-30">
+                                            <button onClick={() => scrollSocialProof('left')} className="w-8 h-12 md:w-10 md:h-16 bg-[#F08A2B] hover:bg-[#d97c27] text-white shadow-lg transition-transform active:scale-90" style={{ clipPath: 'polygon(100% 0, 100% 100%, 0 50%)' }} aria-label="Previous"></button>
+                                        </div>
+                                        <div className="absolute -right-2 md:-right-4 top-1/2 -translate-y-1/2 z-30">
+                                            <button onClick={() => scrollSocialProof('right')} className="w-8 h-12 md:w-10 md:h-16 bg-[#F08A2B] hover:bg-[#d97c27] text-white shadow-lg transition-transform active:scale-90" style={{ clipPath: 'polygon(0 0, 0 100%, 100% 50%)' }} aria-label="Next"></button>
+                                        </div>
+
+                                        {/* Scrolling Container */}
+                                        <div ref={socialProofScrollRef} className="w-full flex gap-3 md:gap-4 overflow-x-auto snap-x snap-mandatory no-scrollbar relative z-10 items-center scroll-smooth bg-gray-50 border border-gray-100 p-2 md:p-4" style={{ clipPath: 'polygon(16px 0, calc(100% - 16px) 0, 100% 16px, 100% calc(100% - 16px), calc(100% - 16px) 100%, 16px 100%, 0 calc(100% - 16px), 0 16px)' }}>
+                                            {testimonials.filter(t => t.photo_path).map((t) => (
+                                                <div key={t.id} className="snap-center shrink-0 w-[240px] md:w-[280px] aspect-[9/16] bg-white rounded-3xl shadow-[0_12px_40px_rgba(0,0,0,0.3)] overflow-hidden flex-none border-8 border-white relative z-20">
+                                                    <img src={storageImage(t.photo_path)} alt={`Testimoni ${t.customer_name}`} className="w-full h-full object-cover" />
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
                             </div>

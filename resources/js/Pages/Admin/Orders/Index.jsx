@@ -295,6 +295,7 @@ function AdminOrderIndex({ orders = {}, filters = {}, metrics = {} }) {
                                             'Status Pengiriman',
                                             'Status Pembayaran',
                                             'Metode Pembayaran',
+                                            'Voucher',
                                             'Total',
                                             'Tanggal Dibuat',
                                             'Aksi',
@@ -341,6 +342,14 @@ function AdminOrderIndex({ orders = {}, filters = {}, metrics = {} }) {
                                             </td>
                                             <td className="whitespace-nowrap px-4 py-4 font-body-sm text-sm text-gray-600">
                                                 {paymentMethodNama(order)}
+                                            </td>
+                                            <td className="whitespace-nowrap px-4 py-4 font-body-sm text-sm text-gray-600">
+                                                {order.voucher ? (
+                                                    <div className="flex flex-col">
+                                                        <span className="font-bold text-[#1E4D3A] uppercase">{order.voucher.code}</span>
+                                                        <span className="text-xs text-red-600">-{formatCurrency(order.voucher_discount_amount)}</span>
+                                                    </div>
+                                                ) : '-'}
                                             </td>
                                             <td className="whitespace-nowrap px-4 py-4 font-body-sm text-sm font-extrabold text-[#1E4D3A]">
                                                 {formatCurrency(order.total)}

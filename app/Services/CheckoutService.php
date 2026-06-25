@@ -58,7 +58,7 @@ class CheckoutService
             $voucherDiscountAmount = 0.0;
 
             if (! empty($data['voucher_code'])) {
-                [$voucher, $voucherDiscountAmount] = $this->resolveVoucher($cart, $data['voucher_code'], $subtotal);
+                [$voucher, $voucherDiscountAmount] = $this->resolveVoucher($cart, $data['voucher_code'], $subtotal, $data['customer_whatsapp_number']);
             }
 
             $order = Order::query()->create([
@@ -148,21 +148,16 @@ class CheckoutService
         });
     }
 
-    public function previewVoucher(Cart $cart, string $code, float $subtotal): array
+    public function previewVoucher(Cart $cart, string $code, float $subtotal, ?string $customerWhatsapp = null): array
     {
-        return $this->resolveVoucher($cart, $code, $subtotal);
+        return $this->resolveVoucher($cart, $code, $subtotal, $customerWhatsapp);
     }
 
-    private function resolveVoucher(Cart $cart, string $code, float $subtotal): array
+    private function resolveVoucher(Cart $cart, string $code, float $subtotal, ?string $customerWhatsapp = null): array
     {
         $customerProfile = $cart->customerProfile;
 
-        if ($cart->user_id === null || $customerProfile === null || $customerProfile->member_status !== 'member') {
-            throw ValidationException::withMessages([
-                'voucher_code' => 'Voucher hanya dapat digunakan oleh customer member yang sudah login.',
-            ]);
-        }
-
+        // Vouchers are now accessible to guests too, but members-only vouchers still restricted
         $voucher = Voucher::query()
             ->where('code', Str::upper($code))
             ->lockForUpdate()
@@ -174,20 +169,35 @@ class CheckoutService
             ]);
         }
 
+        if ($voucher->target_audience === 'member' && ($customerProfile === null || $customerProfile->member_status !== 'member')) {
+            throw ValidationException::withMessages([
+                'voucher_code' => 'Voucher ini khusus untuk customer member.',
+            ]);
+        }
+
         if ($voucher->minimum_purchase !== null && $subtotal < (float) $voucher->minimum_purchase) {
             throw ValidationException::withMessages([
                 'voucher_code' => 'Subtotal belum memenuhi minimum pembelian voucher.',
             ]);
         }
 
-        $alreadyRedeemed = VoucherRedemption::query()
-            ->where('voucher_id', $voucher->id)
-            ->where('customer_profile_id', $customerProfile->id)
-            ->exists();
+        $alreadyRedeemed = false;
+        
+        if ($customerProfile !== null) {
+            $alreadyRedeemed = VoucherRedemption::query()
+                ->where('voucher_id', $voucher->id)
+                ->where('customer_profile_id', $customerProfile->id)
+                ->exists();
+        } elseif ($customerWhatsapp !== null) {
+            $alreadyRedeemed = Order::query()
+                ->where('voucher_id', $voucher->id)
+                ->where('customer_whatsapp_number', $customerWhatsapp)
+                ->exists();
+        }
 
         if ($alreadyRedeemed) {
             throw ValidationException::withMessages([
-                'voucher_code' => 'Voucher sudah pernah digunakan.',
+                'voucher_code' => 'Anda sudah pernah menggunakan voucher ini.',
             ]);
         }
 
