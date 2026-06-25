@@ -6,6 +6,7 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
+        <meta name="description" inertia content="Phoenix Terapi &amp; Herbal menghadirkan produk obat herbal ber-BPOM, alat terapi, dan konsultasi profesional. Menyediakan layanan terapi bio elektrik Kota Bandung, Perawatan Inhaler Hidrogen (GenQi), Terapi Regenerasi Sel (BES), dan QRMA Bioscan dengan pendekatan alami, bersih, dan terpercaya.">
 
         <link rel="icon" type="image/png" href="{{ asset('images/logo-transparent.png') }}">
 
