@@ -145,7 +145,6 @@ function ProductCard({ onAddedToCart, product }) {
             <div className="relative h-48 overflow-hidden bg-[#F6F7F7]" ref={imageRef}>
                 {imageSrc ? (
                     <picture>
-                        {toWebP(imageSrc) && <source srcSet={toWebP(imageSrc)} type="image/webp" />}
                         <img
                             className="h-full w-full object-cover transition-transform duration-500 group-hover/card:scale-105"
                             src={imageSrc}
@@ -195,7 +194,6 @@ function ServiceCard({ service, consultationHref }) {
             <div className="relative h-48 overflow-hidden bg-[#F6F7F7]">
                 {imageSrc ? (
                     <picture>
-                        {toWebP(imageSrc) && <source srcSet={toWebP(imageSrc)} type="image/webp" />}
                         <img
                             className="h-full w-full object-cover transition-transform duration-500 group-hover/card:scale-105"
                             src={imageSrc}
