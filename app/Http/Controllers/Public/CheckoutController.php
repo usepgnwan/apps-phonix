@@ -50,6 +50,19 @@ class CheckoutController extends Controller
                 ->values();
         }
 
+        $availableVouchers = \App\Models\Voucher::query()
+            ->where('is_published', true)
+            ->where(function ($query) {
+                $query->whereNull('starts_at')->orWhere('starts_at', '<=', now());
+            })
+            ->where(function ($query) {
+                $query->whereNull('ends_at')->orWhere('ends_at', '>=', now());
+            })
+            ->when($customerProfile?->member_status !== 'member', function ($query) {
+                $query->where('target_audience', '!=', 'member');
+            })
+            ->get(['id', 'code', 'name', 'description', 'discount_type', 'discount_value', 'minimum_purchase']);
+
         return Inertia::render('Public/Checkout/Show', [
             'cart' => $cart,
             'authUser' => $authUser?->only(['name', 'email']),
@@ -60,6 +73,7 @@ class CheckoutController extends Controller
                 ->orderBy('bank_name')
                 ->get(['id', 'type', 'bank_name', 'account_number', 'account_holder_name', 'qris_image_path', 'instructions']),
             'savedShippingAddresses' => $savedShippingAddresses,
+            'availableVouchers' => $availableVouchers,
         ]);
     }
 
@@ -103,7 +117,7 @@ class CheckoutController extends Controller
                 return (float) $product->price * (int) $cartItem->quantity;
             });
 
-            [$voucher, $discountAmount] = $this->checkoutService->previewVoucher($cart, $validated['voucher_code'], $subtotal);
+            [$voucher, $discountAmount] = $this->checkoutService->previewVoucher($cart, $validated['voucher_code'], $subtotal, $request->input('customer_whatsapp_number'));
         } catch (ValidationException $exception) {
             return response()->json([
                 'valid' => false,

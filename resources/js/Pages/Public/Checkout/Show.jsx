@@ -137,7 +137,7 @@ function paymentMethodLabel(paymentMethod) {
     return 'QRIS';
 }
 
-export default function CheckoutShow({ authUser, cart, customerProfile, paymentMethods = [], savedShippingAddresses = [] }) {
+export default function CheckoutShow({ authUser, cart, customerProfile, paymentMethods = [], savedShippingAddresses = [], availableVouchers = [] }) {
     const items = cartItems(cart);
     const subtotal = cartSubtotal(cart);
     const [provinceId, setProvinceId] = useState('');
@@ -420,6 +420,11 @@ export default function CheckoutShow({ authUser, cart, customerProfile, paymentM
             return;
         }
 
+        if (!customerProfile && !data.customer_whatsapp_number) {
+            setVoucherCheck({ status: 'invalid', data: null, message: 'Isi Nomor WhatsApp terlebih dahulu.' });
+            return;
+        }
+
         setVoucherCheck({ status: 'checking', data: null, message: 'Memeriksa voucher...' });
 
         try {
@@ -433,6 +438,7 @@ export default function CheckoutShow({ authUser, cart, customerProfile, paymentM
                 },
                 body: JSON.stringify({
                     voucher_code: checkedCode,
+                    customer_whatsapp_number: data.customer_whatsapp_number,
                 }),
             });
 
@@ -570,22 +576,7 @@ export default function CheckoutShow({ authUser, cart, customerProfile, paymentM
                                     </div>
                                 </section>
 
-                                {customerProfile?.member_status === 'member' ? (
-                                    <section className="rounded-3xl border border-primary-fixed-dim bg-primary-fixed/25 p-4">
-                                        <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.18em] text-on-primary-fixed">Voucher Belanja</p>
-                                        <div className="mt-3">
-                                            <span className="font-label-sm text-xs font-bold uppercase tracking-[0.14em] text-on-surface-variant">Kode Voucher</span>
-                                            <div className="mt-2 flex gap-2">
-                                                <input className="block min-w-0 flex-1 rounded-2xl border-outline-variant bg-white font-body-sm text-sm uppercase text-on-surface shadow-sm focus:border-primary-container focus:ring-primary-container" name="voucher_code" onChange={(event) => changeVoucherCode(event.target.value)} type="text" value={data.voucher_code ?? ''} />
-                                                <button className="shrink-0 rounded-2xl border border-primary-container px-4 font-body-sm text-xs font-bold text-primary-container transition hover:bg-primary-container hover:text-white disabled:cursor-not-allowed disabled:opacity-50" disabled={voucherCheck.status === 'checking' || !data.voucher_code} onClick={checkVoucher} type="button">
-                                                    {voucherCheck.status === 'checking' ? 'Cek...' : 'Cek'}
-                                                </button>
-                                            </div>
-                                            <FieldError message={errors.voucher_code} />
-                                            {voucherCheck.message ? <p className={`mt-2 font-body-sm text-xs ${voucherCheck.status === 'valid' ? 'text-primary-container' : 'text-error'}`}>{voucherCheck.message}</p> : null}
-                                        </div>
-                                    </section>
-                                ) : null}
+
                                 <FieldError message={errors.cart} />
                             </form>
                         </PublicCard>
@@ -627,6 +618,22 @@ export default function CheckoutShow({ authUser, cart, customerProfile, paymentM
                                     </div>
                                 ) : null}
                                 <p className="mt-2 font-body-sm text-xs leading-5 text-on-surface-variant">Belum termasuk ongkir. Admin akan mengonfirmasi biaya pengiriman setelah order dibuat.</p>
+                                
+                                <div className="mt-5 rounded-3xl border border-primary-fixed-dim bg-primary-fixed/25 p-4">
+                                    <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.18em] text-on-primary-fixed">Voucher Belanja</p>
+                                    <div className="mt-3">
+                                        <span className="font-label-sm text-xs font-bold uppercase tracking-[0.14em] text-on-surface-variant">Kode Voucher</span>
+                                        <div className="mt-2 flex gap-2">
+                                            <input className="block min-w-0 flex-1 rounded-2xl border-outline-variant bg-white font-body-sm text-sm uppercase text-on-surface shadow-sm focus:border-primary-container focus:ring-primary-container" name="voucher_code" onChange={(event) => changeVoucherCode(event.target.value)} type="text" value={data.voucher_code ?? ''} placeholder="Masukkan kode voucher" />
+                                            <button className="shrink-0 rounded-2xl border border-primary-container px-4 font-body-sm text-xs font-bold text-primary-container transition hover:bg-primary-container hover:text-white disabled:cursor-not-allowed disabled:opacity-50" disabled={voucherCheck.status === 'checking' || !data.voucher_code} onClick={checkVoucher} type="button">
+                                                {voucherCheck.status === 'checking' ? 'Cek...' : 'Cek'}
+                                            </button>
+                                        </div>
+                                        <FieldError message={errors.voucher_code} />
+                                        {voucherCheck.message ? <p className={`mt-2 font-body-sm text-xs ${voucherCheck.status === 'valid' ? 'text-primary-container' : 'text-error'}`}>{voucherCheck.message}</p> : null}
+                                        {(!customerProfile && !data.customer_whatsapp_number) && <p className="mt-2 font-body-sm text-xs text-error">Isi Nomor WhatsApp terlebih dahulu untuk mengecek voucher.</p>}
+                                    </div>
+                                </div>
                             </div>
                             <button className="mt-5 inline-flex w-full items-center justify-center rounded-full bg-primary-container px-5 py-3 font-label-md text-sm font-bold text-white shadow-sm shadow-primary-container/20 transition hover:bg-primary disabled:cursor-not-allowed disabled:opacity-60" disabled={processing || (data.voucher_code && voucherCheck.status !== 'valid')} form="checkout-form" type="submit">
                                 {data.voucher_code && voucherCheck.status !== 'valid' ? 'Cek Voucher Dulu' : 'Buat Order'}
