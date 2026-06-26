@@ -246,7 +246,9 @@ class FieldStaffLeadTest extends TestCase
         ]);
         $event = Event::query()->create([
             'name' => 'Event '.$index,
-            'event_date' => now()->addDay()->toDateString(),
+            'start_date' => now()->addDay()->toDateString(),
+            'end_date' => now()->addDay()->toDateString(),
+            'is_active' => true,
             'location' => 'Lokasi '.$index,
             'organizer' => 'Organizer '.$index,
             'notes' => 'Catatan event',

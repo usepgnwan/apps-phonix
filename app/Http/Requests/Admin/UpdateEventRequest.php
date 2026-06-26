@@ -17,10 +17,12 @@ class UpdateEventRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'event_date' => ['required', 'date'],
+            'start_date' => ['required', 'date'],
+            'end_date' => ['required', 'date', 'after_or_equal:start_date'],
             'location' => ['required', 'string', 'max:255'],
             'organizer' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
+            'is_active' => ['required', 'boolean'],
         ];
     }
 }

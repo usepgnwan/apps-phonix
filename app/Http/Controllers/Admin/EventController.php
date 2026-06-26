@@ -36,8 +36,10 @@ class EventController extends Controller
         $events = Event::query()
             ->withCount(['leads', 'offlineSales'])
             ->when($search, function ($query, $search) {
-                $query->where('name', 'like', "%{$search}%")
-                      ->orWhere('location', 'like', "%{$search}%");
+                $query->where(function ($query) use ($search) {
+                    $query->where('name', 'like', "%{$search}%")
+                        ->orWhere('location', 'like', "%{$search}%");
+                });
             })
             ->latest()
             ->paginate($perPage)

@@ -168,7 +168,9 @@ class DatabaseSeeder extends Seeder
         $event = Event::query()->updateOrCreate(
             ['name' => 'Pameran Herbal Dummy'],
             [
-                'event_date' => now()->addDays(7)->toDateString(),
+                'start_date' => now()->addDays(7)->toDateString(),
+                'end_date' => now()->addDays(7)->toDateString(),
+                'is_active' => true,
                 'location' => 'Jakarta Convention Dummy Hall',
                 'organizer' => 'Tim Phoenix',
                 'notes' => 'Event dummy untuk testing lead dan offline sales.',

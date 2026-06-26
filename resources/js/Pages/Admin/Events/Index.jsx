@@ -18,6 +18,10 @@ function formatNumber(value) {
     return new Intl.NumberFormat('id-ID').format(Number(value ?? 0));
 }
 
+function StatusBadge({ isActive }) {
+    return <span className={`inline-flex rounded-full px-3 py-1 font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] ${isActive ? 'bg-[#1E4D3A] text-white' : 'bg-gray-200 text-gray-600'}`}>{isActive ? 'Aktif' : 'Nonaktif'}</span>;
+}
+
 
 function AdminEventIndex({ events, metrics, filters }) {
     const items = events?.data ?? events ?? [];
@@ -101,6 +105,9 @@ function AdminEventIndex({ events, metrics, filters }) {
                                     <div className="rounded-2xl bg-[#A8C5B3]/25 px-4 py-2 text-right">
                                         <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-[#1E4D3A]">Organizer</p>
                                         <p className="font-body-sm text-sm font-bold text-[#333333]">{event.organizer || '-'}</p>
+                                        <div className="mt-2 flex justify-end">
+                                            <StatusBadge isActive={event.is_active} />
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
