@@ -49,15 +49,14 @@ class AdminDashboardReportTest extends TestCase
         $admin = $this->createAdmin();
         $data = $this->seedReportData();
 
-        $response = $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.dashboard.index'));
+        $response = $this->inertiaGet($admin, route('admin.dashboard.index'));
 
         $response
             ->assertOk()
             ->assertJsonPath('component', 'Admin/Dashboard/Index')
             ->assertJsonPath('props.page', 'admin.dashboard.index')
-            ->assertJsonPath('props.summary.products', 2)
-            ->assertJsonPath('props.summary.services', 1)
-            ->assertJsonPath('props.summary.orders', 3)
+            ->assertJsonPath('props.summary.productsAndServices', 3)
+            ->assertJsonPath('props.summary.ordersRevenue', 850000)
             ->assertJsonPath('props.summary.bookings', 2)
             ->assertJsonPath('props.summary.leads', 3)
             ->assertJsonPath('props.summary.customerProfiles', 2)
@@ -77,7 +76,7 @@ class AdminDashboardReportTest extends TestCase
         $admin = $this->createAdmin();
         $data = $this->seedReportData();
 
-        $response = $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.reports.index'));
+        $response = $this->inertiaGet($admin, route('admin.reports.index'));
 
         $response
             ->assertOk()
@@ -89,8 +88,8 @@ class AdminDashboardReportTest extends TestCase
             ->assertJsonPath('props.reports.leadsByAssignedStaff.0.total', 2)
             ->assertJsonPath('props.reports.bookingsByService.0.name', $data['service']->name)
             ->assertJsonPath('props.reports.bookingsByService.0.total', 2)
-            ->assertJsonPath('props.reports.websiteOrderRevenue', '350000.00')
-            ->assertJsonPath('props.reports.offlineSalesRevenue', '200000.00')
+            ->assertJsonPath('props.reports.kpis.websiteOrderRevenue', 350000)
+            ->assertJsonPath('props.reports.kpis.offlineSalesRevenue', 200000)
             ->assertJsonPath('props.reports.productRecommendationsByProduct.0.name', $data['lowStockProduct']->name)
             ->assertJsonPath('props.reports.productRecommendationsByProduct.0.total', 1);
 
@@ -104,6 +103,17 @@ class AdminDashboardReportTest extends TestCase
         return User::factory()->create(['role' => 'admin', 'is_active' => true]);
     }
 
+    private function inertiaGet(User $admin, string $url): \Illuminate\Testing\TestResponse
+    {
+        $request = $this->actingAs($admin)->withHeader('X-Inertia', 'true');
+
+        if (file_exists(public_path('build/manifest.json'))) {
+            $request->withHeader('X-Inertia-Version', hash_file('xxh128', public_path('build/manifest.json')));
+        }
+
+        return $request->get($url);
+    }
+
     private function seedReportData(): array
     {
         $customerA = $this->createCustomerProfile('Customer A');
@@ -115,7 +125,9 @@ class AdminDashboardReportTest extends TestCase
         $leadSource = LeadSource::query()->create(['name' => 'Website', 'slug' => 'website', 'is_active' => true]);
         $event = Event::query()->create([
             'name' => 'Event A',
-            'event_date' => now()->addDay()->toDateString(),
+            'start_date' => now()->addDay()->toDateString(),
+            'end_date' => now()->addDay()->toDateString(),
+            'is_active' => true,
             'location' => 'Lokasi Event',
             'organizer' => 'Organizer',
             'notes' => 'Catatan event',

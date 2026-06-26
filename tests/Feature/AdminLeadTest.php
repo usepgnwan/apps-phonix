@@ -60,10 +60,10 @@ class AdminLeadTest extends TestCase
             ->assertOk()
             ->assertJsonPath('component', 'Admin/Leads/Index')
             ->assertJsonPath('props.page', 'admin.leads.index')
-            ->assertJsonPath('props.leads.0.lead_source.name', 'Instagram')
-            ->assertJsonPath('props.leads.0.assigned_staff.id', $this->lastAssignedStaffId())
-            ->assertJsonPath('props.leads.0.customer_profile.name', 'Customer A')
-            ->assertJsonPath('props.leads.0.event.name', 'Event A');
+            ->assertJsonPath('props.leads.data.0.lead_source.name', 'Instagram')
+            ->assertJsonPath('props.leads.data.0.assigned_staff.id', $this->lastAssignedStaffId())
+            ->assertJsonPath('props.leads.data.0.customer_profile.name', 'Customer A')
+            ->assertJsonPath('props.leads.data.0.event.name', 'Event A');
     }
 
     public function test_active_admin_can_store_lead(): void
@@ -272,7 +272,9 @@ class AdminLeadTest extends TestCase
         ]);
         $event = Event::query()->create([
             'name' => 'Event A',
-            'event_date' => now()->addDay()->toDateString(),
+            'start_date' => now()->addDay()->toDateString(),
+            'end_date' => now()->addDay()->toDateString(),
+            'is_active' => true,
             'location' => 'Lokasi A',
             'organizer' => 'Organizer A',
             'notes' => 'Catatan',

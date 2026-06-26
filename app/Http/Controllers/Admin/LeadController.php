@@ -51,7 +51,7 @@ class LeadController extends Controller
         ];
 
         $leads = Lead::query()
-            ->with(['leadSource:id,name,slug,is_active', 'assignedStaff:id,name,email', 'customerProfile:id,name,whatsapp_number', 'event:id,name,event_date'])
+            ->with(['leadSource:id,name,slug,is_active', 'assignedStaff:id,name,email', 'customerProfile:id,name,whatsapp_number', 'event:id,name,start_date,end_date,is_active'])
             ->when($search, function ($query, $search) {
                 $query->where('name', 'like', "%{$search}%")
                       ->orWhere('whatsapp_number', 'like', "%{$search}%")
@@ -100,7 +100,7 @@ class LeadController extends Controller
             'leadSource:id,name,slug,is_active',
             'assignedStaff:id,name,email',
             'customerProfile:id,name,whatsapp_number',
-            'event:id,name,event_date',
+            'event:id,name,start_date,end_date,is_active',
             'leadFollowUps.user:id,name,email',
         ]);
 

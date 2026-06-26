@@ -185,9 +185,10 @@ function ProductCard({ onAddedToCart, product }) {
     );
 }
 
-function ServiceCard({ service, consultationHref }) {
+function ServiceCard({ service }) {
     const imageSrc = storageImage(service.image_path);
     const detailHref = serviceHref(service);
+    const bookingHref = route('bookings.create', { service_id: service.id });
 
     return (
         <div className="min-w-[280px] md:min-w-[calc(25%-18px)] snap-start overflow-hidden rounded-2xl border border-outline-variant bg-white shadow-sm group/card cursor-pointer" style={{ opacity: '1', transform: 'translateY(0px)', transition: '0.6s ease-out' }}>
@@ -224,7 +225,7 @@ function ServiceCard({ service, consultationHref }) {
                 <p className="text-[#1E4D3A] font-label-md">{formatRupiah(service.price)}</p>
                 {service.description && <p className="mt-3 line-clamp-2 text-sm text-on-surface-variant">{service.description}</p>}
                 <div className="mt-4 flex items-center gap-3">
-                    <Link href={consultationHref} className="flex-1 bg-[#1E4D3A] text-white py-2 rounded-full font-label-md hover:bg-[#163B2C] transition-all active:scale-95 text-center">Booking</Link>
+                    <Link href={bookingHref} className="flex-1 bg-[#1E4D3A] text-white py-2 rounded-full font-label-md hover:bg-[#163B2C] transition-all active:scale-95 text-center">Booking</Link>
                     <Link href={detailHref} aria-label={`Lihat layanan ${service.name}`} className="h-10 w-10 rounded-full border border-[#1E4D3A]/20 text-[#1E4D3A] flex items-center justify-center hover:bg-[#1E4D3A] hover:text-white transition-all active:scale-95">
                         <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
                     </Link>
@@ -337,7 +338,7 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
 
         return route('customer.dashboard.index');
     })();
-    const consultationHref = isAuthenticated ? route('bookings.create') : route('login');
+    const consultationHref = route('bookings.create');
 
     const handleAnchorClick = (event) => {
         const href = event.currentTarget.getAttribute('href');
@@ -1358,7 +1359,7 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                                 </div>
                                 <div className="flex gap-6 overflow-x-auto no-scrollbar snap-x pb-4" id="carousel-services">
                                     {featuredServices.length > 0 ? featuredServices.map((service) => (
-                                        <ServiceCard key={service.id ?? service.slug ?? service.name} service={service} consultationHref={consultationHref} />
+                                        <ServiceCard key={service.id ?? service.slug ?? service.name} service={service} />
                                     )) : (
                                         <EmptyCarouselState>Layanan unggulan sedang diperbarui. Tim Phoenix tetap siap membantu melalui halaman layanan.</EmptyCarouselState>
                                     )}

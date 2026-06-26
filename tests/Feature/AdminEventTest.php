@@ -43,8 +43,8 @@ class AdminEventTest extends TestCase
         $this->inertiaGet($admin, route('admin.events.index'))
             ->assertOk()
             ->assertJsonPath('component', 'Admin/Events/Index')
-            ->assertJsonPath('props.events.0.leads_count', 1)
-            ->assertJsonPath('props.events.0.offline_sales_count', 1);
+            ->assertJsonPath('props.events.data.0.leads_count', 1)
+            ->assertJsonPath('props.events.data.0.offline_sales_count', 1);
 
         $this->inertiaGet($admin, route('admin.events.create'))
             ->assertOk()
@@ -71,10 +71,12 @@ class AdminEventTest extends TestCase
 
         $this->assertDatabaseHas('events', [
             'name' => 'Pameran Herbal',
-            'event_date' => now()->addDay()->startOfDay()->format('Y-m-d H:i:s'),
+            'start_date' => now()->addDay()->startOfDay()->format('Y-m-d H:i:s'),
+            'end_date' => now()->addDays(3)->startOfDay()->format('Y-m-d H:i:s'),
             'location' => 'Jakarta',
             'organizer' => 'Komunitas Herbal',
             'notes' => 'Event promosi herbal',
+            'is_active' => true,
         ]);
     }
 
@@ -84,16 +86,19 @@ class AdminEventTest extends TestCase
 
         $this->actingAs($admin)->post(route('admin.events.store'), [
             'name' => 'Pemeriksaan Gratis',
-            'event_date' => now()->addDay()->toDateString(),
+            'start_date' => now()->addDay()->toDateString(),
+            'end_date' => now()->addDay()->toDateString(),
             'location' => 'Bandung',
             'organizer' => null,
             'notes' => null,
+            'is_active' => false,
         ])->assertRedirect(route('admin.events.index'));
 
         $this->assertDatabaseHas('events', [
             'name' => 'Pemeriksaan Gratis',
             'organizer' => null,
             'notes' => null,
+            'is_active' => false,
         ]);
     }
 
@@ -104,10 +109,12 @@ class AdminEventTest extends TestCase
 
         $this->actingAs($admin)->patch(route('admin.events.update', $event), [
             'name' => 'Pameran Herbal Baru',
-            'event_date' => now()->addDays(2)->toDateString(),
+            'start_date' => now()->addDays(2)->toDateString(),
+            'end_date' => now()->addDays(4)->toDateString(),
             'location' => 'Surabaya',
             'organizer' => 'Tim Phoenix',
             'notes' => 'Catatan diperbarui',
+            'is_active' => false,
         ])->assertRedirect(route('admin.events.index'));
 
         $this->assertDatabaseHas('events', [
@@ -116,6 +123,7 @@ class AdminEventTest extends TestCase
             'location' => 'Surabaya',
             'organizer' => 'Tim Phoenix',
             'notes' => 'Catatan diperbarui',
+            'is_active' => false,
         ]);
     }
 
@@ -126,19 +134,23 @@ class AdminEventTest extends TestCase
 
         $this->actingAs($admin)->post(route('admin.events.store'), [
             'name' => null,
-            'event_date' => 'invalid',
+            'start_date' => 'invalid',
+            'end_date' => now()->subDay()->toDateString(),
             'location' => null,
             'organizer' => str_repeat('a', 256),
             'notes' => [],
-        ])->assertSessionHasErrors(['name', 'event_date', 'location', 'organizer', 'notes']);
+            'is_active' => null,
+        ])->assertSessionHasErrors(['name', 'start_date', 'location', 'organizer', 'notes', 'is_active']);
 
         $this->actingAs($admin)->patch(route('admin.events.update', $event), [
             'name' => str_repeat('a', 256),
-            'event_date' => now()->toDateString(),
+            'start_date' => now()->toDateString(),
+            'end_date' => now()->subDay()->toDateString(),
             'location' => str_repeat('b', 256),
             'organizer' => null,
             'notes' => null,
-        ])->assertSessionHasErrors(['name', 'location']);
+            'is_active' => true,
+        ])->assertSessionHasErrors(['name', 'end_date', 'location']);
     }
 
     public function test_active_admin_can_delete_unused_event(): void
@@ -211,10 +223,12 @@ class AdminEventTest extends TestCase
 
         return Event::query()->create(array_merge([
             'name' => 'Event '.$index,
-            'event_date' => now()->addDay()->toDateString(),
+            'start_date' => now()->subDay()->toDateString(),
+            'end_date' => now()->addDay()->toDateString(),
             'location' => 'Lokasi '.$index,
             'organizer' => 'Organizer '.$index,
             'notes' => 'Catatan event',
+            'is_active' => true,
         ], $attributes));
     }
 
@@ -253,10 +267,12 @@ class AdminEventTest extends TestCase
     {
         return [
             'name' => 'Pameran Herbal',
-            'event_date' => now()->addDay()->toDateString(),
+            'start_date' => now()->addDay()->toDateString(),
+            'end_date' => now()->addDays(3)->toDateString(),
             'location' => 'Jakarta',
             'organizer' => 'Komunitas Herbal',
             'notes' => 'Event promosi herbal',
+            'is_active' => true,
         ];
     }
 }
