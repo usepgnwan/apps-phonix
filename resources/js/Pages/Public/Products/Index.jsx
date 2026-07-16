@@ -99,7 +99,7 @@ function ProductCard({ product }) {
     const category = productCategory(product);
 
     return (
-        <PublicCard className="overflow-hidden">
+        <PublicCard className="overflow-hidden flex flex-col h-full">
             <div className="relative">
                 <ProductImage alt={product.name} className="h-56 w-full" imagePath={product.image_path} />
                 {product.is_featured && (
@@ -109,7 +109,7 @@ function ProductCard({ product }) {
                     </span>
                 )}
             </div>
-            <div className="p-5">
+            <div className="p-5 flex flex-col flex-grow">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                     <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.2em] text-on-surface-variant">
                         {category?.name ?? 'Herbal Phoenix'}
@@ -118,9 +118,30 @@ function ProductCard({ product }) {
                 <h2 className="mt-1 font-headline-md text-headline-md text-primary-container">
                     {product.name}
                 </h2>
-                <p className="mt-3 line-clamp-2 font-body-sm text-sm leading-6 text-on-surface-variant">
+                <p className="mt-3 line-clamp-2 font-body-sm text-sm leading-6 text-on-surface-variant flex-grow">
                     {product.short_description || 'Produk herbal Phoenix pilihan untuk mendukung rutinitas wellness Anda.'}
                 </p>
+                
+                {/* Info Stok Cabang */}
+                {product.branch_stocks && product.branch_stocks.length > 0 ? (
+                    product.branch_stocks[0].stock_quantity > 0 ? (
+                        <p className="mt-3 font-label-sm text-xs font-semibold text-[#1E4D3A] flex items-center gap-1.5">
+                            <span className="h-2 w-2 rounded-full bg-green-500"></span>
+                            Tersedia ({product.branch_stocks[0].stock_quantity})
+                        </p>
+                    ) : (
+                        <p className="mt-3 font-label-sm text-xs font-semibold text-red-500 flex items-center gap-1.5">
+                            <span className="h-2 w-2 rounded-full bg-red-500"></span>
+                            Habis di cabang ini
+                        </p>
+                    )
+                ) : (
+                    <p className="mt-3 font-label-sm text-xs font-semibold text-gray-500 flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-full bg-gray-400"></span>
+                        Cek ketersediaan di detail
+                    </p>
+                )}
+
                 {product.bpom_number && (
                     <p className="mt-3 font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-primary-container/75">
                         No. BPOM {product.bpom_number}

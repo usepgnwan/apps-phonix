@@ -1,49 +1,15 @@
-import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft, ArrowRight, Package, ShoppingBag, Sparkles, Star } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { ArrowRight, ChevronRight, MapPin, Minus, Plus, ShoppingBag, Star } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
-import { formatRupiah, PrimaryLink, ProductImage, productCategory, PublicCard, PublicShell, SecondaryLink } from '@/Components/Public/commerce.jsx';
-
-function RelatedProduct({ product }) {
-    const category = productCategory(product);
-
-    return (
-        <PublicCard className="group overflow-hidden transition duration-300 hover:-translate-y-1 hover:border-primary-fixed-dim hover:shadow-xl hover:shadow-primary-container/10">
-            <div className="relative overflow-hidden bg-primary-fixed/20">
-                <ProductImage alt={product.name} className="h-52 w-full transition duration-500 group-hover:scale-105" imagePath={product.image_path} />
-                <span className="absolute left-4 top-4 rounded-full border border-white/70 bg-white/85 px-3 py-1.5 font-label-sm text-[10px] font-bold uppercase tracking-[0.18em] text-primary-container shadow-sm shadow-primary-container/10 backdrop-blur">
-                    {category?.name ?? 'Herbal'}
-                </span>
-            </div>
-            <div className="p-5">
-                <h3 className="font-headline-md text-headline-md text-primary-container">{product.name}</h3>
-                <p className="mt-3 line-clamp-2 font-body-sm text-sm leading-6 text-on-surface-variant">
-                    {product.short_description || 'Produk botanical Phoenix untuk suplemen perawatan harian.'}
-                </p>
-                <div className="mt-5 flex items-center justify-between gap-3 border-t border-outline-variant/70 pt-4">
-                    <p className="font-body-lg text-base font-extrabold text-primary-container">{formatRupiah(product.price)}</p>
-                    <Link className="inline-flex items-center gap-1.5 rounded-full border border-primary-fixed-dim px-3 py-2 font-body-sm text-xs font-bold text-primary-container transition hover:bg-primary-fixed/30" href={route('products.show', product.slug)}>
-                        Detail
-                        <ArrowRight aria-hidden="true" className="h-4 w-4" />
-                    </Link>
-                </div>
-            </div>
-        </PublicCard>
-    );
-}
-
-function MetadataPill({ label, value }) {
-    if (!value) {
-        return null;
-    }
-
-    return (
-        <div className="rounded-3xl border border-outline-variant/80 bg-white/75 p-4 shadow-sm shadow-primary-container/5">
-            <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">{label}</p>
-            <p className="mt-2 font-body-sm text-sm font-extrabold text-primary-container">{value}</p>
-        </div>
-    );
-}
+import {
+    changeSelectedBranch,
+    formatRupiah,
+    ProductImage,
+    productCategory,
+    PublicShell,
+    SecondaryLink,
+} from '@/Components/Public/commerce.jsx';
 
 function formatPackageAmount(value) {
     if (value === null || value === undefined || value === '') {
@@ -55,115 +21,432 @@ function formatPackageAmount(value) {
     }).format(Number(value));
 }
 
-function ProductInfoSections({ packageContent, product }) {
-    const tabs = [
+function splitContentLines(value) {
+    if (!value) {
+        return [];
+    }
+
+    return String(value)
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+}
+
+function MultilineTextContent({ text }) {
+    const lines = splitContentLines(text);
+
+    if (lines.length === 0) {
+        return null;
+    }
+
+    if (lines.length === 1) {
+        return <p className="whitespace-pre-line">{lines[0]}</p>;
+    }
+
+    return (
+        <div className="space-y-3">
+            {lines.map((line, index) => (
+                <p key={`${index}-${line.slice(0, 24)}`}>{line}</p>
+            ))}
+        </div>
+    );
+}
+
+function CompositionContent({ text }) {
+    const lines = splitContentLines(text);
+
+    if (lines.length === 0) {
+        return null;
+    }
+
+    if (lines.length === 1) {
+        return <p className="whitespace-pre-line">{lines[0]}</p>;
+    }
+
+    return (
+        <ul className="list-disc space-y-2 pl-5">
+            {lines.map((line, index) => (
+                <li key={`${index}-${line.slice(0, 24)}`}>{line}</li>
+            ))}
+        </ul>
+    );
+}
+
+function UsageContent({ text }) {
+    const lines = splitContentLines(text);
+
+    if (lines.length === 0) {
+        return null;
+    }
+
+    if (lines.length === 1) {
+        return <p className="whitespace-pre-line">{lines[0]}</p>;
+    }
+
+    const looksNumbered = lines.every((line) => /^\d+[\.\)]\s+/.test(line));
+
+    if (looksNumbered) {
+        return (
+            <ol className="list-decimal space-y-2 pl-5">
+                {lines.map((line, index) => (
+                    <li key={`${index}-${line.slice(0, 24)}`}>{line.replace(/^\d+[\.\)]\s+/, '')}</li>
+                ))}
+            </ol>
+        );
+    }
+
+    return (
+        <ol className="list-decimal space-y-2 pl-5">
+            {lines.map((line, index) => (
+                <li key={`${index}-${line.slice(0, 24)}`}>{line}</li>
+            ))}
+        </ol>
+    );
+}
+
+function SpecRow({ label, value }) {
+    if (!value) {
+        return null;
+    }
+
+    return (
+        <div className="grid grid-cols-1 gap-1 border-b border-outline-variant/50 py-3 last:border-b-0 sm:grid-cols-[9rem_1fr] sm:gap-4">
+            <dt className="font-label-sm text-[11px] font-bold uppercase tracking-[0.12em] text-on-surface-variant">
+                {label}
+            </dt>
+            <dd className="font-body-sm text-sm font-semibold text-primary-container">{value}</dd>
+        </div>
+    );
+}
+
+function buildInfoTabs({ packageContent, product }) {
+    return [
+        product.usage_rules
+            ? {
+                content: <UsageContent text={product.usage_rules} />,
+                key: 'usage',
+                title: 'Cara pakai',
+            }
+            : null,
         product.full_description
             ? {
-                content: <p className="whitespace-pre-line">{product.full_description}</p>,
+                content: <MultilineTextContent text={product.full_description} />,
                 key: 'detail',
-                label: 'Detail',
-                title: 'Phoenix',
+                title: 'Detail',
             }
             : null,
         product.composition
             ? {
-                content: <p className="whitespace-pre-line">{product.composition}</p>,
+                content: <CompositionContent text={product.composition} />,
                 key: 'composition',
-                label: 'Komposisi',
                 title: 'Komposisi',
             }
             : null,
         product.packaging_type || packageContent || product.bpom_number
             ? {
                 content: (
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <MetadataPill label="Tipe kemasan" value={product.packaging_type} />
-                        <MetadataPill label="Isi kemasan" value={packageContent} />
-                        <MetadataPill label="No. BPOM" value={product.bpom_number} />
-                    </div>
+                    <dl>
+                        <SpecRow label="Tipe kemasan" value={product.packaging_type} />
+                        <SpecRow label="Isi kemasan" value={packageContent} />
+                        <SpecRow label="No. BPOM" value={product.bpom_number} />
+                    </dl>
                 ),
-                key: 'package',
-                label: 'Informasi',
-                title: 'Informasi Produk',
-            }
-            : null,
-        product.usage_rules
-            ? {
-                content: <p className="whitespace-pre-line">{product.usage_rules}</p>,
-                key: 'usage',
-                label: 'Cara penggunaan',
-                title: 'Cara penggunaan',
+                key: 'specs',
+                title: 'Spesifikasi',
             }
             : null,
     ].filter(Boolean);
-    const [activeTab, setActiveTab] = useState(tabs[0]?.key ?? null);
-    const activeContent = tabs.find((tab) => tab.key === activeTab) ?? tabs[0];
+}
 
-    if (!activeContent) {
+function ProductInfoTabs({ packageContent, product }) {
+    const tabs = buildInfoTabs({ packageContent, product });
+    const [activeKey, setActiveKey] = useState(tabs[0]?.key ?? null);
+    const activeTab = tabs.find((tab) => tab.key === activeKey) ?? tabs[0] ?? null;
+
+    if (tabs.length === 0) {
         return null;
     }
 
     return (
-        <section className="overflow-hidden rounded-[2rem] border border-outline-variant/80 bg-white shadow-sm shadow-primary-container/5">
-            <div className="flex gap-1 overflow-x-auto border-b border-outline-variant/80 bg-surface-container-low px-4 pt-4">
+        <div className="mt-8 border-t border-outline-variant/60 pt-6">
+            <div className="-mx-1 flex gap-1 overflow-x-auto pb-1" role="tablist" aria-label="Informasi produk">
                 {tabs.map((tab) => {
-                    const isActive = tab.key === activeContent.key;
+                    const isActive = tab.key === activeTab?.key;
 
                     return (
                         <button
-                            className={`shrink-0 rounded-t-2xl px-5 py-3 font-label-sm text-xs font-bold uppercase tracking-[0.14em] transition ${isActive ? 'bg-white text-primary-container shadow-sm shadow-primary-container/5' : 'text-on-surface-variant hover:bg-white/60 hover:text-primary-container'}`}
+                            aria-controls={`product-tab-${tab.key}`}
+                            aria-selected={isActive}
+                            className={`shrink-0 rounded-full px-4 py-2 font-body-sm text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-primary-container/20 ${
+                                isActive
+                                    ? 'bg-primary-container text-white shadow-sm shadow-primary-container/20'
+                                    : 'text-on-surface-variant hover:bg-primary-fixed/25 hover:text-primary-container'
+                            }`}
                             key={tab.key}
-                            onClick={() => setActiveTab(tab.key)}
+                            onClick={() => setActiveKey(tab.key)}
+                            role="tab"
                             type="button"
                         >
-                            {tab.label}
+                            {tab.title}
                         </button>
                     );
                 })}
             </div>
-            <div className="p-6 md:p-8">
-                <h2 className="font-headline-lg text-headline-lg text-primary-container">{activeContent.title}</h2>
-                <div className="mt-5 font-body-md text-body-md leading-7 text-on-surface-variant">
-                    {activeContent.content}
-                </div>
+
+            <div
+                className="mt-5 font-body-md text-sm leading-7 text-on-surface-variant md:text-base"
+                id={`product-tab-${activeTab.key}`}
+                role="tabpanel"
+            >
+                <div className="max-w-2xl">{activeTab.content}</div>
             </div>
-        </section>
+        </div>
     );
 }
 
-function QuantityControl({ data, errors, processing, product, setData, submit }) {
+function QuantityStepper({ availableStock, disabled, quantity, setData }) {
+    const maxQty = availableStock > 0 ? availableStock : 1;
+    const current = Math.max(1, Number(quantity || 1));
+
+    function adjust(delta) {
+        if (disabled) {
+            return;
+        }
+
+        const next = Math.min(maxQty, Math.max(1, current + delta));
+        setData('quantity', next);
+    }
+
     return (
-        <form className="mt-8 rounded-[2rem] border border-outline-variant bg-surface-container-low p-4 shadow-inner shadow-white/70" onSubmit={submit}>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
-                <label className="block">
-                    <span className="font-label-sm text-xs font-bold uppercase tracking-[0.14em] text-on-surface-variant">Jumlah</span>
-                    <input
-                        className="mt-2 block w-full rounded-2xl border-outline-variant bg-white px-4 py-3 text-center font-body-sm text-sm font-extrabold text-primary-container shadow-sm focus:border-primary-container focus:ring-primary-container"
-                        min="1"
-                        max={product.stock_quantity ?? undefined}
-                        onChange={(event) => setData('quantity', event.target.value)}
-                        type="number"
-                        value={data.quantity}
-                    />
-                </label>
-                <button className="inline-flex min-h-12 items-center justify-center rounded-full bg-primary-container px-6 py-3 font-label-md text-sm font-bold text-white shadow-lg shadow-primary-container/20 transition hover:bg-primary disabled:cursor-not-allowed disabled:opacity-60 sm:min-w-56" disabled={processing} type="submit">
-                    <ShoppingBag aria-hidden="true" className="mr-2 h-4 w-4" />
-                    Tambah ke Keranjang
+        <div className="flex items-center gap-3">
+            <div className="inline-flex items-center rounded-full border border-outline-variant bg-white p-1 shadow-sm">
+                <button
+                    aria-label="Kurangi jumlah"
+                    className="flex h-10 w-10 items-center justify-center rounded-full text-primary-container transition hover:bg-primary-fixed/30 focus:outline-none focus:ring-2 focus:ring-primary-container/20 disabled:cursor-not-allowed disabled:opacity-40"
+                    disabled={disabled || current <= 1}
+                    onClick={() => adjust(-1)}
+                    type="button"
+                >
+                    <Minus aria-hidden="true" className="h-4 w-4" />
+                </button>
+                <input
+                    aria-label="Jumlah produk"
+                    className="h-10 w-12 border-0 bg-transparent text-center font-body-sm text-sm font-extrabold text-primary-container focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:text-on-surface-variant"
+                    disabled={disabled}
+                    max={maxQty}
+                    min="1"
+                    onChange={(event) => {
+                        const next = Number(event.target.value);
+                        if (Number.isNaN(next)) {
+                            setData('quantity', 1);
+                            return;
+                        }
+                        setData('quantity', Math.min(maxQty, Math.max(1, next)));
+                    }}
+                    type="number"
+                    value={current}
+                />
+                <button
+                    aria-label="Tambah jumlah"
+                    className="flex h-10 w-10 items-center justify-center rounded-full text-primary-container transition hover:bg-primary-fixed/30 focus:outline-none focus:ring-2 focus:ring-primary-container/20 disabled:cursor-not-allowed disabled:opacity-40"
+                    disabled={disabled || current >= maxQty}
+                    onClick={() => adjust(1)}
+                    type="button"
+                >
+                    <Plus aria-hidden="true" className="h-4 w-4" />
                 </button>
             </div>
-            {errors.quantity && <p className="mt-2 font-body-sm text-xs text-error">{errors.quantity}</p>}
-            {errors.product_id && <p className="mt-2 font-body-sm text-xs text-error">{errors.product_id}</p>}
+        </div>
+    );
+}
+
+function BuyPanel({
+    availableStock,
+    cartCount,
+    data,
+    errors,
+    onBranchChange,
+    processing,
+    selectedBranch,
+    setData,
+    submit,
+    branches,
+}) {
+    const hasBranch = Boolean(data.branch_id);
+    const isOutOfStock = hasBranch && availableStock === 0;
+    const isQuantityInvalid = hasBranch && availableStock > 0 && Number(data.quantity) > availableStock;
+    const canSubmit = hasBranch && availableStock > 0 && !isQuantityInvalid && !processing;
+
+    let ctaLabel = 'Tambah ke Keranjang';
+    if (!hasBranch) {
+        ctaLabel = 'Pilih cabang dulu';
+    } else if (isOutOfStock) {
+        ctaLabel = 'Stok habis di cabang ini';
+    } else if (processing) {
+        ctaLabel = 'Menambahkan...';
+    }
+
+    let stockMessage = 'Pilih cabang untuk melihat stok';
+    let stockTone = 'text-on-surface-variant';
+    if (hasBranch && availableStock > 0) {
+        stockMessage = `Stok tersedia: ${availableStock}`;
+        stockTone = 'text-primary-container';
+    } else if (isOutOfStock) {
+        stockMessage = 'Stok habis di cabang ini';
+        stockTone = 'text-error';
+    }
+
+    return (
+        <form className="mt-7 space-y-5" onSubmit={submit}>
+            {branches.length > 0 && (
+                <div>
+                    <label className="block" htmlFor="product-branch-select">
+                        <span className="font-label-sm text-[11px] font-bold uppercase tracking-[0.14em] text-on-surface-variant">
+                            Cek stok di cabang
+                        </span>
+                        <div className="relative mt-2">
+                            <select
+                                id="product-branch-select"
+                                className="block w-full appearance-none rounded-2xl border-outline-variant bg-white py-3 pl-11 pr-10 font-body-sm text-sm font-extrabold text-primary-container shadow-sm focus:border-primary-container focus:ring-primary-container"
+                                onChange={(event) => onBranchChange(event.target.value)}
+                                value={data.branch_id || ''}
+                            >
+                                <option value="" disabled>
+                                    Pilih cabang
+                                </option>
+                                {branches.map((branch) => {
+                                    const stock = branch.product_stocks?.[0]?.stock_quantity ?? 0;
+
+                                    return (
+                                        <option key={branch.id} value={branch.id}>
+                                            {branch.name}
+                                            {stock > 0 ? ` · ${stock} tersedia` : ' · Habis'}
+                                        </option>
+                                    );
+                                })}
+                            </select>
+                            <MapPin
+                                aria-hidden="true"
+                                className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary-container"
+                            />
+                        </div>
+                    </label>
+
+                    {selectedBranch?.address && (
+                        <p className="mt-2 font-body-sm text-xs leading-5 text-on-surface-variant">
+                            {selectedBranch.address}
+                        </p>
+                    )}
+
+                    {cartCount > 0 && (
+                        <p className="mt-2 font-body-sm text-xs leading-5 text-on-surface-variant">
+                            Mengganti cabang akan mengosongkan keranjang Anda.
+                        </p>
+                    )}
+                </div>
+            )}
+
+            <div className="flex flex-wrap items-center gap-4">
+                <div>
+                    <p className="mb-2 font-label-sm text-[11px] font-bold uppercase tracking-[0.14em] text-on-surface-variant">
+                        Jumlah
+                    </p>
+                    <QuantityStepper
+                        availableStock={availableStock}
+                        disabled={!hasBranch || isOutOfStock}
+                        quantity={data.quantity}
+                        setData={setData}
+                    />
+                </div>
+                <p className={`pt-6 font-body-sm text-sm font-semibold ${stockTone}`}>{stockMessage}</p>
+            </div>
+
+            <button
+                className="inline-flex min-h-[52px] w-full items-center justify-center rounded-2xl bg-primary-container px-6 font-label-md text-sm font-bold tracking-wide text-white shadow-md shadow-primary-container/20 transition hover:bg-primary disabled:cursor-not-allowed disabled:bg-outline-variant disabled:shadow-none"
+                disabled={!canSubmit}
+                type="submit"
+            >
+                {canSubmit && <ShoppingBag aria-hidden="true" className="mr-2 h-5 w-5" />}
+                {ctaLabel}
+            </button>
+
+            <SecondaryLink className="w-full" href={route('products.index')}>
+                Lanjut belanja
+            </SecondaryLink>
+
+            {errors.branch_id && <p className="font-body-sm text-xs text-error">{errors.branch_id}</p>}
+            {errors.quantity && <p className="font-body-sm text-xs text-error">{errors.quantity}</p>}
+            {errors.product_id && <p className="font-body-sm text-xs text-error">{errors.product_id}</p>}
         </form>
     );
 }
 
-export default function ProductShow({ product, relatedProducts = [] }) {
+function RelatedProduct({ product }) {
+    return (
+        <Link
+            className="group block overflow-hidden rounded-[1.5rem] border border-outline-variant/70 bg-white transition duration-300 hover:-translate-y-1 hover:border-primary-fixed-dim hover:shadow-xl hover:shadow-primary-container/10"
+            href={route('products.show', product.slug)}
+        >
+            <div className="relative overflow-hidden bg-[#E8F0E9]">
+                <ProductImage
+                    alt={product.name}
+                    className="h-56 w-full !object-contain p-4 transition duration-500 group-hover:scale-105"
+                    imagePath={product.image_path}
+                />
+            </div>
+            <div className="space-y-2 p-4">
+                <h3 className="font-headline-md text-base font-bold uppercase tracking-wide text-primary-container">
+                    {product.name}
+                </h3>
+                <p className="font-body-lg text-base font-extrabold text-primary-container">
+                    {formatRupiah(product.price)}
+                </p>
+            </div>
+        </Link>
+    );
+}
+
+export default function ProductShow({ product, relatedProducts = [], branches = [] }) {
+    const { cartSummary, selectedBranchId } = usePage().props;
+    const cartCount = Number(cartSummary?.count ?? 0);
     const category = productCategory(product);
     const packageContent = [formatPackageAmount(product.content_amount), product.content_unit].filter(Boolean).join(' ');
-    const stockLabel = `${product.stock_quantity ?? 0} tersedia`;
     const productImageRef = useRef(null);
     const [flyingProduct, setFlyingProduct] = useState(null);
-    const { data, errors, post, processing, setData } = useForm({ product_id: product.id, quantity: 1 });
+
+    const defaultBranchId = selectedBranchId || (branches.length > 0 ? branches[0].id : '');
+    const { data, errors, post, processing, setData } = useForm({
+        product_id: product.id,
+        quantity: 1,
+        branch_id: defaultBranchId,
+    });
+
+    useEffect(() => {
+        if (selectedBranchId && String(selectedBranchId) !== String(data.branch_id ?? '')) {
+            setData((prev) => ({ ...prev, branch_id: selectedBranchId, quantity: 1 }));
+        }
+    }, [selectedBranchId]);
+
+    const selectedBranch = branches.find((b) => String(b.id) === String(data.branch_id ?? ''));
+    const availableStock = selectedBranch?.product_stocks?.[0]?.stock_quantity ?? 0;
+    const metaLine = [category?.name, packageContent || product.packaging_type].filter(Boolean).join(' · ');
+
+    function handleBranchChange(newBranchId) {
+        if (!newBranchId || String(newBranchId) === String(data.branch_id ?? '')) {
+            return;
+        }
+
+        const changed = changeSelectedBranch(newBranchId, {
+            cartCount,
+            currentBranchId: selectedBranchId ?? data.branch_id,
+        });
+
+        if (!changed) {
+            return;
+        }
+
+        setData((prev) => ({ ...prev, branch_id: newBranchId, quantity: 1 }));
+    }
 
     function animateToCart() {
         const source = productImageRef.current;
@@ -176,10 +459,10 @@ export default function ProductShow({ product, relatedProducts = [] }) {
 
         const sourceRect = source.getBoundingClientRect();
         const targetRect = target.getBoundingClientRect();
-        const startX = sourceRect.left + (sourceRect.width / 2) - 32;
-        const startY = sourceRect.top + (sourceRect.height / 2) - 32;
-        const endX = targetRect.left + (targetRect.width / 2) - 32;
-        const endY = targetRect.top + (targetRect.height / 2) - 32;
+        const startX = sourceRect.left + sourceRect.width / 2 - 32;
+        const startY = sourceRect.top + sourceRect.height / 2 - 32;
+        const endX = targetRect.left + targetRect.width / 2 - 32;
+        const endY = targetRect.top + targetRect.height / 2 - 32;
 
         setFlyingProduct({
             endX,
@@ -238,6 +521,7 @@ export default function ProductShow({ product, relatedProducts = [] }) {
                     }
                 }
             `}</style>
+
             {flyingProduct && (
                 <div
                     aria-hidden="true"
@@ -252,7 +536,15 @@ export default function ProductShow({ product, relatedProducts = [] }) {
                     }}
                 >
                     {flyingProduct.imagePath ? (
-                        <img alt="" className="h-full w-full object-cover" src={`/storage/${flyingProduct.imagePath}`} />
+                        <img
+                            alt=""
+                            className="h-full w-full object-cover"
+                            src={
+                                flyingProduct.imagePath.startsWith('/') || flyingProduct.imagePath.startsWith('http')
+                                    ? flyingProduct.imagePath
+                                    : `/storage/${flyingProduct.imagePath}`
+                            }
+                        />
                     ) : (
                         <div className="flex h-full w-full items-center justify-center bg-primary-fixed text-primary-container">
                             <ShoppingBag aria-hidden="true" className="h-6 w-6" />
@@ -260,93 +552,107 @@ export default function ProductShow({ product, relatedProducts = [] }) {
                     )}
                 </div>
             )}
-            <div className="space-y-8">
-                <SecondaryLink href={route('products.index')}>
-                    <ArrowLeft aria-hidden="true" className="mr-2 h-4 w-4" />
-                    Kembali ke Produk
-                </SecondaryLink>
 
-                <section className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,0.4fr)_minmax(0,0.6fr)] lg:items-start">
-                    <div className="space-y-4 lg:sticky lg:top-28">
-                        <PublicCard className="relative isolate overflow-hidden bg-surface-container-low p-4 md:p-6" ref={productImageRef}>
-                            <div className="pointer-events-none absolute -left-16 -top-20 h-64 w-64 rounded-full bg-primary-fixed/50 blur-3xl" />
-                            <div className="pointer-events-none absolute -bottom-20 right-0 h-72 w-72 rounded-full bg-tertiary-fixed/40 blur-3xl" />
-                            <div className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-white shadow-2xl shadow-primary-container/10">
-                                <ProductImage alt={product.name} className="h-[302px] w-full md:h-[418px]" imagePath={product.image_path} />
-                                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-primary-container/55 to-transparent p-5 text-white">
-                                    <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.22em]">Phoenix botanical care</p>
-                                </div>
-                            </div>
-                        </PublicCard>
+            <div className="space-y-10 md:space-y-14">
+                <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1.5 font-body-sm text-sm text-on-surface-variant">
+                    <Link className="transition hover:text-primary-container" href={route('home')}>
+                        Beranda
+                    </Link>
+                    <ChevronRight aria-hidden="true" className="h-3.5 w-3.5 shrink-0 opacity-60" />
+                    <Link className="transition hover:text-primary-container" href={route('products.index')}>
+                        Produk
+                    </Link>
+                    <ChevronRight aria-hidden="true" className="h-3.5 w-3.5 shrink-0 opacity-60" />
+                    <span className="font-semibold text-primary-container">{product.name}</span>
+                </nav>
+
+                <section className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:items-start lg:gap-12">
+                    <div className="lg:sticky lg:top-28" ref={productImageRef}>
+                        <div className="overflow-hidden rounded-[2rem] border border-outline-variant/50 bg-[#E8F0E9]">
+                            <ProductImage
+                                alt={product.name}
+                                className="!h-[360px] w-full !object-contain p-8 md:!h-[520px] md:p-12"
+                                imagePath={product.image_path}
+                            />
+                        </div>
                     </div>
 
-                    <PublicCard className="p-6 md:p-8 lg:sticky lg:top-28">
-                        <div className="flex flex-wrap items-center gap-3">
-                            <span className="inline-flex items-center gap-2 rounded-full border border-primary-fixed-dim bg-primary-fixed/30 px-4 py-2 font-label-sm text-[10px] font-bold uppercase tracking-[0.18em] text-primary-container">
-                                <Sparkles aria-hidden="true" className="h-3.5 w-3.5" />
-                                {category?.name ?? 'Herbal Phoenix'}
-                            </span>
+                    <div className="lg:sticky lg:top-28">
+                        <div className="flex flex-wrap items-center gap-2">
                             {product.is_featured && (
-                                <span className="flex items-center gap-1.5 rounded-full border border-transparent bg-[#F08A2B] pl-3 pr-4 py-2 font-label-sm text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-sm">
-                                    <Star className="h-3.5 w-3.5 fill-current" />
-                                    Produk Unggulan
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F08A2B] px-3 py-1.5 font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-white shadow-sm">
+                                    <Star aria-hidden="true" className="h-3.5 w-3.5 fill-current" />
+                                    Unggulan
+                                </span>
+                            )}
+                            {category?.name && (
+                                <span className="inline-flex rounded-full border border-primary-fixed-dim bg-primary-fixed/25 px-3 py-1.5 font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-primary-container">
+                                    {category.name}
                                 </span>
                             )}
                         </div>
-                        <h1 className="mt-5 font-headline-xl text-xl font-bold leading-tight text-primary-container md:text-2xl">
+
+                        <h1 className="mt-4 font-headline-xl text-3xl font-bold uppercase tracking-wide text-primary-container md:text-4xl">
                             {product.name}
                         </h1>
-                        <p className="mt-5 font-body-lg text-body-lg text-on-surface-variant">
+
+                        {metaLine && (
+                            <p className="mt-3 font-body-sm text-sm text-on-surface-variant">
+                                {metaLine}
+                            </p>
+                        )}
+
+                        <p className="mt-4 max-w-xl font-body-md text-base leading-7 text-on-surface-variant">
                             {product.short_description || 'Produk pilihan Phoenix untuk perawatan alami dan wellness harian.'}
                         </p>
 
-                        <div className="mt-7 flex flex-wrap items-end justify-between gap-4 border-y border-outline-variant/70 py-5">
-                            <div>
-                                <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Harga</p>
-                                <p className="mt-2 font-body-lg text-3xl font-extrabold text-primary-container">{formatRupiah(product.price)}</p>
-                            </div>
-                            <div className="rounded-full bg-primary-container px-5 py-3 font-body-sm text-sm font-bold text-white shadow-sm shadow-primary-container/20">
-                                Stok {stockLabel}
-                            </div>
+                        <div className="mt-6">
+                            <p className="font-body-lg text-3xl font-extrabold tracking-tight text-primary-container md:text-4xl">
+                                {formatRupiah(product.price)}
+                            </p>
                         </div>
 
-                        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                            <MetadataPill label="Kategori" value={category?.name ?? 'Herbal Phoenix'} />
-                            <MetadataPill label="Paket" value={packageContent || product.packaging_type} />
-                            <MetadataPill label="Stok" value={stockLabel} />
-                        </div>
+                        <BuyPanel
+                            availableStock={availableStock}
+                            branches={branches}
+                            cartCount={cartCount}
+                            data={data}
+                            errors={errors}
+                            onBranchChange={handleBranchChange}
+                            processing={processing}
+                            selectedBranch={selectedBranch}
+                            setData={setData}
+                            submit={submit}
+                        />
 
-                        <div className="mt-6 rounded-[2rem] border border-primary-fixed-dim bg-primary-fixed/20 p-5">
-                            <div className="flex gap-3">
-                                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-primary-container shadow-sm shadow-primary-container/10">
-                                    <Package aria-hidden="true" className="h-5 w-5" />
-                                </span>
-                                <div>
-                                    <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Amount / Method</p>
-                                    <p className="mt-2 font-body-sm text-sm leading-6 text-primary-container">
-                                        Pilih jumlah produk yang Anda inginkan. Admin Phoenix akan mengonfirmasi detail pengiriman setelah checkout.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <QuantityControl data={data} errors={errors} processing={processing} product={product} setData={setData} submit={submit} />
-                    </PublicCard>
+                        <ProductInfoTabs packageContent={packageContent} product={product} />
+                    </div>
                 </section>
 
-                <ProductInfoSections packageContent={packageContent} product={product} />
-
                 {relatedProducts.length > 0 && (
-                    <section className="space-y-5 rounded-[2rem] bg-surface-container-low p-5 md:p-8">
+                    <section className="space-y-6 border-t border-outline-variant/50 pt-10 md:pt-14">
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                             <div>
-                                <p className="font-label-sm text-xs font-bold uppercase tracking-[0.22em] text-on-surface-variant">Rekomendasi</p>
-                                <h2 className="mt-2 font-headline-lg text-headline-lg text-primary-container">Suplemen Phoenix lainnya</h2>
+                                <p className="font-label-sm text-[11px] font-bold uppercase tracking-[0.2em] text-on-surface-variant">
+                                    Rekomendasi
+                                </p>
+                                <h2 className="mt-2 font-headline-lg text-2xl font-bold italic text-primary-container md:text-3xl">
+                                    Anda mungkin juga suka
+                                </h2>
                             </div>
-                            <PrimaryLink href={route('products.index')}>Lihat semua</PrimaryLink>
+                            <Link
+                                className="inline-flex items-center gap-2 rounded-full border border-outline-variant bg-white px-5 py-2.5 font-body-sm text-sm font-semibold text-primary-container transition hover:border-primary-fixed-dim hover:bg-primary-fixed/20"
+                                href={route('products.index')}
+                            >
+                                Lihat semua produk
+                                <ArrowRight aria-hidden="true" className="h-4 w-4" />
+                            </Link>
                         </div>
+
                         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                            {relatedProducts.map((item) => <RelatedProduct key={item.id} product={item} />)}
+                            {relatedProducts.map((item) => (
+                                <RelatedProduct key={item.id} product={item} />
+                            ))}
                         </div>
                     </section>
                 )}

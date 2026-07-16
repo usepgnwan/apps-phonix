@@ -108,6 +108,11 @@ export default function BookingIndex({ bookings }) {
                                                 <div className="flex flex-wrap items-center gap-2">
                                                     <span className="inline-flex rounded-full border border-primary-fixed-dim bg-primary-fixed/25 px-3 py-1 font-body-sm text-xs font-bold text-primary-container">{booking.booking_number}</span>
                                                     <span className={`inline-flex rounded-full border px-3 py-1 font-body-sm text-xs font-bold ${meta.className}`}>{meta.label}</span>
+                                                    {booking.branch && (
+                                                        <span className="inline-flex rounded-full border border-primary-fixed-dim bg-[#1E4D3A]/10 px-3 py-1 font-body-sm text-xs font-bold uppercase tracking-wider text-[#1E4D3A]">
+                                                            {booking.branch.name}
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <h3 className="mt-4 font-headline-md text-2xl font-bold text-primary-container">{booking.service?.name ?? 'Layanan Phoenix'}</h3>
                                                 <div className="mt-4 grid gap-3 font-body-sm text-sm text-on-surface-variant sm:grid-cols-2 lg:grid-cols-3">

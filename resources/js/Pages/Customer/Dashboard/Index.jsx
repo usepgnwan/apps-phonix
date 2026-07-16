@@ -1,24 +1,14 @@
 import { Head, Link } from '@inertiajs/react';
 import { ArrowRight, CalendarCheck, ClipboardPlus, Leaf, Package, ReceiptText, ShoppingBag, Sparkles, Star } from 'lucide-react';
 
-import CustomerCard from '@/Components/Customer/CustomerCard';
-import CustomerEmptyState from '@/Components/Customer/CustomerEmptyState';
-import CustomerPageHeader from '@/Components/Customer/CustomerPageHeader';
-import CustomerSectionHeader from '@/Components/Customer/CustomerSectionHeader';
-import CustomerStatusBadge from '@/Components/Customer/CustomerStatusBadge';
+import PanelCard from '@/Components/Panel/PanelCard';
+import PanelEmptyState from '@/Components/Panel/PanelEmptyState';
+import PanelPageHeader from '@/Components/Panel/PanelPageHeader';
+import PanelSectionHeader from '@/Components/Panel/PanelSectionHeader';
+import MetricCard from '@/Components/Panel/MetricCard';
+import StatusBadge from '@/Components/Panel/StatusBadge';
 import CustomerLayout from '@/Layouts/CustomerLayout';
-
-function formatNumber(value) {
-    return new Intl.NumberFormat('id-ID').format(Number(value ?? 0));
-}
-
-function formatCurrency(value) {
-    return new Intl.NumberFormat('id-ID', {
-        currency: 'IDR',
-        maximumFractionDigits: 0,
-        style: 'currency',
-    }).format(Number(value ?? 0));
-}
+import { formatNumber, formatCurrency } from '@/utils/format';
 
 function formatDate(value) {
     if (!value) {
@@ -36,63 +26,54 @@ function routeExists(routeName) {
     return typeof route === 'function' && route().has(routeName);
 }
 
-function MetricTile({ icon: IconComponent, label, value, helper }) {
-    return (
-        <CustomerCard className="p-5">
-            <div className="flex items-start justify-between gap-4">
-                <div>
-                    <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant/70">
-                        {label}
-                    </p>
-                    <p className="mt-3 font-headline-lg text-3xl font-bold text-primary-container">
-                        {formatNumber(value)}
-                    </p>
-                    <p className="mt-2 font-body-sm text-xs leading-5 text-on-surface-variant">
-                        {helper}
-                    </p>
-                </div>
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-fixed/50 text-primary-container">
-                    <IconComponent aria-hidden="true" className="h-6 w-6" />
-                </div>
-            </div>
-        </CustomerCard>
-    );
+function productCategory(product) {
+    return product?.product_category ?? product?.productCategory ?? null;
+}
+
+function visitTypeLabel(visitType) {
+    const labels = {
+        clinic_visit: 'Datang ke klinik',
+        home_visit: 'Home visit',
+        online: 'Online',
+    };
+
+    return labels[visitType] ?? 'Layanan Phoenix';
 }
 
 function ListItem({ amount, helper, href, meta, status, title, actionNode }) {
     const content = (
         <div className="flex items-start justify-between gap-4 px-4 py-3">
             <div className="min-w-0">
-                <p className="truncate font-body-sm text-sm font-bold text-on-surface">
+                <p className="truncate font-body-sm text-sm font-bold text-[#333333]">
                     {title}
                 </p>
                 {meta && (
-                    <p className="mt-1 font-body-sm text-xs text-on-surface-variant">
+                    <p className="mt-1 font-body-sm text-xs text-gray-500">
                         {meta}
                     </p>
                 )}
                 {helper && (
-                    <p className="mt-2 font-body-sm text-xs font-semibold leading-5 text-primary-container">
+                    <p className="mt-2 font-body-sm text-xs font-semibold leading-5 text-[#1E4D3A]">
                         {helper}
                     </p>
                 )}
             </div>
             <div className="flex shrink-0 flex-col items-end gap-2 text-right">
                 {amount && (
-                    <span className="font-body-sm text-sm font-extrabold text-primary-container">
+                    <span className="font-body-sm text-sm font-extrabold text-[#1E4D3A]">
                         {amount}
                     </span>
                 )}
-                {status && <CustomerStatusBadge status={status} />}
+                {status && <StatusBadge status={status} />}
             </div>
         </div>
     );
 
     return (
-        <div className="overflow-hidden rounded-2xl border border-outline-variant/80 bg-surface-container-low transition hover:border-primary-fixed-dim hover:bg-white">
-            {href ? <Link className="block hover:bg-white/50" href={href}>{content}</Link> : content}
+        <div className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-[#F6F7F7] transition hover:border-[#A8C5B3] hover:bg-white">
+            {href ? <Link className="block" href={href}>{content}</Link> : content}
             {actionNode && (
-                <div className="flex justify-end px-4 pb-3 border-t border-outline-variant/40 pt-3 bg-surface-container-lowest">
+                <div className="flex justify-end border-t border-[#E5E7EB] bg-white px-4 pb-3 pt-3">
                     {actionNode}
                 </div>
             )}
@@ -114,11 +95,11 @@ function orderNextAction(order) {
 
 function RecentOrders({ orders = [] }) {
     return (
-        <CustomerCard className="p-5">
-            <CustomerSectionHeader eyebrow="Belanja Herbal" title="Order Terbaru" />
-            <div className="space-y-4">
+        <PanelCard className="p-5">
+            <PanelSectionHeader eyebrow="Belanja Herbal" title="Order Terbaru" />
+            <div className="space-y-3">
                 {orders.length === 0 ? (
-                    <CustomerEmptyState
+                    <PanelEmptyState
                         description="Saat Anda mulai checkout produk Phoenix, ringkasan order akan tampil di sini."
                         icon={ReceiptText}
                         title="Belum ada order."
@@ -138,7 +119,7 @@ function RecentOrders({ orders = [] }) {
                                     href={routeExists('customer.dashboard.orders.invoice') ? route('customer.dashboard.orders.invoice', order.id) : '#'}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="inline-flex items-center gap-2 rounded-full bg-primary-container/10 px-3 py-1.5 font-body-sm text-xs font-bold text-primary-container transition hover:bg-primary-container hover:text-white"
+                                    className="inline-flex items-center gap-2 rounded-full border border-[#1E4D3A] px-3 py-1.5 font-body-sm text-xs font-bold text-[#1E4D3A] transition hover:bg-[#1E4D3A] hover:text-white"
                                 >
                                     <ReceiptText aria-hidden="true" className="h-3.5 w-3.5" />
                                     Download Invoice
@@ -148,17 +129,17 @@ function RecentOrders({ orders = [] }) {
                     ))
                 )}
             </div>
-        </CustomerCard>
+        </PanelCard>
     );
 }
 
 function RecentBookings({ bookings = [] }) {
     return (
-        <CustomerCard className="p-5">
-            <CustomerSectionHeader eyebrow="Perawatan" title="Booking Terbaru" />
-            <div className="space-y-4">
+        <PanelCard className="p-5">
+            <PanelSectionHeader eyebrow="Perawatan" title="Booking Terbaru" />
+            <div className="space-y-3">
                 {bookings.length === 0 ? (
-                    <CustomerEmptyState
+                    <PanelEmptyState
                         description="Booking konsultasi atau terapi Anda akan tampil setelah dibuat."
                         icon={CalendarCheck}
                         title="Belum ada booking."
@@ -175,50 +156,39 @@ function RecentBookings({ bookings = [] }) {
                     ))
                 )}
             </div>
-        </CustomerCard>
+        </PanelCard>
     );
 }
 
 function RecentExaminations({ examinations = [] }) {
     return (
-        <CustomerCard className="p-5">
-            <CustomerSectionHeader eyebrow="Catatan Terapi" title="Pemeriksaan Terbaru" />
-            <div className="space-y-4">
+        <PanelCard className="p-5">
+            <PanelSectionHeader eyebrow="Catatan Terapi" title="Pemeriksaan Terbaru" />
+            <div className="space-y-3">
                 {examinations.length === 0 ? (
-                    <CustomerEmptyState
+                    <PanelEmptyState
                         description="Hasil pemeriksaan dari tim Phoenix akan muncul di ruang customer Anda."
                         icon={ClipboardPlus}
                         title="Belum ada pemeriksaan."
                     />
                 ) : (
                     examinations.map((examination) => (
-                        <div className="rounded-2xl border border-outline-variant/80 bg-surface-container-low px-4 py-3" key={examination.id}>
-                            <p className="font-body-sm text-sm font-bold text-on-surface">
+                        <div
+                            className="rounded-2xl border border-[#E5E7EB] bg-[#F6F7F7] px-4 py-3"
+                            key={examination.id}
+                        >
+                            <p className="font-body-sm text-sm font-bold text-[#333333]">
                                 {examination.summary || examination.complaint || `Pemeriksaan #${examination.id}`}
                             </p>
-                            <p className="mt-1 font-body-sm text-xs leading-5 text-on-surface-variant">
+                            <p className="mt-1 font-body-sm text-xs leading-5 text-gray-500">
                                 {examination.result || `Dibuat pada ${formatDate(examination.created_at)}`}
                             </p>
                         </div>
                     ))
                 )}
             </div>
-        </CustomerCard>
+        </PanelCard>
     );
-}
-
-function productCategory(product) {
-    return product?.product_category ?? product?.productCategory ?? null;
-}
-
-function visitTypeLabel(visitType) {
-    const labels = {
-        clinic_visit: 'Datang ke klinik',
-        home_visit: 'Home visit',
-        online: 'Online',
-    };
-
-    return labels[visitType] ?? 'Layanan Phoenix';
 }
 
 function CatalogItem({ item, type }) {
@@ -232,36 +202,40 @@ function CatalogItem({ item, type }) {
     const meta = isProduct ? productCategory(item)?.name : visitTypeLabel(item.visit_type);
 
     const content = (
-        <div className="flex h-full min-h-[190px] flex-col justify-between rounded-3xl border border-outline-variant/80 bg-surface-container-low p-4 transition hover:border-primary-fixed-dim hover:bg-white">
+        <div className="flex h-full min-h-[190px] flex-col justify-between rounded-3xl border border-[#E5E7EB] bg-[#F6F7F7] p-4 transition hover:border-[#A8C5B3] hover:bg-white">
             <div>
                 <div className="flex items-center justify-between gap-3">
-                    <span className="rounded-full bg-primary-fixed/45 px-3 py-1 font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-primary-container">
+                    <span className="rounded-full bg-[#A8C5B3]/25 px-3 py-1 font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-[#1E4D3A]">
                         {isProduct ? 'Produk' : 'Layanan'}
                     </span>
-                    {item.is_featured && <Star aria-hidden="true" className="h-4 w-4 fill-tertiary-fixed-dim text-tertiary-container" />}
+                    {item.is_featured && (
+                        <Star aria-hidden="true" className="h-4 w-4 fill-[#F08A2B]/60 text-[#B57A2E]" />
+                    )}
                 </div>
-                <p className="mt-4 font-label-sm text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant/75">
+                <p className="mt-4 font-label-sm text-[10px] font-bold uppercase tracking-[0.18em] text-gray-400">
                     {meta}
                 </p>
-                <h3 className="mt-2 line-clamp-2 font-headline-md text-xl font-bold leading-tight text-primary-container">
+                <h3 className="mt-2 line-clamp-2 font-headline-md text-xl font-bold leading-tight text-[#1E4D3A]">
                     {item.name}
                 </h3>
-                <p className="mt-3 line-clamp-2 font-body-sm text-xs leading-5 text-on-surface-variant">
+                <p className="mt-3 line-clamp-2 font-body-sm text-xs leading-5 text-gray-500">
                     {description}
                 </p>
             </div>
             <div className="mt-5 flex items-center justify-between gap-3">
-                <span className="font-body-sm text-sm font-extrabold text-primary-container">
+                <span className="font-body-sm text-sm font-extrabold text-[#1E4D3A]">
                     {formatCurrency(item.price)}
                 </span>
-                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary-container text-white">
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#1E4D3A] text-white">
                     <ArrowRight aria-hidden="true" className="h-4 w-4" />
                 </span>
             </div>
         </div>
     );
 
-    return href ? <Link className="block h-full min-w-[260px] sm:min-w-[300px]" href={href}>{content}</Link> : <div className="h-full min-w-[260px] sm:min-w-[300px]">{content}</div>;
+    return href
+        ? <Link className="block h-full min-w-[260px] sm:min-w-[300px]" href={href}>{content}</Link>
+        : <div className="h-full min-w-[260px] sm:min-w-[300px]">{content}</div>;
 }
 
 function CompactCatalogItem({ item, type }) {
@@ -272,35 +246,39 @@ function CompactCatalogItem({ item, type }) {
     const meta = isProduct ? productCategory(item)?.name : visitTypeLabel(item.visit_type);
 
     const content = (
-        <div className="group flex h-full min-h-[152px] flex-col overflow-hidden rounded-2xl border border-outline-variant/80 bg-surface-container-low text-left transition hover:border-primary-fixed-dim hover:bg-white hover:shadow-sm hover:shadow-primary-container/10">
-            <div className="relative h-20 w-full overflow-hidden bg-primary-fixed/20 sm:h-24">
+        <div className="group flex h-full min-h-[152px] flex-col overflow-hidden rounded-2xl border border-[#E5E7EB] bg-[#F6F7F7] text-left transition hover:border-[#A8C5B3] hover:bg-white hover:shadow-sm hover:shadow-[#1E4D3A]/10">
+            <div className="relative h-20 w-full overflow-hidden bg-[#A8C5B3]/20 sm:h-24">
                 {item.image_path ? (
-                    <img alt={item.name} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" src={item.image_path} />
+                    <img
+                        alt={item.name}
+                        className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                        src={item.image_path}
+                    />
                 ) : (
-                    <div className="flex h-full w-full items-center justify-center text-primary-container/35 transition duration-300 group-hover:text-primary-container/55">
+                    <div className="flex h-full w-full items-center justify-center text-[#1E4D3A]/30 transition duration-300 group-hover:text-[#1E4D3A]/55">
                         <Package aria-hidden="true" className="h-7 w-7" />
                     </div>
                 )}
-                <span className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-0.5 font-label-sm text-[9px] font-bold uppercase tracking-[0.14em] text-primary-container shadow-sm">
+                <span className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-0.5 font-label-sm text-[9px] font-bold uppercase tracking-[0.14em] text-[#1E4D3A] shadow-sm">
                     {isProduct ? 'Produk' : 'Layanan'}
                 </span>
             </div>
             <div className="flex flex-1 flex-col justify-between p-3">
                 <div>
-                    <h3 className="line-clamp-2 font-body-sm text-xs font-extrabold leading-snug text-on-surface">
+                    <h3 className="line-clamp-2 font-body-sm text-xs font-extrabold leading-snug text-[#333333]">
                         {item.name}
                     </h3>
                     {meta && (
-                        <p className="mt-1 truncate font-body-sm text-[10px] font-semibold text-on-surface-variant/75">
+                        <p className="mt-1 truncate font-body-sm text-[10px] font-semibold text-gray-400">
                             {meta}
                         </p>
                     )}
                 </div>
                 <div className="mt-2 flex items-center justify-between gap-2">
-                    <span className="truncate font-body-sm text-xs font-extrabold text-primary-container">
+                    <span className="truncate font-body-sm text-xs font-extrabold text-[#1E4D3A]">
                         {formatCurrency(item.price)}
                     </span>
-                    <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary-container text-white transition group-hover:bg-primary">
+                    <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#1E4D3A] text-white transition group-hover:bg-[#163d2e]">
                         <ArrowRight aria-hidden="true" className="h-3.5 w-3.5" />
                     </span>
                 </div>
@@ -308,7 +286,9 @@ function CompactCatalogItem({ item, type }) {
         </div>
     );
 
-    return href ? <Link className="block h-full min-w-[168px] sm:min-w-[184px]" href={href}>{content}</Link> : <div className="h-full min-w-[168px] sm:min-w-[184px]">{content}</div>;
+    return href
+        ? <Link className="block h-full min-w-[168px] sm:min-w-[184px]" href={href}>{content}</Link>
+        : <div className="h-full min-w-[168px] sm:min-w-[184px]">{content}</div>;
 }
 
 function QuickActions() {
@@ -323,12 +303,6 @@ function QuickActions() {
             href: route('bookings.create'),
             icon: CalendarCheck,
             label: 'Booking Layanan',
-            variant: 'secondary',
-        },
-        routeExists('customer.profile.show') && {
-            href: route('customer.profile.show'),
-            icon: ArrowRight,
-            label: 'Lihat Profil',
             variant: 'outline',
         },
     ].filter(Boolean);
@@ -338,13 +312,15 @@ function QuickActions() {
             {actions.map((action) => {
                 const IconComponent = action.icon;
                 const className = action.variant === 'primary'
-                    ? 'bg-primary-container text-white shadow-sm shadow-primary-container/20 hover:bg-primary'
-                    : action.variant === 'secondary'
-                        ? 'border border-primary-fixed-dim bg-primary-fixed/45 text-primary-container hover:bg-primary-fixed'
-                        : 'border border-primary-container bg-white text-primary-container hover:bg-primary-container hover:text-white';
+                    ? 'bg-[#1E4D3A] text-white hover:bg-[#163d2e]'
+                    : 'border border-[#1E4D3A] text-[#1E4D3A] bg-white hover:bg-[#1E4D3A] hover:text-white';
 
                 return (
-                    <Link className={`inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 font-body-sm text-sm font-bold transition ${className}`} href={action.href} key={action.label}>
+                    <Link
+                        className={`inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 font-body-sm text-sm font-bold transition ${className}`}
+                        href={action.href}
+                        key={action.label}
+                    >
                         {action.label}
                         <IconComponent aria-hidden="true" className="h-4 w-4" />
                     </Link>
@@ -355,35 +331,46 @@ function QuickActions() {
 }
 
 function Recommendations({ generalProducts = [], recommendations = [], serviceRecommendations = [] }) {
+    const generalItems = [
+        ...generalProducts.map((product) => ({ item: product, type: 'product' })),
+        ...serviceRecommendations.map((service) => ({ item: service, type: 'service' })),
+    ];
+
     return (
-        <CustomerCard className="p-5">
-            <CustomerSectionHeader eyebrow="Rekomendasi" title={recommendations.length === 0 ? 'Pilihan Phoenix untuk Anda' : 'Produk yang Disarankan'} />
-            <div className="space-y-4">
+        <PanelCard className="p-5">
+            <PanelSectionHeader
+                eyebrow="Rekomendasi"
+                title={recommendations.length === 0 ? 'Pilihan Phoenix untuk Anda' : 'Produk yang Disarankan'}
+            />
+            <div className="space-y-3">
                 {recommendations.length === 0 ? (
-                    [...generalProducts.map((product) => ({ item: product, type: 'product' })), ...serviceRecommendations.map((service) => ({ item: service, type: 'service' }))].length === 0 ? (
-                        <CustomerEmptyState
+                    generalItems.length === 0 ? (
+                        <PanelEmptyState
                             description="Rekomendasi personal dari hasil pemeriksaan akan tampil di sini."
                             icon={Leaf}
                             title="Belum ada rekomendasi produk."
                         />
                     ) : (
-                        [...generalProducts.map((product) => ({ item: product, type: 'product' })), ...serviceRecommendations.map((service) => ({ item: service, type: 'service' }))].map(({ item, type }) => (
+                        generalItems.map(({ item, type }) => (
                             <CatalogItem item={item} key={`${type}-${item.id}`} type={type} />
                         ))
                     )
                 ) : (
                     recommendations.map((recommendation) => (
-                        <div className="rounded-2xl border border-outline-variant/80 bg-surface-container-low px-4 py-3" key={recommendation.id}>
+                        <div
+                            className="rounded-2xl border border-[#E5E7EB] bg-[#F6F7F7] px-4 py-3"
+                            key={recommendation.id}
+                        >
                             <div className="flex items-start justify-between gap-4">
                                 <div className="min-w-0">
-                                    <p className="truncate font-body-sm text-sm font-bold text-on-surface">
+                                    <p className="truncate font-body-sm text-sm font-bold text-[#333333]">
                                         {recommendation.product?.name ?? `Produk #${recommendation.product_id}`}
                                     </p>
-                                    <p className="mt-1 font-body-sm text-xs leading-5 text-on-surface-variant">
+                                    <p className="mt-1 font-body-sm text-xs leading-5 text-gray-500">
                                         {recommendation.notes || 'Direkomendasikan oleh tim Phoenix.'}
                                     </p>
                                 </div>
-                                <span className="font-body-sm text-sm font-extrabold text-primary-container">
+                                <span className="font-body-sm text-sm font-extrabold text-[#1E4D3A]">
                                     {formatCurrency(recommendation.product?.price)}
                                 </span>
                             </div>
@@ -391,7 +378,7 @@ function Recommendations({ generalProducts = [], recommendations = [], serviceRe
                     ))
                 )}
             </div>
-        </CustomerCard>
+        </PanelCard>
     );
 }
 
@@ -408,10 +395,13 @@ function MiniCatalog({ catalog = {} }) {
     }
 
     return (
-        <CustomerCard className="overflow-hidden p-5">
-            <CustomerSectionHeader
+        <PanelCard className="overflow-hidden p-5">
+            <PanelSectionHeader
                 action={routeExists('products.index') && (
-                    <Link className="inline-flex items-center gap-2 rounded-full border border-primary-fixed-dim px-4 py-2 font-body-sm text-xs font-bold text-primary-container transition hover:bg-primary-fixed/30" href={route('products.index')}>
+                    <Link
+                        className="inline-flex items-center gap-2 rounded-full border border-[#1E4D3A] px-4 py-2 font-body-sm text-xs font-bold text-[#1E4D3A] transition hover:bg-[#1E4D3A] hover:text-white"
+                        href={route('products.index')}
+                    >
                         Buka Katalog
                         <ArrowRight aria-hidden="true" className="h-4 w-4" />
                     </Link>
@@ -427,11 +417,21 @@ function MiniCatalog({ catalog = {} }) {
                     </div>
                 ))}
             </div>
-        </CustomerCard>
+        </PanelCard>
     );
 }
 
-export default function CustomerDashboardIndex({ customerProfile, summary = {}, recentOrders = [], recentBookings = [], recentExaminations = [], recentProductRecommendations = [], generalProductRecommendations = [], featuredServiceRecommendation = [], miniCatalog = {} }) {
+export default function CustomerDashboardIndex({
+    customerProfile,
+    summary = {},
+    recentOrders = [],
+    recentBookings = [],
+    recentExaminations = [],
+    recentProductRecommendations = [],
+    generalProductRecommendations = [],
+    featuredServiceRecommendation = [],
+    miniCatalog = {},
+}) {
     const profileName = customerProfile?.name ?? 'Customer Phoenix';
 
     return (
@@ -439,7 +439,7 @@ export default function CustomerDashboardIndex({ customerProfile, summary = {}, 
             <Head title="Dashboard Customer" />
 
             <div className="space-y-8">
-                <CustomerPageHeader
+                <PanelPageHeader
                     action={<QuickActions />}
                     description="Pantau order herbal, booking layanan, pemeriksaan, dan rekomendasi personal Anda dalam satu ruang yang hangat dan rapi."
                     eyebrow="Dashboard Customer"
@@ -448,11 +448,41 @@ export default function CustomerDashboardIndex({ customerProfile, summary = {}, 
                 />
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-                    <MetricTile helper="Order produk herbal" icon={ReceiptText} label="Order" value={summary.ordersCount} />
-                    <MetricTile helper="Booking layanan" icon={CalendarCheck} label="Booking" value={summary.bookingsCount} />
-                    <MetricTile helper="Voucher digunakan" icon={Package} label="Voucher" value={summary.voucherRedemptionsCount} />
-                    <MetricTile helper="Catatan pemeriksaan" icon={ClipboardPlus} label="Pemeriksaan" value={summary.examinationsCount} />
-                    <MetricTile helper="Produk personal" icon={Leaf} label="Rekomendasi" value={summary.productRecommendationsCount} />
+                    <MetricCard
+                        helper="Order produk herbal"
+                        icon={<ReceiptText aria-hidden="true" className="h-5 w-5" />}
+                        label="Order"
+                        tone="forest"
+                        value={formatNumber(summary.ordersCount)}
+                    />
+                    <MetricCard
+                        helper="Booking layanan"
+                        icon={<CalendarCheck aria-hidden="true" className="h-5 w-5" />}
+                        label="Booking"
+                        tone="blue"
+                        value={formatNumber(summary.bookingsCount)}
+                    />
+                    <MetricCard
+                        helper="Voucher digunakan"
+                        icon={<Package aria-hidden="true" className="h-5 w-5" />}
+                        label="Voucher"
+                        tone="sage"
+                        value={formatNumber(summary.voucherRedemptionsCount)}
+                    />
+                    <MetricCard
+                        helper="Catatan pemeriksaan"
+                        icon={<ClipboardPlus aria-hidden="true" className="h-5 w-5" />}
+                        label="Pemeriksaan"
+                        tone="brown"
+                        value={formatNumber(summary.examinationsCount)}
+                    />
+                    <MetricCard
+                        helper="Produk personal"
+                        icon={<Leaf aria-hidden="true" className="h-5 w-5" />}
+                        label="Rekomendasi"
+                        tone="orange"
+                        value={formatNumber(summary.productRecommendationsCount)}
+                    />
                 </div>
 
                 <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
@@ -464,7 +494,11 @@ export default function CustomerDashboardIndex({ customerProfile, summary = {}, 
 
                 <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
                     <RecentExaminations examinations={recentExaminations} />
-                    <Recommendations generalProducts={generalProductRecommendations} recommendations={recentProductRecommendations} serviceRecommendations={featuredServiceRecommendation} />
+                    <Recommendations
+                        generalProducts={generalProductRecommendations}
+                        recommendations={recentProductRecommendations}
+                        serviceRecommendations={featuredServiceRecommendation}
+                    />
                 </div>
             </div>
         </>

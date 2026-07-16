@@ -1,20 +1,7 @@
 import { Head, useForm } from '@inertiajs/react';
 
 import { PrimaryLink, PublicCard, PublicShell, SecondaryLink } from '@/Components/Public/commerce.jsx';
-
-function FieldError({ message }) {
-    return message ? <p className="mt-1 font-body-sm text-xs text-error">{message}</p> : null;
-}
-
-function TextField({ error, label, name, onChange, placeholder, value }) {
-    return (
-        <label className="block">
-            <span className="font-label-sm text-xs font-bold uppercase tracking-[0.14em] text-on-surface-variant">{label}</span>
-            <input className="mt-2 block w-full rounded-2xl border-outline-variant bg-white font-body-sm text-sm text-on-surface shadow-sm focus:border-primary-container focus:ring-primary-container" name={name} onChange={onChange} placeholder={placeholder} type="text" value={value ?? ''} />
-            <FieldError message={error} />
-        </label>
-    );
-}
+import { TextField } from '@/Components/Admin/FormFields';
 
 export default function OrderLookup() {
     const { data, errors, post, processing, setData } = useForm({

@@ -1,10 +1,10 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowLeft, Sprout } from 'lucide-react';
 
-import CustomerCard from '@/Components/Customer/CustomerCard';
-import { CustomerSubmitButton, CustomerTextAreaField, CustomerTextField } from '@/Components/Customer/CustomerFormFields';
 import CustomerPageHeader from '@/Components/Customer/CustomerPageHeader';
 import CustomerSectionHeader from '@/Components/Customer/CustomerSectionHeader';
+import { SubmitButton, TextAreaField, TextField } from '@/Components/Panel/FormFields';
+import PanelCard from '@/Components/Panel/PanelCard';
 import CustomerLayout from '@/Layouts/CustomerLayout';
 
 export default function CustomerProfileCreate() {
@@ -27,7 +27,7 @@ export default function CustomerProfileCreate() {
                 <CustomerPageHeader
                     action={(
                         <Link
-                            className="inline-flex items-center gap-2 rounded-full border border-primary-container bg-white px-4 py-2 font-body-sm text-sm font-bold text-primary-container transition hover:bg-primary-container hover:text-white"
+                            className="inline-flex items-center gap-2 rounded-full border border-[#1E4D3A] bg-white px-4 py-2 text-sm font-bold text-[#1E4D3A] transition hover:bg-[#1E4D3A] hover:text-white"
                             href="/"
                         >
                             <ArrowLeft aria-hidden="true" className="h-4 w-4" />
@@ -40,18 +40,18 @@ export default function CustomerProfileCreate() {
                     title="Lengkapi Profil Anda"
                 />
 
-                <CustomerCard className="p-5">
+                <PanelCard className="p-5">
                     <CustomerSectionHeader eyebrow="Form Profil" title="Data yang Dibutuhkan" description="Phoenix hanya meminta nama, nomor WhatsApp, dan alamat utama untuk tahap ini." />
                     <form className="space-y-5" onSubmit={submit}>
                         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                            <CustomerTextField
+                            <TextField
                                 error={form.errors.name}
                                 label="Nama"
                                 name="name"
                                 onChange={(event) => form.setData('name', event.target.value)}
                                 value={form.data.name}
                             />
-                            <CustomerTextField
+                            <TextField
                                 error={form.errors.whatsapp_number}
                                 label="Nomor WhatsApp"
                                 name="whatsapp_number"
@@ -59,18 +59,18 @@ export default function CustomerProfileCreate() {
                                 value={form.data.whatsapp_number}
                             />
                         </div>
-                        <CustomerTextAreaField
+                        <TextAreaField
                             error={form.errors.primary_address}
                             label="Alamat Utama"
                             name="primary_address"
                             onChange={(event) => form.setData('primary_address', event.target.value)}
                             value={form.data.primary_address}
                         />
-                        <CustomerSubmitButton disabled={form.processing}>
+                        <SubmitButton disabled={form.processing}>
                             {form.processing ? 'Menyimpan...' : 'Simpan Profil'}
-                        </CustomerSubmitButton>
+                        </SubmitButton>
                     </form>
-                </CustomerCard>
+                </PanelCard>
             </div>
         </>
     );

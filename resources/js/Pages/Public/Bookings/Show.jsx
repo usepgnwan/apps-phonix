@@ -78,6 +78,7 @@ export default function BookingShow({ booking }) {
                         <PublicCard className="p-6 md:p-8">
                             <h2 className="font-headline-lg text-headline-lg text-primary-container">Ringkasan Booking</h2>
                             <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                                <DetailItem label="Cabang Tujuan" value={booking.branch?.name} />
                                 <DetailItem label="Nama Customer" value={booking.name} />
                                 <DetailItem label="WhatsApp" value={booking.whatsapp_number} />
                                 <DetailItem label="Tipe Kunjungan" value={visitTypeLabel(booking.visit_type)} />
