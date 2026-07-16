@@ -6,6 +6,7 @@ namespace App\Models;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'role', 'is_active', 'phone_number', 'team_id', 'position_id', 'photo'])]
+#[Fillable(['name', 'email', 'password', 'role', 'is_active', 'phone_number', 'team_id', 'position_id', 'photo', 'branch_id', 'admin_scope'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -34,9 +35,107 @@ class User extends Authenticatable
         ];
     }
 
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin' && $this->is_active === true;
+    }
+
+    public function isAdminPusat(): bool
+    {
+        return $this->isAdmin() && $this->admin_scope !== 'branch';
+    }
+
+    public function isAdminCabang(): bool
+    {
+        return $this->isAdmin() && $this->admin_scope === 'branch';
+    }
+
+    public function canAccessBranch(?int $branchId): bool
+    {
+        if (! $this->isAdmin()) {
+            return false;
+        }
+
+        if ($this->isAdminPusat()) {
+            return true;
+        }
+
+        return $this->isAdminCabang()
+            && $branchId !== null
+            && (int) $this->branch_id === (int) $branchId;
+    }
+
+    /**
+     * null = semua cabang (admin pusat).
+     * array = daftar cabang diizinkan.
+     *
+     * @return array<int>|null
+     */
+    public function accessibleBranchIds(): ?array
+    {
+        if ($this->isAdminPusat()) {
+            return null;
+        }
+
+        if ($this->isAdminCabang() && $this->branch_id) {
+            return [(int) $this->branch_id];
+        }
+
+        return [];
+    }
+
+    public function applyBranchScope(Builder $query, string $column = 'branch_id'): Builder
+    {
+        if ($this->isAdminPusat()) {
+            return $query;
+        }
+
+        if ($this->isAdminCabang() && $this->branch_id) {
+            return $query->where($column, (int) $this->branch_id);
+        }
+
+        return $query->whereRaw('0 = 1');
+    }
+
+    public function ensureCanAccessBranch(
+        ?int $branchId,
+        string $message = 'Akses ditolak: data bukan milik cabang Anda.'
+    ): void {
+        abort_unless($this->canAccessBranch($branchId), 403, $message);
+    }
+
+    public function forcedBranchId(): ?int
+    {
+        if ($this->isAdminCabang() && $this->branch_id) {
+            return (int) $this->branch_id;
+        }
+
+        return null;
+    }
+
     public function customerProfile(): HasOne
     {
         return $this->hasOne(CustomerProfile::class);
+    }
+
+    public function affiliate(): HasOne
+    {
+        return $this->hasOne(Affiliate::class);
+    }
+
+    public function isCustomer(): bool
+    {
+        return $this->role === 'customer' && $this->is_active === true;
+    }
+
+    public function isAffiliateActive(): bool
+    {
+        return $this->affiliate?->status === Affiliate::STATUS_ACTIVE;
+    }
+
+    public function hasPendingAffiliateApplication(): bool
+    {
+        return $this->affiliate?->status === Affiliate::STATUS_PENDING;
     }
 
     public function orders(): HasMany
@@ -92,5 +191,10 @@ class User extends Authenticatable
     public function team(): BelongsTo
     {
         return $this->belongsTo(Team::class);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 }

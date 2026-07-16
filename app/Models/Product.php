@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['product_category_id', 'name', 'slug', 'bpom_number', 'price', 'short_description', 'full_description', 'composition', 'packaging_type', 'content_amount', 'content_unit', 'benefits', 'usage_rules', 'notes', 'image_path', 'stock_quantity', 'low_stock_threshold', 'is_active', 'is_featured'])]
+#[Fillable(['product_category_id', 'name', 'slug', 'bpom_number', 'price', 'short_description', 'full_description', 'composition', 'packaging_type', 'content_amount', 'content_unit', 'benefits', 'usage_rules', 'notes', 'image_path', 'is_active', 'is_featured'])]
 class Product extends Model
 {
     protected function casts(): array
@@ -42,5 +42,10 @@ class Product extends Model
     public function offlineSaleItems(): HasMany
     {
         return $this->hasMany(OfflineSaleItem::class);
+    }
+
+    public function branchStocks(): HasMany
+    {
+        return $this->hasMany(BranchProductStock::class);
     }
 }
