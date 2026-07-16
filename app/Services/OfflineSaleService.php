@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\OfflineSale;
 use App\Models\Product;
+use App\Models\BranchProductStock;
 use App\Models\Service;
 use App\Models\Voucher;
 use App\Models\VoucherRedemption;
@@ -34,14 +35,28 @@ class OfflineSaleService
                         ]);
                     }
 
-                    if ((int) $item['quantity'] > $model->stock_quantity) {
+                    if (empty($data['branch_id'])) {
                         throw ValidationException::withMessages([
-                            'items' => "Stok {$model->name} tidak mencukupi.",
+                            'branch_id' => 'Cabang wajib dipilih untuk transaksi dengan produk.',
+                        ]);
+                    }
+
+                    $branchStock = BranchProductStock::query()
+                        ->where('branch_id', $data['branch_id'])
+                        ->where('product_id', $item['product_id'])
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (!$branchStock || (int) $item['quantity'] > $branchStock->stock_quantity) {
+                        throw ValidationException::withMessages([
+                            'items' => "Stok {$model->name} di cabang ini tidak mencukupi.",
                         ]);
                     }
 
                     $unitPrice = (float) $model->price;
                     $itemName = $model->name;
+                    // Add branchStock relation to array for later deduction
+                    $item['branch_stock'] = $branchStock;
                 } else {
                     $model = Service::query()
                         ->whereKey($item['service_id'])
@@ -67,6 +82,7 @@ class OfflineSaleService
                     'quantity' => $quantity,
                     'unit_price' => $unitPrice,
                     'line_total' => $lineTotal,
+                    'branch_stock' => $item['branch_stock'] ?? null,
                 ];
             });
 
@@ -81,7 +97,8 @@ class OfflineSaleService
             $customerName = trim((string) ($data['customer_name'] ?? ''));
 
             $offlineSale = OfflineSale::query()->create([
-                'sale_number' => $this->generateSaleNumber(),
+                'sale_number' => $this->generateSaleNumber($data['branch_id'] ?? null),
+                'branch_id' => $data['branch_id'] ?? null,
                 'customer_profile_id' => $data['customer_profile_id'] ?? null,
                 'voucher_id' => $voucher?->id,
                 'lead_id' => $data['lead_id'] ?? null,
@@ -110,8 +127,8 @@ class OfflineSaleService
                     'line_total' => $item['line_total'],
                 ]);
 
-                if ($isProduct) {
-                    $model->decrement('stock_quantity', $item['quantity']);
+                if ($isProduct && $item['branch_stock']) {
+                    $item['branch_stock']->decrement('stock_quantity', $item['quantity']);
                 }
             }
 
@@ -206,10 +223,19 @@ class OfflineSaleService
         ]);
     }
 
-    private function generateSaleNumber(): string
+    private function generateSaleNumber(?int $branchId = null): string
     {
+        $branchCode = 'OFF';
+        
+        if ($branchId) {
+            $branch = \App\Models\Branch::find($branchId);
+            if ($branch && $branch->code) {
+                $branchCode = $branch->code . '-OFF';
+            }
+        }
+
         do {
-            $saleNumber = 'OFF-'.now()->format('Ymd').'-'.Str::upper(Str::random(6));
+            $saleNumber = $branchCode.'-'.now()->format('Ymd').'-'.Str::upper(Str::random(6));
         } while (OfflineSale::query()->where('sale_number', $saleNumber)->exists());
 
         return $saleNumber;
