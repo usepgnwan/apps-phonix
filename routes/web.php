@@ -1,7 +1,12 @@
 <?php
 
+use App\Http\Controllers\Customer\AffiliateApplicationController;
+use App\Http\Controllers\Customer\AffiliateDashboardController;
 use App\Http\Controllers\Customer\CustomerDashboardController;
 use App\Http\Controllers\Customer\CustomerProfileController;
+use App\Http\Controllers\Admin\AffiliateCommissionRuleController as AdminAffiliateCommissionRuleController;
+use App\Http\Controllers\Admin\AffiliateController as AdminAffiliateController;
+use App\Http\Controllers\Admin\AffiliatePayoutController as AdminAffiliatePayoutController;
 use App\Http\Controllers\Admin\ProductCategoryController as AdminProductCategoryController;
 use App\Http\Controllers\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Admin\OrderController as AdminOrderController;
@@ -22,6 +27,10 @@ use App\Http\Controllers\Admin\TestimonialController as AdminTestimonialControll
 use App\Http\Controllers\Admin\PositionController as AdminPositionController;
 use App\Http\Controllers\Admin\TeamController as AdminTeamController;
 use App\Http\Controllers\Admin\StaffController as AdminStaffController;
+use App\Http\Controllers\Admin\AdminUserController as AdminAdminUserController;
+use App\Http\Controllers\BranchController;
+use App\Http\Controllers\Public\AffiliateLandingController;
+use App\Http\Controllers\Public\AffiliateTrackController;
 use App\Http\Controllers\Public\BookingController;
 use App\Http\Controllers\Public\CartController;
 use App\Http\Controllers\Public\CheckoutController;
@@ -39,10 +48,13 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
+Route::get('/affiliate', AffiliateLandingController::class)->name('affiliate.landing');
+Route::get('/r/{partnerCode}', AffiliateTrackController::class)->name('affiliate.track');
 Route::get('/products', [ProductController::class, 'index'])->name('products.index');
 Route::get('/products/{product:slug}', [ProductController::class, 'show'])->name('products.show');
 Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
 Route::get('/services/{service:slug}', [ServiceController::class, 'show'])->name('services.show');
+Route::post('/set-branch', [\App\Http\Controllers\Public\BranchSelectionController::class, 'store'])->name('branches.set');
 Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
 Route::post('/cart/items', [CartController::class, 'store'])->name('cart.items.store');
 Route::patch('/cart/items/{cartItem}', [CartController::class, 'update'])->name('cart.items.update');
@@ -81,18 +93,20 @@ Route::middleware('auth')->group(function () {
         Route::get('/settings', [\App\Http\Controllers\Admin\SettingController::class, 'index'])->name('settings.index');
         Route::post('/settings', [\App\Http\Controllers\Admin\SettingController::class, 'update'])->name('settings.update');
 
-        Route::resource('product-categories', AdminProductCategoryController::class);
+        Route::resource('product-categories', AdminProductCategoryController::class)->except(['create', 'edit']);
         Route::resource('products', AdminProductController::class);
         Route::resource('services', AdminServiceController::class);
         Route::resource('events', AdminEventController::class);
-        Route::resource('payment-methods', AdminPaymentMethodController::class);
-        Route::resource('videos', AdminVideoController::class);
+        Route::resource('payment-methods', AdminPaymentMethodController::class)->except(['create', 'edit']);
+        Route::resource('videos', AdminVideoController::class)->except(['create', 'edit', 'show']);
         Route::patch('videos/{video}/pin', [AdminVideoController::class, 'togglePin'])->name('videos.pin.toggle');
-        Route::resource('testimonials', AdminTestimonialController::class);
-        Route::resource('lead-sources', AdminLeadSourceController::class);
+        Route::resource('testimonials', AdminTestimonialController::class)->except(['create', 'edit', 'show']);
+        Route::resource('lead-sources', AdminLeadSourceController::class)->except(['create', 'edit']);
         Route::resource('positions', AdminPositionController::class)->except(['create', 'show', 'edit']);
         Route::resource('teams', AdminTeamController::class)->except(['create', 'show', 'edit']);
-        Route::resource('staff', AdminStaffController::class)->except(['create', 'show', 'edit']);
+        Route::resource('branches', BranchController::class)->except(['show']);
+        Route::resource('admins', AdminAdminUserController::class)->except(['create', 'show', 'edit']);
+        Route::resource('staff', AdminStaffController::class)->except(['show']);
         Route::get('/leads', [AdminLeadController::class, 'index'])->name('leads.index');
         Route::get('/leads/create', [AdminLeadController::class, 'create'])->name('leads.create');
         Route::post('/leads', [AdminLeadController::class, 'store'])->name('leads.store');
@@ -131,6 +145,21 @@ Route::middleware('auth')->group(function () {
         Route::get('/bookings/{booking}', [AdminBookingController::class, 'show'])->name('bookings.show');
         Route::patch('/bookings/{booking}/status', [AdminBookingController::class, 'updateStatus'])->name('bookings.status.update');
         Route::patch('/bookings/{booking}/schedule', [AdminBookingController::class, 'updateSchedule'])->name('bookings.schedule.update');
+
+        Route::get('/affiliates', [AdminAffiliateController::class, 'index'])->name('affiliates.index');
+        Route::get('/affiliates/{affiliate}', [AdminAffiliateController::class, 'show'])->name('affiliates.show');
+        Route::post('/affiliates/{affiliate}/approve', [AdminAffiliateController::class, 'approve'])->name('affiliates.approve');
+        Route::post('/affiliates/{affiliate}/reject', [AdminAffiliateController::class, 'reject'])->name('affiliates.reject');
+        Route::post('/affiliates/{affiliate}/suspend', [AdminAffiliateController::class, 'suspend'])->name('affiliates.suspend');
+        Route::post('/affiliates/{affiliate}/reactivate', [AdminAffiliateController::class, 'reactivate'])->name('affiliates.reactivate');
+
+        Route::get('/affiliate-payouts', [AdminAffiliatePayoutController::class, 'index'])->name('affiliate-payouts.index');
+        Route::post('/affiliate-payouts/{affiliate}', [AdminAffiliatePayoutController::class, 'store'])->name('affiliate-payouts.store');
+        Route::post('/affiliate-payouts/{affiliatePayout}/confirm', [AdminAffiliatePayoutController::class, 'confirm'])->name('affiliate-payouts.confirm');
+
+        Route::get('/affiliate-commission-rules', [AdminAffiliateCommissionRuleController::class, 'index'])->name('affiliate-commission-rules.index');
+        Route::post('/affiliate-commission-rules', [AdminAffiliateCommissionRuleController::class, 'store'])->name('affiliate-commission-rules.store');
+        Route::put('/affiliate-commission-rules/{affiliateCommissionRule}', [AdminAffiliateCommissionRuleController::class, 'update'])->name('affiliate-commission-rules.update');
     });
 
     Route::get('/customer/dashboard', [CustomerDashboardController::class, 'index'])->name('customer.dashboard.index');
@@ -143,12 +172,19 @@ Route::middleware('auth')->group(function () {
     Route::get('/customer/profile/edit', [CustomerProfileController::class, 'edit'])->name('customer.profile.edit');
     Route::patch('/customer/profile', [CustomerProfileController::class, 'update'])->name('customer.profile.update');
 
+    Route::get('/customer/affiliate/apply', [AffiliateApplicationController::class, 'create'])->name('customer.affiliate.apply');
+    Route::post('/customer/affiliate/apply', [AffiliateApplicationController::class, 'store'])->name('customer.affiliate.apply.store');
+    Route::get('/customer/affiliate', [AffiliateDashboardController::class, 'dashboard'])->name('customer.affiliate.dashboard');
+    Route::get('/customer/affiliate/commissions', [AffiliateDashboardController::class, 'commissions'])->name('customer.affiliate.commissions');
+    Route::get('/customer/affiliate/settings', [AffiliateDashboardController::class, 'settings'])->name('customer.affiliate.settings');
+    Route::patch('/customer/affiliate/settings', [AffiliateDashboardController::class, 'updateSettings'])->name('customer.affiliate.settings.update');
+
     Route::prefix('field')->name('field.')->group(function () {
         Route::get('/dashboard', [FieldDashboardController::class, 'index'])->name('dashboard.index');
         Route::get('/leads', [FieldLeadController::class, 'index'])->name('leads.index');
-        Route::get('/leads/{lead}', [FieldLeadController::class, 'show'])->name('leads.show');
-        Route::patch('/leads/{lead}/status', [FieldLeadController::class, 'updateStatus'])->name('leads.status.update');
-        Route::post('/leads/{lead}/activities', [FieldLeadController::class, 'storeActivity'])->name('leads.activities.store');
+        Route::get('/leads/{lead}', [FieldLeadController::class, 'show'])->name('leads.show')->whereNumber('lead');
+        Route::patch('/leads/{lead}/status', [FieldLeadController::class, 'updateStatus'])->name('leads.status.update')->whereNumber('lead');
+        Route::post('/leads/{lead}/activities', [FieldLeadController::class, 'storeActivity'])->name('leads.activities.store')->whereNumber('lead');
     });
 
     Route::get('/bookings', [BookingController::class, 'index'])->name('bookings.index');
