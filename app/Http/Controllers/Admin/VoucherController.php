@@ -16,7 +16,7 @@ class VoucherController extends Controller
     {
         $user = request()->user();
 
-        abort_unless($user !== null && $user->role === 'admin' && $user->is_active, 403);
+        abort_unless($user !== null && $user->isAdminPusat(), 403, 'Hanya Admin Pusat yang dapat mengelola voucher.');
     }
 
     public function index(\Illuminate\Http\Request $request): Response

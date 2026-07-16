@@ -26,7 +26,7 @@ class ReportController extends Controller
     {
         $user = request()->user();
 
-        abort_unless($user !== null && $user->role === 'admin' && $user->is_active, 403);
+        abort_unless($user !== null && $user->isAdmin(), 403);
     }
 
     public function index(Request $request): Response
@@ -81,16 +81,23 @@ class ReportController extends Controller
         $period = $this->resolvePeriod($request);
         $start = Carbon::parse($period['start_date'])->startOfDay();
         $end = Carbon::parse($period['end_date'])->endOfDay();
+        $user = $request->user();
 
-        $onlineSales = \Illuminate\Support\Facades\DB::table('order_items')
+        $onlineSalesQuery = \Illuminate\Support\Facades\DB::table('order_items')
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
             ->where('order_items.product_id', $product->id)
             ->whereBetween('orders.created_at', [$start, $end])
             ->where(function ($query) {
                 $query->where('orders.payment_status', 'paid')
                     ->orWhereIn('orders.status', ['payment_received', 'completed']);
-            })
-            ->selectRaw("
+            });
+
+        $forcedBranchId = $user?->forcedBranchId();
+        if ($forcedBranchId !== null) {
+            $onlineSalesQuery->where('orders.branch_id', $forcedBranchId);
+        }
+
+        $onlineSales = $onlineSalesQuery->selectRaw("
                 'Online' as source,
                 orders.order_number as reference,
                 orders.created_at as date,
@@ -98,11 +105,16 @@ class ReportController extends Controller
                 order_items.line_total as total
             ");
 
-        $offlineSales = \Illuminate\Support\Facades\DB::table('offline_sale_items')
+        $offlineSalesQuery = \Illuminate\Support\Facades\DB::table('offline_sale_items')
             ->join('offline_sales', 'offline_sale_items.offline_sale_id', '=', 'offline_sales.id')
             ->where('offline_sale_items.product_id', $product->id)
-            ->whereBetween('offline_sales.sold_at', [$start, $end])
-            ->selectRaw("
+            ->whereBetween('offline_sales.sold_at', [$start, $end]);
+
+        if ($forcedBranchId !== null) {
+            $offlineSalesQuery->where('offline_sales.branch_id', $forcedBranchId);
+        }
+
+        $offlineSales = $offlineSalesQuery->selectRaw("
                 'Offline' as source,
                 offline_sales.sale_number as reference,
                 offline_sales.sold_at as date,
@@ -377,7 +389,7 @@ class ReportController extends Controller
             'ordersByStatus' => $this->ordersByStatus($start, $end),
             'fieldActivitiesByType' => $this->fieldActivitiesByType($start, $end),
             'productRecommendationsByProduct' => $this->productRecommendationsByProduct($start, $end),
-            'productStockAndSales' => $this->productStockAndSales($start, $end),
+            'productStockAndSales' => $this->productStockAndSales($start, $end, request()->user()),
         ];
 
         $websiteOrderRevenue = $this->paidOrders($start, $end)->sum('total');
@@ -410,6 +422,27 @@ class ReportController extends Controller
 
     private function between(Builder $query, Carbon $start, Carbon $end, string $column = 'created_at'): Builder
     {
+        $user = request()->user();
+
+        if ($user) {
+            $model = $query->getModel();
+
+            if ($model instanceof FieldActivity) {
+                $forcedBranchId = $user->forcedBranchId();
+                if ($forcedBranchId !== null) {
+                    $query->whereHas('fieldStaff', function (Builder $staffQuery) use ($forcedBranchId): void {
+                        $staffQuery->where('branch_id', $forcedBranchId);
+                    });
+                } elseif (! $user->isAdminPusat()) {
+                    $query->whereRaw('0 = 1');
+                }
+            } elseif ($model instanceof ProductRecommendation) {
+                // ProductRecommendation tidak punya branch_id; dibiarkan global.
+            } else {
+                $user->applyBranchScope($query);
+            }
+        }
+
         return $query->whereBetween($column, [$start, $end]);
     }
 
@@ -524,34 +557,55 @@ class ReportController extends Controller
             ]);
     }
 
-    private function productStockAndSales(Carbon $start, Carbon $end)
+    private function productStockAndSales(Carbon $start, Carbon $end, $user)
     {
-        return \App\Models\Product::query()
-            ->select('id', 'name', 'stock_quantity')
-            ->get()
-            ->map(function (\App\Models\Product $product) use ($start, $end): array {
-                $onlineSales = \Illuminate\Support\Facades\DB::table('order_items')
+        $forcedBranchId = $user?->forcedBranchId();
+
+        $query = \App\Models\Product::query()
+            ->select('id', 'name')
+            ->with(['branchStocks' => function ($q) use ($forcedBranchId) {
+                if ($forcedBranchId !== null) {
+                    $q->where('branch_id', $forcedBranchId);
+                }
+            }]);
+
+        return $query->get()
+            ->map(function (\App\Models\Product $product) use ($start, $end, $forcedBranchId): array {
+                $onlineSalesQuery = \Illuminate\Support\Facades\DB::table('order_items')
                     ->join('orders', 'order_items.order_id', '=', 'orders.id')
                     ->where('order_items.product_id', $product->id)
                     ->whereBetween('orders.created_at', [$start, $end])
                     ->where(function ($query) {
                         $query->where('orders.payment_status', 'paid')
                             ->orWhereIn('orders.status', ['payment_received', 'completed']);
-                    })
-                    ->sum('order_items.quantity');
+                    });
 
-                $offlineSales = \Illuminate\Support\Facades\DB::table('offline_sale_items')
+                if ($forcedBranchId !== null) {
+                    $onlineSalesQuery->where('orders.branch_id', $forcedBranchId);
+                }
+
+                $onlineSales = $onlineSalesQuery->sum('order_items.quantity');
+
+                $offlineSalesQuery = \Illuminate\Support\Facades\DB::table('offline_sale_items')
                     ->join('offline_sales', 'offline_sale_items.offline_sale_id', '=', 'offline_sales.id')
                     ->where('offline_sale_items.product_id', $product->id)
-                    ->whereBetween('offline_sales.sold_at', [$start, $end])
-                    ->sum('offline_sale_items.quantity');
+                    ->whereBetween('offline_sales.sold_at', [$start, $end]);
+
+                if ($forcedBranchId !== null) {
+                    $offlineSalesQuery->where('offline_sales.branch_id', $forcedBranchId);
+                }
+
+                $offlineSales = $offlineSalesQuery->sum('offline_sale_items.quantity');
 
                 $totalSold = (int) ($onlineSales + $offlineSales);
+                
+                // Calculate stock available
+                $stockQuantity = $product->branchStocks->sum('stock_quantity');
 
                 return [
                     'id' => $product->id,
                     'name' => $product->name,
-                    'slug' => 'Stok Tersedia: ' . number_format($product->stock_quantity, 0, ',', '.'),
+                    'slug' => 'Stok Tersedia: ' . number_format($stockQuantity, 0, ',', '.'),
                     'total' => $totalSold,
                 ];
             })

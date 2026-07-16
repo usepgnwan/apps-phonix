@@ -26,21 +26,24 @@ class OrderController extends Controller
     {
         $user = request()->user();
 
-        abort_unless($user !== null && $user->role === 'admin' && $user->is_active, 403);
+        abort_unless($user !== null && $user->isAdmin(), 403);
     }
 
     public function index(): Response
     {
         $this->authorizeAdmin();
 
+        $user = request()->user();
         $search = request('search');
         $startDate = request('start_date');
         $endDate = request('end_date');
 
         $status = request('status');
 
-        $query = Order::query()
-            ->with(['user:id,name,email', 'customerProfile:id,user_id,name,whatsapp_number,primary_address', 'voucher:id,code,name', 'paymentMethod:id,type,bank_name,account_number,account_holder_name,qris_image_path,instructions,is_active']);
+        $query = $user->applyBranchScope(
+            Order::query()
+                ->with(['branch:id,name', 'user:id,name,email', 'customerProfile:id,user_id,name,whatsapp_number,primary_address', 'voucher:id,code,name', 'paymentMethod:id,type,bank_name,account_number,account_holder_name,qris_image_path,instructions,is_active'])
+        );
 
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -83,7 +86,10 @@ class OrderController extends Controller
         
         $orders = $query->latest()->paginate($perPage)->withQueryString();
 
-        $allOrders = Order::select('status', 'payment_status', 'shipping_status')->get();
+        $metricsQuery = $user->applyBranchScope(
+            Order::query()->select('status', 'payment_status', 'shipping_status')
+        );
+        $allOrders = $metricsQuery->get();
         $metrics = [
             'totalOrder' => $allOrders->count(),
             'waitingConfirmation' => $allOrders->where('status', 'pending')->count(),
@@ -111,8 +117,15 @@ class OrderController extends Controller
     public function show(Order $order): Response
     {
         $this->authorizeAdmin();
+        
+        $user = request()->user();
+        $user->ensureCanAccessBranch(
+            $order->branch_id !== null ? (int) $order->branch_id : null,
+            'Akses ditolak: Order ini bukan milik cabang Anda.'
+        );
 
         $order->load([
+            'branch:id,name',
             'user:id,name,email',
             'customerProfile:id,user_id,name,whatsapp_number,primary_address,member_status',
             'voucher:id,code,name',
@@ -129,6 +142,14 @@ class OrderController extends Controller
 
     public function updateShipping(UpdateOrderShippingRequest $request, Order $order, OrderFulfillmentService $fulfillmentService): RedirectResponse
     {
+        $this->authorizeAdmin();
+
+        $user = request()->user();
+        $user->ensureCanAccessBranch(
+            $order->branch_id !== null ? (int) $order->branch_id : null,
+            'Akses ditolak: Order ini bukan milik cabang Anda.'
+        );
+
         $validated = $request->validated();
         $shippingStatus = $validated['shipping_status'];
         $status = $order->status;
@@ -179,6 +200,14 @@ class OrderController extends Controller
 
     public function updatePayment(UpdateOrderPaymentRequest $request, Order $order, OrderFulfillmentService $fulfillmentService): RedirectResponse
     {
+        $this->authorizeAdmin();
+
+        $user = request()->user();
+        $user->ensureCanAccessBranch(
+            $order->branch_id !== null ? (int) $order->branch_id : null,
+            'Akses ditolak: Order ini bukan milik cabang Anda.'
+        );
+
         $validated = $request->validated();
         $paymentStatus = $validated['payment_status'];
         $paymentReceivedAt = $validated['payment_received_at'] ?? null;
@@ -198,6 +227,14 @@ class OrderController extends Controller
 
     public function updateStatus(UpdateOrderStatusRequest $request, Order $order, OrderFulfillmentService $fulfillmentService): RedirectResponse
     {
+        $this->authorizeAdmin();
+
+        $user = request()->user();
+        $user->ensureCanAccessBranch(
+            $order->branch_id !== null ? (int) $order->branch_id : null,
+            'Akses ditolak: Order ini bukan milik cabang Anda.'
+        );
+
         $validated = $request->validated();
         $fulfillmentService->updateStatus($order, $validated);
 
@@ -243,7 +280,8 @@ class OrderController extends Controller
 
     private function filteredOrders(array $filters)
     {
-        $query = Order::query();
+        $user = request()->user();
+        $query = $user->applyBranchScope(Order::query());
 
         if (! empty($filters['order_ids'])) {
             return $query->whereIn('id', $filters['order_ids']);

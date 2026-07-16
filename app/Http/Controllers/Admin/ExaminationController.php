@@ -11,38 +11,64 @@ use App\Models\Product;
 use App\Models\User;
 use App\Services\ExaminationService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ExaminationController extends Controller
 {
-    private function authorizeAdmin(): void
+    private function authorizeAdmin(): User
     {
         $user = request()->user();
+        abort_unless($user !== null && $user->isAdmin(), 403);
 
-        abort_unless($user !== null && $user->role === 'admin' && $user->is_active, 403);
+        return $user;
     }
 
-    public function index(\Illuminate\Http\Request $request): Response
+    private function ensureExaminationInScope(User $actor, Examination $examination): void
     {
-        $this->authorizeAdmin();
+        abort_unless(
+            $examination->isVisibleToAdmin($actor),
+            403,
+            'Akses ditolak: Pemeriksaan ini tidak terkait cabang Anda.'
+        );
+    }
+
+    private function staffQueryForAdmin(User $admin)
+    {
+        $query = User::query()
+            ->whereIn('role', ['field_staff', 'admin'])
+            ->where('is_active', true)
+            ->orderBy('name');
+
+        return $admin->applyBranchScope($query);
+    }
+
+    public function index(Request $request): Response
+    {
+        $user = $this->authorizeAdmin();
 
         $search = $request->input('search');
         $perPage = $request->input('per_page', 10);
 
+        $baseQuery = Examination::query()->visibleToAdmin($user);
+
         $metrics = [
-            'total' => Examination::count(),
-            'withRecommendations' => Examination::has('productRecommendations')->count(),
-            'assignedToStaff' => Examination::whereNotNull('assigned_staff_id')->count(),
+            'total' => (clone $baseQuery)->count(),
+            'withRecommendations' => (clone $baseQuery)->has('productRecommendations')->count(),
+            'assignedToStaff' => (clone $baseQuery)->whereNotNull('assigned_staff_id')->count(),
         ];
 
         $examinations = Examination::query()
+            ->visibleToAdmin($user)
             ->with(['customerProfile', 'booking', 'creator', 'assignedStaff', 'productRecommendations.product'])
             ->when($search, function ($query, $search) {
-                $query->whereHas('customerProfile', function ($query) use ($search) {
-                    $query->where('name', 'like', "%{$search}%");
-                })->orWhereHas('assignedStaff', function ($query) use ($search) {
-                    $query->where('name', 'like', "%{$search}%");
+                $query->where(function ($inner) use ($search) {
+                    $inner->whereHas('customerProfile', function ($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%");
+                    })->orWhereHas('assignedStaff', function ($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%");
+                    });
                 });
             })
             ->latest()
@@ -58,30 +84,40 @@ class ExaminationController extends Controller
 
     public function create(): Response
     {
-        $this->authorizeAdmin();
+        $user = $this->authorizeAdmin();
+
+        $customerProfiles = CustomerProfile::query()
+            ->visibleToAdmin($user)
+            ->orderBy('name')
+            ->get();
+
+        $bookingsQuery = $user->applyBranchScope(
+            Booking::query()
+                ->with(['customerProfile', 'service'])
+                ->latest()
+        );
 
         return Inertia::render('Admin/Examinations/Create', [
-            'customerProfiles' => CustomerProfile::query()->orderBy('name')->get(),
-            'bookings' => Booking::query()->with(['customerProfile', 'service'])->latest()->get(),
+            'customerProfiles' => $customerProfiles,
+            'bookings' => $bookingsQuery->get(),
             'products' => Product::query()->where('is_active', true)->orderBy('name')->get(),
-            'fieldStaff' => User::query()
-                ->whereIn('role', ['field_staff', 'admin'])
-                ->where('is_active', true)
-                ->orderBy('name')
-                ->get(['id', 'name', 'email', 'role', 'is_active']),
+            'fieldStaff' => $this->staffQueryForAdmin($user)->get(['id', 'name', 'email', 'role', 'is_active', 'branch_id']),
         ]);
     }
 
     public function store(StoreExaminationRequest $request, ExaminationService $examinationService): RedirectResponse
     {
-        $examination = $examinationService->create($request->validated(), $request->user());
+        $user = $this->authorizeAdmin();
+
+        $examination = $examinationService->create($request->validated(), $user);
 
         return redirect()->route('admin.examinations.show', $examination)->with('success', 'Pemeriksaan berhasil ditambahkan.');
     }
 
     public function show(Examination $examination): Response
     {
-        $this->authorizeAdmin();
+        $user = $this->authorizeAdmin();
+        $this->ensureExaminationInScope($user, $examination);
 
         $examination->load(['customerProfile', 'booking', 'creator', 'assignedStaff', 'productRecommendations.product']);
 

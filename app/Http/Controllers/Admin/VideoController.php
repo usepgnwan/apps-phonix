@@ -9,8 +9,16 @@ use Inertia\Inertia;
 
 class VideoController extends Controller
 {
+    private function authorizeAdmin(): void
+    {
+        $user = request()->user();
+        abort_unless($user !== null && $user->isAdminPusat(), 403, 'Hanya Admin Pusat yang dapat mengelola video.');
+    }
+
     public function index(Request $request)
     {
+        $this->authorizeAdmin();
+
         $search = $request->input('search');
         $perPage = $request->input('per_page', 10);
 
@@ -28,13 +36,10 @@ class VideoController extends Controller
         ]);
     }
 
-    public function create()
-    {
-        return Inertia::render('Admin/Videos/Create');
-    }
-
     public function store(Request $request)
     {
+        $this->authorizeAdmin();
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'video_link' => 'required|string|max:255',
@@ -56,15 +61,10 @@ class VideoController extends Controller
         return redirect()->route('admin.videos.index')->with('success', 'Video berhasil ditambahkan.');
     }
 
-    public function edit(Video $video)
-    {
-        return Inertia::render('Admin/Videos/Edit', [
-            'video' => $video
-        ]);
-    }
-
     public function update(Request $request, Video $video)
     {
+        $this->authorizeAdmin();
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'video_link' => 'required|string|max:255',
@@ -88,6 +88,8 @@ class VideoController extends Controller
 
     public function destroy(Video $video)
     {
+        $this->authorizeAdmin();
+
         $video->delete();
 
         return redirect()->route('admin.videos.index')->with('success', 'Video berhasil dihapus.');
@@ -95,6 +97,8 @@ class VideoController extends Controller
 
     public function togglePin(Video $video)
     {
+        $this->authorizeAdmin();
+
         $newStatus = !$video->is_pinned;
 
         if ($newStatus) {

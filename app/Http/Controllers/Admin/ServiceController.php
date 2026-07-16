@@ -20,7 +20,7 @@ class ServiceController extends Controller
     {
         $user = request()->user();
 
-        abort_unless($user !== null && $user->role === 'admin' && $user->is_active, 403);
+        abort_unless($user !== null && $user->isAdmin(), 403);
     }
 
     public function index(\Illuminate\Http\Request $request): Response

@@ -11,6 +11,7 @@ use App\Models\OfflineSale;
 use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\Service;
+use App\Models\Branch;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,32 +24,55 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class OfflineSaleController extends Controller
 {
-    private function authorizeAdmin(): void
+    private function authorizeAdmin(): User
     {
         $user = request()->user();
 
-        abort_unless($user !== null && $user->role === 'admin' && $user->is_active, 403);
+        abort_unless($user !== null && $user->isAdmin(), 403);
+
+        return $user;
+    }
+
+    private function ensureOfflineSaleInScope(User $actor, OfflineSale $offlineSale): void
+    {
+        $actor->ensureCanAccessBranch(
+            $offlineSale->branch_id !== null ? (int) $offlineSale->branch_id : null,
+            'Akses ditolak: Data penjualan ini bukan milik cabang Anda.'
+        );
+    }
+
+    private function branchesForActor(User $actor)
+    {
+        $forcedBranchId = $actor->forcedBranchId();
+
+        if ($forcedBranchId) {
+            return Branch::query()->where('id', $forcedBranchId)->where('is_active', true)->orderBy('name')->get(['id', 'name']);
+        }
+
+        return Branch::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']);
     }
 
     public function index(): Response
     {
-        $this->authorizeAdmin();
+        $user = $this->authorizeAdmin();
 
-        $metricsQuery = OfflineSale::query();
+        $metricsQuery = $user->applyBranchScope(OfflineSale::query());
 
         $startDate = request('start_date');
         $endDate = request('end_date');
 
-        $historyQuery = OfflineSale::query()
-            ->when($startDate && $endDate, function ($query) use ($startDate, $endDate) {
-                $query->whereBetween('sold_at', [$startDate, $endDate]);
-            });
+        $historyQuery = $user->applyBranchScope(
+            OfflineSale::query()
+                ->when($startDate && $endDate, function ($query) use ($startDate, $endDate) {
+                    $query->whereBetween('sold_at', [$startDate, $endDate]);
+                })
+        );
 
         $totalRevenue = (clone $historyQuery)->sum('total');
         $totalTransactions = (clone $historyQuery)->count();
         $averageTransaction = $totalTransactions > 0 ? $totalRevenue / $totalTransactions : 0;
         $convertedLeadTransactions = (clone $historyQuery)->whereNotNull('lead_id')->count();
-        $totalLeads = Lead::query()
+        $totalLeads = $user->applyBranchScope(Lead::query())
             ->when($startDate && $endDate, function ($query) use ($startDate, $endDate) {
                 $query->whereBetween('created_at', [$startDate, $endDate]);
             })
@@ -56,7 +80,8 @@ class OfflineSaleController extends Controller
         $leadConversionRate = $totalLeads > 0 ? ($convertedLeadTransactions / $totalLeads) * 100 : 0;
 
         $bestSellingProduct = \App\Models\OfflineSaleItem::query()
-            ->whereHas('offlineSale', function($query) use ($startDate, $endDate) {
+            ->whereHas('offlineSale', function ($query) use ($user, $startDate, $endDate) {
+                $user->applyBranchScope($query);
                 if ($startDate && $endDate) {
                     $query->whereBetween('sold_at', [$startDate, $endDate]);
                 }
@@ -87,6 +112,17 @@ class OfflineSaleController extends Controller
             ->orderBy('sale_date')
             ->get();
 
+        $fieldStaffQuery = User::query()
+            ->where('role', 'field_staff')
+            ->where('is_active', true)
+            ->orderBy('name');
+        $user->applyBranchScope($fieldStaffQuery);
+
+        $leadsQuery = $user->applyBranchScope(
+            Lead::query()->with(['leadSource', 'assignedStaff', 'customerProfile', 'event'])->latest()
+        );
+        $eventsQuery = $user->applyBranchScope(Event::query()->latest());
+
         return Inertia::render('Admin/OfflineSales/Index', [
             'metrics' => [
                 'total' => (clone $metricsQuery)->count(),
@@ -108,8 +144,10 @@ class OfflineSaleController extends Controller
                 'revenue_per_source' => $revenuePerSource,
                 'staff_ranking' => $staffRanking,
             ],
-            'offlineSales' => OfflineSale::query()
-                ->with(['customerProfile', 'lead', 'fieldStaff', 'event', 'paymentMethod', 'voucherRedemption.voucher'])
+            'offlineSales' => $user->applyBranchScope(
+                OfflineSale::query()
+                    ->with(['customerProfile', 'lead', 'fieldStaff', 'event', 'paymentMethod', 'voucherRedemption.voucher', 'branch'])
+            )
                 ->when(request('search'), function ($query, $search) {
                     $query->where(function ($query) use ($search) {
                         $query->where('customer_name', 'ILIKE', "%{$search}%")
@@ -132,14 +170,16 @@ class OfflineSaleController extends Controller
                 ->paginate(request('per_page', 10))
                 ->withQueryString(),
             'filters' => request()->only(['search', 'start_date', 'end_date', 'per_page']),
-            'products' => Product::query()->where('is_active', true)->orderBy('name')->get(),
+            'products' => Product::query()->with('branchStocks')->where('is_active', true)->orderBy('name')->get(),
+            'branches' => $this->branchesForActor($user),
             'services' => Service::query()->where('is_active', true)->orderBy('name')->get(),
-            'customerProfiles' => CustomerProfile::query()->orderBy('name')->get(),
-            'leads' => Lead::query()->with(['leadSource', 'assignedStaff', 'customerProfile', 'event'])->latest()->get(),
-            'fieldStaff' => User::query()->where('role', 'field_staff')->where('is_active', true)->orderBy('name')->get(['id', 'name', 'email', 'role', 'is_active']),
-            'events' => Event::query()->latest()->get(),
+            'customerProfiles' => CustomerProfile::query()->visibleToAdmin($user)->orderBy('name')->get(),
+            'leads' => $leadsQuery->get(),
+            'fieldStaff' => $fieldStaffQuery->get(['id', 'name', 'email', 'role', 'is_active', 'branch_id']),
+            'events' => $eventsQuery->get(),
             'sources' => ['offline', 'door_to_door', 'event'],
             'paymentMethods' => PaymentMethod::query()->where('is_active', true)->orderBy('bank_name')->get(),
+            'defaultBranchId' => $user->forcedBranchId(),
             'recentSale' => session('recentSale'),
         ]);
     }
@@ -218,6 +258,8 @@ class OfflineSaleController extends Controller
 
     public function store(StoreOfflineSaleRequest $request, OfflineSaleService $offlineSaleService): RedirectResponse
     {
+        $this->authorizeAdmin();
+
         $offlineSale = $offlineSaleService->create($request->validated());
 
         return redirect()->route('admin.offline-sales.index')->with([
@@ -228,9 +270,10 @@ class OfflineSaleController extends Controller
 
     public function show(OfflineSale $offlineSale): Response
     {
-        $this->authorizeAdmin();
+        $user = $this->authorizeAdmin();
+        $this->ensureOfflineSaleInScope($user, $offlineSale);
 
-        $offlineSale->load(['offlineSaleItems.product', 'offlineSaleItems.service', 'customerProfile', 'lead', 'fieldStaff', 'event', 'paymentMethod', 'voucherRedemption.voucher']);
+        $offlineSale->load(['offlineSaleItems.product', 'offlineSaleItems.service', 'customerProfile', 'lead', 'fieldStaff', 'event', 'paymentMethod', 'voucherRedemption.voucher', 'branch']);
 
         return Inertia::render('Admin/OfflineSales/Show', [
             'offlineSale' => $offlineSale,
@@ -239,7 +282,8 @@ class OfflineSaleController extends Controller
 
     public function print(OfflineSale $offlineSale)
     {
-        $this->authorizeAdmin();
+        $user = $this->authorizeAdmin();
+        $this->ensureOfflineSaleInScope($user, $offlineSale);
 
         $offlineSale->load(['offlineSaleItems.product', 'offlineSaleItems.service', 'paymentMethod', 'voucherRedemption.voucher']);
 
@@ -250,20 +294,21 @@ class OfflineSaleController extends Controller
 
     public function invoice(OfflineSale $offlineSale)
     {
-        $this->authorizeAdmin();
+        $user = $this->authorizeAdmin();
+        $this->ensureOfflineSaleInScope($user, $offlineSale);
 
         $offlineSale->load([
-            'offlineSaleItems.product', 
-            'offlineSaleItems.service', 
-            'customerProfile', 
-            'fieldStaff', 
-            'paymentMethod'
+            'offlineSaleItems.product',
+            'offlineSaleItems.service',
+            'customerProfile',
+            'fieldStaff',
+            'paymentMethod',
         ]);
 
         $pdf = Pdf::loadView('admin.offline_sales.invoice', [
             'sale' => $offlineSale,
         ]);
 
-        return $pdf->stream('Invoice-Offline-' . $offlineSale->sale_number . '.pdf');
+        return $pdf->stream('Invoice-Offline-'.$offlineSale->sale_number.'.pdf');
     }
 }

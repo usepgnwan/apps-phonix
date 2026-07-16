@@ -7,6 +7,8 @@ use App\Http\Requests\Admin\StoreProductRequest;
 use App\Http\Requests\Admin\UpdateProductRequest;
 use App\Models\Product;
 use App\Models\ProductCategory;
+use App\Models\Branch;
+use App\Models\BranchProductStock;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\File;
 use Intervention\Image\ImageManager;
@@ -21,7 +23,50 @@ class ProductController extends Controller
     {
         $user = request()->user();
 
-        abort_unless($user !== null && $user->role === 'admin' && $user->is_active, 403);
+        abort_unless($user !== null && $user->isAdmin(), 403);
+    }
+
+    /**
+     * Admin pusat: semua cabang. Admin cabang: hanya cabangnya.
+     */
+    private function branchesForActor(): \Illuminate\Support\Collection
+    {
+        $user = request()->user();
+        $forcedBranchId = $user->forcedBranchId();
+
+        if ($forcedBranchId !== null) {
+            return Branch::query()->where('id', $forcedBranchId)->orderBy('name')->get(['id', 'name']);
+        }
+
+        return Branch::query()->orderBy('name')->get(['id', 'name']);
+    }
+
+    private function syncBranchStocks(Product $product, ?array $branchStocks): void
+    {
+        if (! is_array($branchStocks)) {
+            return;
+        }
+
+        $user = request()->user();
+
+        foreach ($branchStocks as $branchId => $stockData) {
+            $branchId = (int) $branchId;
+
+            if (! $user->canAccessBranch($branchId)) {
+                continue;
+            }
+
+            BranchProductStock::updateOrCreate(
+                [
+                    'branch_id' => $branchId,
+                    'product_id' => $product->id,
+                ],
+                [
+                    'stock_quantity' => $stockData['stock_quantity'] ?? 0,
+                    'low_stock_threshold' => $stockData['low_stock_threshold'] ?? 0,
+                ]
+            );
+        }
     }
 
     public function index(\Illuminate\Http\Request $request): Response
@@ -32,7 +77,7 @@ class ProductController extends Controller
         $perPage = $request->input('per_page', 10);
         
         $products = Product::query()
-            ->with('productCategory:id,name,slug')
+            ->with(['productCategory:id,name,slug', 'branchStocks.branch'])
             ->when($search, function ($query, $search) {
                 $query->where('name', 'like', "%{$search}%");
             })
@@ -54,6 +99,7 @@ class ProductController extends Controller
         return Inertia::render('Admin/Products/Create', [
             'page' => 'admin.products.create',
             'productCategories' => ProductCategory::query()->orderBy('name')->get(['id', 'name', 'slug']),
+            'branches' => $this->branchesForActor(),
         ]);
     }
 
@@ -64,7 +110,11 @@ class ProductController extends Controller
             $data['image_path'] = $this->processAndSaveThumbnail($request->file('thumbnail'));
         }
 
-        Product::query()->create($data);
+        unset($data['branch_stocks'], $data['thumbnail']);
+
+        $product = Product::query()->create($data);
+
+        $this->syncBranchStocks($product, $request->input('branch_stocks'));
 
         return redirect()
             ->route('admin.products.index')
@@ -75,7 +125,7 @@ class ProductController extends Controller
     {
         $this->authorizeAdmin();
 
-        $product->load('productCategory:id,name,slug');
+        $product->load(['productCategory:id,name,slug', 'branchStocks.branch']);
 
         return Inertia::render('Admin/Products/Show', [
             'page' => 'admin.products.show',
@@ -87,12 +137,13 @@ class ProductController extends Controller
     {
         $this->authorizeAdmin();
 
-        $product->load('productCategory:id,name,slug');
+        $product->load(['productCategory:id,name,slug', 'branchStocks.branch']);
 
         return Inertia::render('Admin/Products/Edit', [
             'page' => 'admin.products.edit',
             'product' => $product,
             'productCategories' => ProductCategory::query()->orderBy('name')->get(['id', 'name', 'slug']),
+            'branches' => $this->branchesForActor(),
         ]);
     }
 
@@ -107,7 +158,11 @@ class ProductController extends Controller
             $data['image_path'] = $this->processAndSaveThumbnail($request->file('thumbnail'));
         }
 
+        unset($data['branch_stocks'], $data['thumbnail']);
+
         $product->update($data);
+
+        $this->syncBranchStocks($product, $request->input('branch_stocks'));
 
         return redirect()
             ->route('admin.products.index')

@@ -5,42 +5,72 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreEventRequest;
 use App\Http\Requests\Admin\UpdateEventRequest;
+use App\Models\Branch;
 use App\Models\Event;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class EventController extends Controller
 {
-    private function authorizeAdmin(): void
+    private function authorizeAdmin(): User
     {
         $user = request()->user();
 
-        abort_unless($user !== null && $user->role === 'admin' && $user->is_active, 403);
+        abort_unless($user !== null && $user->isAdmin(), 403);
+
+        return $user;
     }
 
-    public function index(\Illuminate\Http\Request $request): Response
+    private function ensureEventInScope(User $actor, Event $event): void
     {
-        $this->authorizeAdmin();
+        $actor->ensureCanAccessBranch(
+            $event->branch_id !== null ? (int) $event->branch_id : null,
+            'Akses ditolak: Event ini bukan milik cabang Anda.'
+        );
+    }
+
+    private function branchesForActor(User $actor)
+    {
+        $forcedBranchId = $actor->forcedBranchId();
+
+        if ($forcedBranchId !== null) {
+            return Branch::query()->where('id', $forcedBranchId)->where('is_active', true)->orderBy('name')->get(['id', 'name']);
+        }
+
+        return Branch::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']);
+    }
+
+    public function index(Request $request): Response
+    {
+        $user = $this->authorizeAdmin();
 
         $search = $request->input('search');
         $perPage = $request->input('per_page', 10);
 
+        $metricsQuery = $user->applyBranchScope(Event::query());
+
         $metrics = [
-            'total' => Event::count(),
-            'active' => Event::where('is_active', true)->where('start_date', '<=', now())->where('end_date', '>=', now())->count(),
-            'upcoming' => Event::where('start_date', '>', now())->count(),
-            'past' => Event::where('end_date', '<', now())->count(),
+            'total' => (clone $metricsQuery)->count(),
+            'active' => (clone $metricsQuery)->where('is_active', true)->where('start_date', '<=', now())->where('end_date', '>=', now())->count(),
+            'upcoming' => (clone $metricsQuery)->where('start_date', '>', now())->count(),
+            'past' => (clone $metricsQuery)->where('end_date', '<', now())->count(),
         ];
 
-        $events = Event::query()
-            ->withCount(['leads', 'offlineSales'])
-            ->when($search, function ($query, $search) {
-                $query->where(function ($query) use ($search) {
-                    $query->where('name', 'like', "%{$search}%")
-                        ->orWhere('location', 'like', "%{$search}%");
-                });
-            })
+        $query = $user->applyBranchScope(
+            Event::query()
+                ->withCount(['leads', 'offlineSales'])
+                ->with('branch:id,name')
+        );
+
+        $events = $query->when($search, function ($q, $search) {
+            $q->where(function ($q2) use ($search) {
+                $q2->where('name', 'like', "%{$search}%")
+                    ->orWhere('location', 'like', "%{$search}%");
+            });
+        })
             ->latest()
             ->paginate($perPage)
             ->withQueryString();
@@ -54,13 +84,18 @@ class EventController extends Controller
 
     public function create(): Response
     {
-        $this->authorizeAdmin();
+        $user = $this->authorizeAdmin();
 
-        return Inertia::render('Admin/Events/Create');
+        return Inertia::render('Admin/Events/Create', [
+            'branches' => $this->branchesForActor($user),
+            'defaultBranchId' => $user->forcedBranchId(),
+        ]);
     }
 
     public function store(StoreEventRequest $request): RedirectResponse
     {
+        $this->authorizeAdmin();
+
         Event::query()->create($request->validated());
 
         return redirect()->route('admin.events.index')->with('success', 'Event berhasil ditambahkan.');
@@ -68,9 +103,11 @@ class EventController extends Controller
 
     public function show(Event $event): Response
     {
-        $this->authorizeAdmin();
+        $user = $this->authorizeAdmin();
+        $this->ensureEventInScope($user, $event);
 
         $event->loadCount(['leads', 'offlineSales']);
+        $event->load('branch:id,name');
 
         return Inertia::render('Admin/Events/Show', [
             'event' => $event,
@@ -79,15 +116,21 @@ class EventController extends Controller
 
     public function edit(Event $event): Response
     {
-        $this->authorizeAdmin();
+        $user = $this->authorizeAdmin();
+        $this->ensureEventInScope($user, $event);
 
         return Inertia::render('Admin/Events/Edit', [
             'event' => $event,
+            'branches' => $this->branchesForActor($user),
+            'defaultBranchId' => $user->forcedBranchId(),
         ]);
     }
 
     public function update(UpdateEventRequest $request, Event $event): RedirectResponse
     {
+        $user = $this->authorizeAdmin();
+        $this->ensureEventInScope($user, $event);
+
         $event->update($request->validated());
 
         return redirect()->route('admin.events.index')->with('success', 'Event berhasil diperbarui.');
@@ -95,7 +138,8 @@ class EventController extends Controller
 
     public function destroy(Event $event): RedirectResponse
     {
-        $this->authorizeAdmin();
+        $user = $this->authorizeAdmin();
+        $this->ensureEventInScope($user, $event);
 
         if ($event->leads()->exists()) {
             return redirect()->route('admin.events.index')->with('error', 'Event tidak dapat dihapus karena masih memiliki lead.');

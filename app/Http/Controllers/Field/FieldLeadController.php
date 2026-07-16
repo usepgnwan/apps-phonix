@@ -26,13 +26,25 @@ class FieldLeadController extends Controller
     {
         $this->ensureActiveFieldStaff($request);
 
+        $search = $request->input('search');
+
+        $leads = Lead::query()
+            ->where('assigned_staff_id', $request->user()->id)
+            ->with(['leadSource', 'customerProfile', 'event'])
+            ->when($search, function ($query, $search) {
+                $query->where(function ($inner) use ($search) {
+                    $inner->where('name', 'like', "%{$search}%")
+                        ->orWhere('whatsapp_number', 'like', "%{$search}%");
+                });
+            })
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
+
         return Inertia::render('Field/Leads/Index', [
-            'leads' => Lead::query()
-                ->where('assigned_staff_id', $request->user()->id)
-                ->with(['leadSource', 'customerProfile', 'event'])
-                ->latest()
-                ->paginate(10),
+            'leads' => $leads,
             'leadStatuses' => self::LEAD_STATUSES,
+            'filters' => $request->only(['search']),
         ]);
     }
 
@@ -54,7 +66,9 @@ class FieldLeadController extends Controller
 
         $lead->update($request->validated());
 
-        return redirect()->route('field.leads.show', $lead);
+        return redirect()
+            ->route('field.leads.show', $lead)
+            ->with('success', 'Status lead berhasil diperbarui.');
     }
 
     public function storeActivity(StoreFieldActivityRequest $request, Lead $lead): RedirectResponse
@@ -65,7 +79,9 @@ class FieldLeadController extends Controller
             'field_staff_id' => $request->user()->id,
         ]));
 
-        return redirect()->route('field.leads.show', $lead);
+        return redirect()
+            ->route('field.leads.show', $lead)
+            ->with('success', 'Aktivitas lapangan berhasil dicatat.');
     }
 
     private function ensureActiveFieldStaff(Request $request): void

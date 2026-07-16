@@ -16,7 +16,7 @@ class LeadSourceController extends Controller
     {
         $user = request()->user();
 
-        abort_unless($user !== null && $user->role === 'admin' && $user->is_active, 403);
+        abort_unless($user !== null && $user->isAdminPusat(), 403, 'Hanya Admin Pusat yang dapat mengelola sumber lead.');
     }
 
     public function index(\Illuminate\Http\Request $request): Response
@@ -42,15 +42,6 @@ class LeadSourceController extends Controller
         ]);
     }
 
-    public function create(): Response
-    {
-        $this->authorizeAdmin();
-
-        return Inertia::render('Admin/LeadSources/Create', [
-            'page' => 'admin.lead-sources.create',
-        ]);
-    }
-
     public function store(StoreLeadSourceRequest $request): RedirectResponse
     {
         LeadSource::query()->create($request->validated());
@@ -66,16 +57,6 @@ class LeadSourceController extends Controller
 
         return Inertia::render('Admin/LeadSources/Show', [
             'page' => 'admin.lead-sources.show',
-            'leadSource' => $leadSource,
-        ]);
-    }
-
-    public function edit(LeadSource $leadSource): Response
-    {
-        $this->authorizeAdmin();
-
-        return Inertia::render('Admin/LeadSources/Edit', [
-            'page' => 'admin.lead-sources.edit',
             'leadSource' => $leadSource,
         ]);
     }
