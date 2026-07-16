@@ -1,10 +1,5 @@
 import { useId, useState } from 'react';
-
-function FieldError({ message }) {
-    return message ? (
-        <p className="mt-1 font-body-sm text-xs text-red-700">{message}</p>
-    ) : null;
-}
+import { FieldError } from '@/Components/Admin/FormFields';
 
 export default function ImageUploadField({ error, label, onChange, currentImage }) {
     const inputId = useId();
