@@ -40,14 +40,8 @@ class AdminCatalogTest extends TestCase
             ->assertOk()->assertJsonPath('component', 'Admin/ProductCategories/Index')->assertJsonPath('props.page', 'admin.product-categories.index')
             ->assertJsonCount(1, 'props.productCategories');
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.product-categories.create'))
-            ->assertOk()->assertJsonPath('component', 'Admin/ProductCategories/Create')->assertJsonPath('props.page', 'admin.product-categories.create');
-
         $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.product-categories.show', $category))
             ->assertOk()->assertJsonPath('component', 'Admin/ProductCategories/Show')->assertJsonPath('props.page', 'admin.product-categories.show');
-
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.product-categories.edit', $category))
-            ->assertOk()->assertJsonPath('component', 'Admin/ProductCategories/Edit')->assertJsonPath('props.page', 'admin.product-categories.edit');
 
         $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.products.index'))
             ->assertOk()->assertJsonPath('component', 'Admin/Products/Index')->assertJsonPath('props.page', 'admin.products.index');

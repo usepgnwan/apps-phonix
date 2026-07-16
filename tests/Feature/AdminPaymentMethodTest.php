@@ -46,22 +46,11 @@ class AdminPaymentMethodTest extends TestCase
             ->assertJsonPath('props.page', 'admin.payment-methods.index')
             ->assertJsonStructure(['props' => ['paymentMethods']]);
 
-        $this->inertiaGet($admin, route('admin.payment-methods.create'))
-            ->assertOk()
-            ->assertJsonPath('component', 'Admin/PaymentMethods/Create')
-            ->assertJsonPath('props.page', 'admin.payment-methods.create');
-
         $this->inertiaGet($admin, route('admin.payment-methods.show', $paymentMethod))
             ->assertOk()
             ->assertJsonPath('component', 'Admin/PaymentMethods/Show')
             ->assertJsonPath('props.page', 'admin.payment-methods.show')
             ->assertJsonPath('props.paymentMethod.orders_count', 0);
-
-        $this->inertiaGet($admin, route('admin.payment-methods.edit', $paymentMethod))
-            ->assertOk()
-            ->assertJsonPath('component', 'Admin/PaymentMethods/Edit')
-            ->assertJsonPath('props.page', 'admin.payment-methods.edit')
-            ->assertJsonPath('props.paymentMethod.id', $paymentMethod->id);
     }
 
     public function test_active_admin_can_create_bank_transfer_payment_method(): void

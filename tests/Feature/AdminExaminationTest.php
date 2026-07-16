@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Booking;
+use App\Models\Branch;
 use App\Models\CustomerProfile;
 use App\Models\Examination;
 use App\Models\OfflineSale;
@@ -47,18 +48,18 @@ class AdminExaminationTest extends TestCase
         $booking = $this->createBooking($customerProfile);
         $product = $this->createProduct(['name' => 'Herbal Rekomendasi']);
         $inactiveProduct = $this->createProduct(['name' => 'Herbal Nonaktif', 'is_active' => false]);
-        $fieldStaff = User::factory()->create(['role' => 'field_staff', 'is_active' => true]);
+        $fieldStaff = User::factory()->fieldStaff($this->createBranch()->id)->create();
         $examination = $this->createExamination($customerProfile, $booking, $admin, $product);
         $examination->forceFill(['assigned_staff_id' => $fieldStaff->id])->save();
 
         $this->inertiaGet($admin, route('admin.examinations.index'))
             ->assertOk()
             ->assertJsonPath('component', 'Admin/Examinations/Index')
-            ->assertJsonPath('props.examinations.0.id', $examination->id)
-            ->assertJsonPath('props.examinations.0.customer_profile.name', $customerProfile->name)
-            ->assertJsonPath('props.examinations.0.creator.id', $admin->id)
-            ->assertJsonPath('props.examinations.0.assigned_staff.name', $fieldStaff->name)
-            ->assertJsonPath('props.examinations.0.product_recommendations.0.product.name', $product->name);
+            ->assertJsonPath('props.examinations.data.0.id', $examination->id)
+            ->assertJsonPath('props.examinations.data.0.customer_profile.name', $customerProfile->name)
+            ->assertJsonPath('props.examinations.data.0.creator.id', $admin->id)
+            ->assertJsonPath('props.examinations.data.0.assigned_staff.name', $fieldStaff->name)
+            ->assertJsonPath('props.examinations.data.0.product_recommendations.0.product.name', $product->name);
 
         $this->inertiaGet($admin, route('admin.examinations.create'))
             ->assertOk()
@@ -86,7 +87,7 @@ class AdminExaminationTest extends TestCase
     public function test_active_admin_can_create_examination_without_product_recommendations(): void
     {
         $admin = $this->createAdmin();
-        $fieldStaff = User::factory()->create(['role' => 'field_staff', 'is_active' => true]);
+        $fieldStaff = User::factory()->fieldStaff($this->createBranch()->id)->create();
         $customerProfile = $this->createCustomerProfile();
         $booking = $this->createBooking($customerProfile);
 
@@ -325,7 +326,19 @@ class AdminExaminationTest extends TestCase
 
     private function createAdmin(): User
     {
-        return User::factory()->create(['role' => 'admin', 'is_active' => true]);
+        return User::factory()->adminCentral()->create();
+    }
+
+    private function createBranch(): Branch
+    {
+        return Branch::query()->firstOrCreate(
+            ['slug' => 'pusat-test'],
+            [
+                'name' => 'Pusat Test',
+                'code' => 'PSTT',
+                'is_active' => true,
+            ]
+        );
     }
 
     private function inertiaGet(User $admin, string $url): \Illuminate\Testing\TestResponse
@@ -342,7 +355,7 @@ class AdminExaminationTest extends TestCase
     private function createCustomerProfile(): CustomerProfile
     {
         $index = CustomerProfile::query()->count() + 1;
-        $user = User::factory()->create(['role' => 'customer', 'is_active' => true]);
+        $user = User::factory()->customer()->create();
 
         return CustomerProfile::query()->create([
             'user_id' => $user->id,
@@ -355,6 +368,7 @@ class AdminExaminationTest extends TestCase
 
     private function createBooking(CustomerProfile $customerProfile): Booking
     {
+        $branch = $this->createBranch();
         $service = Service::query()->create([
             'name' => 'Layanan '.Service::query()->count(),
             'slug' => 'layanan-'.Service::query()->count(),
@@ -368,6 +382,7 @@ class AdminExaminationTest extends TestCase
 
         return Booking::query()->create([
             'booking_number' => 'BK-TEST-'.Booking::query()->count(),
+            'branch_id' => $branch->id,
             'user_id' => $customerProfile->user_id,
             'customer_profile_id' => $customerProfile->id,
             'service_id' => $service->id,
@@ -401,8 +416,6 @@ class AdminExaminationTest extends TestCase
             'usage_rules' => 'Aturan',
             'notes' => 'Catatan',
             'image_path' => null,
-            'stock_quantity' => 10,
-            'low_stock_threshold' => 1,
             'is_active' => true,
             'is_featured' => false,
         ], $attributes));

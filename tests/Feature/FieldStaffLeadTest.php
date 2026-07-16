@@ -71,6 +71,30 @@ class FieldStaffLeadTest extends TestCase
             ->assertJsonMissingPath('props.leads.data.1');
     }
 
+    public function test_field_staff_can_search_assigned_leads_by_name_or_whatsapp(): void
+    {
+        $fieldStaff = $this->createFieldStaff();
+        $this->createLead($fieldStaff, [
+            'name' => 'Budi Santoso',
+            'whatsapp_number' => '081111111111',
+        ]);
+        $this->createLead($fieldStaff, [
+            'name' => 'Siti Aminah',
+            'whatsapp_number' => '082222222222',
+        ]);
+
+        $byName = $this->inertiaGet($fieldStaff, route('field.leads.index', ['search' => 'Budi']));
+        $byName->assertOk()
+            ->assertJsonPath('props.leads.data.0.name', 'Budi Santoso')
+            ->assertJsonMissingPath('props.leads.data.1')
+            ->assertJsonPath('props.filters.search', 'Budi');
+
+        $byWhatsapp = $this->inertiaGet($fieldStaff, route('field.leads.index', ['search' => '082222']));
+        $byWhatsapp->assertOk()
+            ->assertJsonPath('props.leads.data.0.name', 'Siti Aminah')
+            ->assertJsonMissingPath('props.leads.data.1');
+    }
+
     public function test_active_field_staff_can_view_assigned_lead_detail_page(): void
     {
         $fieldStaff = $this->createFieldStaff();
@@ -90,6 +114,16 @@ class FieldStaffLeadTest extends TestCase
         $otherLead = $this->createLead($this->createFieldStaff());
 
         $this->actingAs($fieldStaff)->get(route('field.leads.show', $otherLead))->assertNotFound();
+    }
+
+    public function test_non_numeric_field_lead_path_returns_not_found_instead_of_server_error(): void
+    {
+        $fieldStaff = $this->createFieldStaff();
+
+        // Prevent /field/leads/create (and similar non-id paths) from matching {lead}
+        // and blowing up with a DB cast error on non-numeric IDs.
+        $this->actingAs($fieldStaff)->get('/field/leads/create')->assertNotFound();
+        $this->actingAs($fieldStaff)->get('/field/leads/abc')->assertNotFound();
     }
 
     public function test_field_staff_can_update_assigned_lead_status(): void

@@ -41,24 +41,13 @@ class AdminLeadSourceTest extends TestCase
             ->assertOk()
             ->assertJsonPath('component', 'Admin/LeadSources/Index')
             ->assertJsonPath('props.page', 'admin.lead-sources.index')
-            ->assertJsonPath('props.leadSources.0.leads_count', 1);
-
-        $this->inertiaGet($admin, route('admin.lead-sources.create'))
-            ->assertOk()
-            ->assertJsonPath('component', 'Admin/LeadSources/Create')
-            ->assertJsonPath('props.page', 'admin.lead-sources.create');
+            ->assertJsonPath('props.leadSources.data.0.leads_count', 1);
 
         $this->inertiaGet($admin, route('admin.lead-sources.show', $leadSource))
             ->assertOk()
             ->assertJsonPath('component', 'Admin/LeadSources/Show')
             ->assertJsonPath('props.page', 'admin.lead-sources.show')
             ->assertJsonPath('props.leadSource.leads_count', 1);
-
-        $this->inertiaGet($admin, route('admin.lead-sources.edit', $leadSource))
-            ->assertOk()
-            ->assertJsonPath('component', 'Admin/LeadSources/Edit')
-            ->assertJsonPath('props.page', 'admin.lead-sources.edit')
-            ->assertJsonPath('props.leadSource.id', $leadSource->id);
     }
 
     public function test_active_admin_can_store_lead_source(): void
