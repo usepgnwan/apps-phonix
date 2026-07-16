@@ -6,34 +6,24 @@ import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
 import MetricCard from '@/Components/Admin/MetricCard';
 import StatusBadge from '@/Components/Admin/StatusBadge';
 import AdminLayout from '@/Layouts/AdminLayout';
-
-function formatNumber(value) {
-    return new Intl.NumberFormat('id-ID').format(Number(value ?? 0));
-}
+import { formatNumber } from '@/utils/format';
+import { DetailRow } from '@/Components/Admin/FormFields';
 
 function typeLabel(type) {
-    return type === 'qris' ? 'QRIS' : 'Bank Transfer';
+    if (type === 'qris') return 'QRIS';
+    if (type === 'cash') return 'Cash / Tunai';
+    return 'Bank Transfer';
 }
 
 function methodTitle(paymentMethod) {
     if (paymentMethod.type === 'qris') {
         return paymentMethod.qris_image_path || 'QRIS';
     }
+    if (paymentMethod.type === 'cash') {
+        return paymentMethod.bank_name || 'Pembayaran Tunai';
+    }
 
     return paymentMethod.bank_name || 'Bank Transfer';
-}
-
-function DetailRow({ children, label }) {
-    return (
-        <div className="rounded-2xl border border-[#E5E7EB] bg-[#F6F7F7] px-4 py-3">
-            <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400">
-                {label}
-            </p>
-            <div className="mt-1 font-body-sm text-sm font-semibold text-[#333333]">
-                {children ?? '-'}
-            </div>
-        </div>
-    );
 }
 
 function AdminPaymentMethodsShow({ paymentMethod }) {
@@ -52,9 +42,9 @@ function AdminPaymentMethodsShow({ paymentMethod }) {
                             </Link>
                             <Link
                                 className="rounded-full bg-[#1E4D3A] px-4 py-2 font-body-sm text-sm font-bold text-white transition hover:bg-[#013625]"
-                                href={route('admin.payment-methods.edit', paymentMethod.id)}
+                                href={route('admin.payment-methods.index')}
                             >
-                                Edit
+                                Ke Daftar
                             </Link>
                             <AdminDeleteButton
                                 className="rounded-full border border-red-200 px-4 py-2 font-body-sm text-sm font-bold text-red-700 transition hover:bg-red-50"

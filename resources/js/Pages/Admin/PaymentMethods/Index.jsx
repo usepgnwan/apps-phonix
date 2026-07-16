@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { Plus, Search } from 'lucide-react';
 import { useState } from 'react';
 
@@ -8,12 +8,11 @@ import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
 import EmptyState from '@/Components/Admin/EmptyState';
 import MetricCard from '@/Components/Admin/MetricCard';
 import StatusBadge from '@/Components/Admin/StatusBadge';
+import Modal from '@/Components/Modal';
 import AdminLayout from '@/Layouts/AdminLayout';
 import Pagination from '@/Components/Admin/Pagination';
-
-function formatNumber(value) {
-    return new Intl.NumberFormat('id-ID').format(Number(value ?? 0));
-}
+import { FieldError, TextField, SelectField, TextAreaField } from '@/Components/Admin/FormFields';
+import { formatNumber } from '@/utils/format';
 
 function typeLabel(type) {
     if (type === 'qris') return 'QRIS';
@@ -43,15 +42,141 @@ function detailSummary(paymentMethod) {
         .join(' / ') || 'Detail rekening belum diisi.';
 }
 
+const emptyForm = {
+    type: 'bank_transfer',
+    bank_name: '',
+    account_number: '',
+    account_holder_name: '',
+    qris_image: null,
+    instructions: '',
+    is_active: true,
+};
+
+function FileField({ error, existingPath, file, label, onChange }) {
+    return (
+        <label className="block">
+            <span className="font-label-sm text-xs font-bold uppercase tracking-[0.12em] text-gray-500">
+                {label}
+            </span>
+            <input
+                accept="image/jpeg,image/png,image/webp"
+                className="mt-2 block w-full rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3 font-body-sm text-sm text-[#333333] shadow-sm file:mr-4 file:rounded-full file:border-0 file:bg-[#1E4D3A] file:px-4 file:py-2 file:font-body-sm file:text-sm file:font-bold file:text-white focus:border-[#1E4D3A] focus:ring-[#1E4D3A]"
+                onChange={onChange}
+                type="file"
+            />
+            <p className="mt-2 font-body-sm text-xs text-gray-500">
+                {file
+                    ? `File dipilih: ${file.name}`
+                    : existingPath
+                        ? `Path saat ini: ${existingPath}`
+                        : 'Pilih gambar QRIS JPG, PNG, atau WebP maksimal 2MB.'}
+            </p>
+            <FieldError message={error} />
+        </label>
+    );
+}
+
+function CheckboxField({ checked, error, label, onChange }) {
+    return (
+        <label className="flex items-start gap-3 rounded-2xl border border-[#E5E7EB] bg-[#F6F7F7] px-4 py-3">
+            <input
+                checked={checked}
+                className="mt-1 rounded border-[#E5E7EB] text-[#1E4D3A] focus:ring-[#1E4D3A]"
+                onChange={onChange}
+                type="checkbox"
+            />
+            <span>
+                <span className="block font-body-sm text-sm font-bold text-[#333333]">
+                    {label}
+                </span>
+                <FieldError message={error} />
+            </span>
+        </label>
+    );
+}
+
+function PaymentMethodFormFields({ data, setData, errors, existingQrisPath = null }) {
+    return (
+        <div className="space-y-4">
+            <SelectField
+                error={errors.type}
+                label="Tipe"
+                onChange={(event) => setData('type', event.target.value)}
+                value={data.type}
+            >
+                <option value="bank_transfer">Bank Transfer</option>
+                <option value="qris">QRIS</option>
+                <option value="cash">Cash / Tunai</option>
+            </SelectField>
+
+            {data.type === 'bank_transfer' && (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <TextField
+                        error={errors.bank_name}
+                        label="Nama Bank"
+                        onChange={(event) => setData('bank_name', event.target.value)}
+                        value={data.bank_name}
+                    />
+                    <TextField
+                        error={errors.account_number}
+                        label="Nomor Rekening"
+                        onChange={(event) => setData('account_number', event.target.value)}
+                        value={data.account_number}
+                    />
+                    <div className="sm:col-span-2">
+                        <TextField
+                            error={errors.account_holder_name}
+                            label="Nama Pemilik Rekening"
+                            onChange={(event) => setData('account_holder_name', event.target.value)}
+                            value={data.account_holder_name}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {data.type === 'qris' && (
+                <FileField
+                    error={errors.qris_image}
+                    existingPath={existingQrisPath}
+                    file={data.qris_image}
+                    label="Gambar QRIS"
+                    onChange={(event) => setData('qris_image', event.target.files[0] ?? null)}
+                />
+            )}
+
+            <TextAreaField
+                error={errors.instructions}
+                label="Instruksi"
+                onChange={(event) => setData('instructions', event.target.value)}
+                rows={3}
+                value={data.instructions}
+            />
+            <CheckboxField
+                checked={Boolean(data.is_active)}
+                error={errors.is_active}
+                label="Metode pembayaran aktif"
+                onChange={(event) => setData('is_active', event.target.checked)}
+            />
+        </div>
+    );
+}
+
 function AdminPaymentMethodsIndex({ paymentMethods, metrics, filters }) {
     const [search, setSearch] = useState(filters?.search || '');
     const [perPage, setPerPage] = useState(filters?.per_page || 10);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
+
+    const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
+        ...emptyForm,
+    });
 
     const handleFilterChange = (newSearch, newPerPage) => {
         router.get(route('admin.payment-methods.index'), { search: newSearch, per_page: newPerPage }, {
             preserveState: true,
             replace: true,
-            preserveScroll: true
+            preserveScroll: true,
         });
     };
 
@@ -65,6 +190,73 @@ function AdminPaymentMethodsIndex({ paymentMethods, metrics, filters }) {
         handleFilterChange(search, e.target.value);
     };
 
+    const openCreateModal = () => {
+        clearErrors();
+        reset();
+        setData({ ...emptyForm });
+        setSelectedPaymentMethod(null);
+        setIsCreateModalOpen(true);
+    };
+
+    const openEditModal = (paymentMethod) => {
+        clearErrors();
+        setSelectedPaymentMethod(paymentMethod);
+        setData({
+            type: paymentMethod.type ?? 'bank_transfer',
+            bank_name: paymentMethod.bank_name ?? '',
+            account_number: paymentMethod.account_number ?? '',
+            account_holder_name: paymentMethod.account_holder_name ?? '',
+            qris_image: null,
+            instructions: paymentMethod.instructions ?? '',
+            is_active: Boolean(paymentMethod.is_active),
+            _method: 'put',
+        });
+        setIsEditModalOpen(true);
+    };
+
+    const closeCreateModal = () => {
+        setIsCreateModalOpen(false);
+        clearErrors();
+        reset();
+    };
+
+    const closeEditModal = () => {
+        setIsEditModalOpen(false);
+        setSelectedPaymentMethod(null);
+        clearErrors();
+        reset();
+    };
+
+    const handleCreate = (e) => {
+        e.preventDefault();
+        post(route('admin.payment-methods.store'), {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                setIsCreateModalOpen(false);
+                reset();
+                setData({ ...emptyForm });
+            },
+        });
+    };
+
+    const handleEdit = (e) => {
+        e.preventDefault();
+        if (!selectedPaymentMethod) {
+            return;
+        }
+
+        post(route('admin.payment-methods.update', selectedPaymentMethod.id), {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                setIsEditModalOpen(false);
+                setSelectedPaymentMethod(null);
+                reset();
+            },
+        });
+    };
+
     return (
         <>
             <Head title="Admin Metode Pembayaran" />
@@ -72,13 +264,14 @@ function AdminPaymentMethodsIndex({ paymentMethods, metrics, filters }) {
             <div className="space-y-8">
                 <AdminPageHeader
                     action={(
-                        <Link
+                        <button
                             className="inline-flex items-center gap-2 rounded-full bg-[#1E4D3A] px-4 py-2 font-body-sm text-sm font-bold text-white transition hover:bg-[#013625]"
-                            href={route('admin.payment-methods.create')}
+                            onClick={openCreateModal}
+                            type="button"
                         >
                             <Plus aria-hidden="true" className="h-4 w-4" />
                             Tambah Metode
-                        </Link>
+                        </button>
                     )}
                     description="Kelola metode pembayaran yang tersedia untuk pembayaran order Phoenix."
                     eyebrow="Commerce / Metode Pembayaran"
@@ -224,12 +417,13 @@ function AdminPaymentMethodsIndex({ paymentMethods, metrics, filters }) {
                                     >
                                         Detail
                                     </Link>
-                                    <Link
+                                    <button
                                         className="rounded-full border border-[#A8C5B3] px-3 py-1.5 font-body-sm text-xs font-bold text-[#1E4D3A] transition hover:bg-[#A8C5B3]/20"
-                                        href={route('admin.payment-methods.edit', paymentMethod.id)}
+                                        onClick={() => openEditModal(paymentMethod)}
+                                        type="button"
                                     >
                                         Edit
-                                    </Link>
+                                    </button>
                                     <AdminDeleteButton
                                         className="rounded-full border border-red-200 px-3 py-1.5 font-body-sm text-xs font-bold text-red-700 transition hover:bg-red-50"
                                         description="Metode pembayaran akan dihapus dari daftar metode pembayaran admin."
@@ -252,6 +446,63 @@ function AdminPaymentMethodsIndex({ paymentMethods, metrics, filters }) {
                     </div>
                 )}
             </div>
+
+            <Modal show={isCreateModalOpen} onClose={closeCreateModal} maxWidth="lg">
+                <form onSubmit={handleCreate} className="p-6">
+                    <h2 className="mb-1 text-lg font-bold text-[#1E4D3A]">Tambah Metode Pembayaran</h2>
+                    <p className="mb-5 text-sm text-gray-500">
+                        Tambahkan metode bank transfer, QRIS, atau tunai untuk checkout order.
+                    </p>
+                    <PaymentMethodFormFields data={data} setData={setData} errors={errors} />
+                    <div className="mt-6 flex justify-end gap-3 border-t border-gray-100 pt-4">
+                        <button
+                            type="button"
+                            onClick={closeCreateModal}
+                            className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+                        >
+                            Batal
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={processing}
+                            className="rounded-xl bg-[#1E4D3A] px-4 py-2 text-sm font-bold text-white hover:bg-[#163B2C] disabled:opacity-50"
+                        >
+                            {processing ? 'Menyimpan...' : 'Simpan Metode'}
+                        </button>
+                    </div>
+                </form>
+            </Modal>
+
+            <Modal show={isEditModalOpen} onClose={closeEditModal} maxWidth="lg">
+                <form onSubmit={handleEdit} className="p-6">
+                    <h2 className="mb-1 text-lg font-bold text-[#1E4D3A]">Edit Metode Pembayaran</h2>
+                    <p className="mb-5 text-sm text-gray-500">
+                        Perbarui metode{selectedPaymentMethod ? `: ${methodTitle(selectedPaymentMethod)}` : ''}.
+                    </p>
+                    <PaymentMethodFormFields
+                        data={data}
+                        setData={setData}
+                        errors={errors}
+                        existingQrisPath={selectedPaymentMethod?.qris_image_path}
+                    />
+                    <div className="mt-6 flex justify-end gap-3 border-t border-gray-100 pt-4">
+                        <button
+                            type="button"
+                            onClick={closeEditModal}
+                            className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+                        >
+                            Batal
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={processing}
+                            className="rounded-xl bg-[#1E4D3A] px-4 py-2 text-sm font-bold text-white hover:bg-[#163B2C] disabled:opacity-50"
+                        >
+                            {processing ? 'Menyimpan...' : 'Simpan Perubahan'}
+                        </button>
+                    </div>
+                </form>
+            </Modal>
         </>
     );
 }

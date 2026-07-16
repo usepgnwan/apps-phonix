@@ -5,33 +5,10 @@ import AdminCard from '@/Components/Admin/AdminCard';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
 import StatusBadge from '@/Components/Admin/StatusBadge';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { formatCurrency } from '@/utils/format';
+import { DetailRow } from '@/Components/Admin/FormFields';
 
 const visitTipeLabels = { home_visit: 'Home Visit', office_visit: 'Office Visit', both: 'Home & Office' };
-
-function formatCurrency(value) {
-    if (value === null || value === undefined || value === '') {
-        return '-';
-    }
-
-    return new Intl.NumberFormat('id-ID', {
-        currency: 'IDR',
-        maximumFractionDigits: 0,
-        style: 'currency',
-    }).format(Number(value));
-}
-
-function DetailRow({ children, label }) {
-    return (
-        <div className="rounded-2xl border border-[#E5E7EB] bg-[#F6F7F7] px-4 py-3">
-            <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400">
-                {label}
-            </p>
-            <div className="mt-1 font-body-sm text-sm font-semibold text-[#333333]">
-                {children ?? '-'}
-            </div>
-        </div>
-    );
-}
 
 function AdminLayananShow({ service }) {
     return (

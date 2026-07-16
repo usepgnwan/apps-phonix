@@ -9,20 +9,9 @@ import EmptyState from '@/Components/Admin/EmptyState';
 import StatusBadge from '@/Components/Admin/StatusBadge';
 import AdminLayout from '@/Layouts/AdminLayout';
 import Pagination from '@/Components/Admin/Pagination';
+import { formatCurrency } from '@/utils/format';
 
 const visitTipeLabels = { home_visit: 'Home Visit', office_visit: 'Office Visit', both: 'Home & Office' };
-
-function formatCurrency(value) {
-    if (value === null || value === undefined || value === '') {
-        return '-';
-    }
-
-    return new Intl.NumberFormat('id-ID', {
-        currency: 'IDR',
-        maximumFractionDigits: 0,
-        style: 'currency',
-    }).format(Number(value));
-}
 
 function snippet(value) {
     if (!value) {

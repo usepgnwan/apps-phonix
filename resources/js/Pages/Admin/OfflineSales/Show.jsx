@@ -5,12 +5,8 @@ import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
 import EmptyState from '@/Components/Admin/EmptyState';
 import MetricCard from '@/Components/Admin/MetricCard';
 import AdminLayout from '@/Layouts/AdminLayout';
-
-function formatCurrency(value) { return new Intl.NumberFormat('id-ID', { currency: 'IDR', maximumFractionDigits: 0, style: 'currency' }).format(Number(value ?? 0)); }
-function formatDateTime(value) { return value ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '-'; }
-function formatNumber(value) { return new Intl.NumberFormat('id-ID').format(Number(value ?? 0)); }
-function readableLabel(value) { return String(value ?? '-').replaceAll('_', ' ').replaceAll('-', ' ').replace(/\b\w/g, (char) => char.toUpperCase()); }
-function DetailRow({ label, children }) { return <div className="rounded-2xl border border-[#E5E7EB] bg-[#F6F7F7] px-4 py-3"><p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400">{label}</p><div className="mt-1 font-body-sm text-sm font-semibold text-[#333333]">{children || '-'}</div></div>; }
+import { formatCurrency, formatDateTime, formatNumber, readableLabel } from '@/utils/format';
+import { DetailRow } from '@/Components/Admin/FormFields';
 
 function AdminOfflineSalesShow({ offlineSale }) {
     const items = offlineSale.offline_sale_items ?? [];

@@ -1,32 +1,10 @@
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 
 import AdminCard from '@/Components/Admin/AdminCard';
 import AdminLayout from '@/Layouts/AdminLayout';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
-
-function FieldError({ message }) {
-    return message ? <p className="mt-1 font-body-sm text-xs text-red-700">{message}</p> : null;
-}
-
-function TextField({ error, label, name, onChange, type = 'text', value }) {
-    return (
-        <label className="block">
-            <span className="font-label-sm text-xs font-bold uppercase tracking-[0.12em] text-gray-500">{label}</span>
-            <input className="mt-2 block w-full rounded-2xl border-[#E5E7EB] font-body-sm text-sm text-[#333333] shadow-sm focus:border-[#1E4D3A] focus:ring-[#1E4D3A]" name={name} onChange={onChange} type={type} value={value ?? ''} />
-            <FieldError message={error} />
-        </label>
-    );
-}
-
-function TextAreaField({ error, label, name, onChange, value }) {
-    return (
-        <label className="block">
-            <span className="font-label-sm text-xs font-bold uppercase tracking-[0.12em] text-gray-500">{label}</span>
-            <textarea className="mt-2 block min-h-32 w-full rounded-2xl border-[#E5E7EB] font-body-sm text-sm text-[#333333] shadow-sm focus:border-[#1E4D3A] focus:ring-[#1E4D3A]" name={name} onChange={onChange} value={value ?? ''} />
-            <FieldError message={error} />
-        </label>
-    );
-}
+import { adminBranchName, isBranchAdmin, isCentralAdmin, resolveFormBranchId } from '@/utils/adminScope';
+import { FieldError, TextField, SelectField, TextAreaField } from '@/Components/Admin/FormFields';
 
 function CheckboxField({ checked, error, label, onChange }) {
     return (
@@ -41,8 +19,22 @@ function CheckboxField({ checked, error, label, onChange }) {
     );
 }
 
-function AdminEventTambah() {
-    const form = useForm({ name: '', start_date: '', end_date: '', location: '', organizer: '', notes: '', is_active: true });
+function AdminEventTambah({ branches = [], defaultBranchId = null }) {
+    const { auth, branches: sharedBranches = [] } = usePage().props;
+    const user = auth?.user;
+    const branchOptions = branches.length > 0 ? branches : sharedBranches;
+    const lockedBranch = isBranchAdmin(user);
+
+    const form = useForm({
+        branch_id: resolveFormBranchId(user, { defaultBranchId, branches: branchOptions }) || '',
+        name: '',
+        start_date: '',
+        end_date: '',
+        location: '',
+        organizer: '',
+        notes: '',
+        is_active: true,
+    });
 
     function submit(event) {
         event.preventDefault();
@@ -56,6 +48,28 @@ function AdminEventTambah() {
                 <AdminPageHeader action={<Link className="rounded-full border border-[#1E4D3A] px-4 py-2 font-body-sm text-sm font-bold text-[#1E4D3A] transition hover:bg-[#1E4D3A] hover:text-white" href={route('admin.events.index')}>Kembali</Link>} description="Tambahkan event lapangan, pameran, atau aktivitas offline untuk tracking CRM." eyebrow="CRM & Field / Event" title="Tambah Event" />
                 <AdminCard className="p-5">
                     <form className="space-y-4" onSubmit={submit}>
+                        {lockedBranch ? (
+                            <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
+                                <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-gray-500">Cabang</p>
+                                <p className="mt-1 font-body-sm text-sm font-bold text-gray-700">
+                                    {adminBranchName(user, branchOptions) || 'Cabang Aktif'}
+                                </p>
+                                <FieldError message={form.errors.branch_id} />
+                            </div>
+                        ) : isCentralAdmin(user) ? (
+                            <SelectField
+                                error={form.errors.branch_id}
+                                label="Cabang"
+                                name="branch_id"
+                                onChange={(event) => form.setData('branch_id', event.target.value)}
+                                value={form.data.branch_id}
+                            >
+                                <option value="">Pilih cabang (opsional)</option>
+                                {branchOptions.map((branch) => (
+                                    <option key={branch.id} value={branch.id}>{branch.name}</option>
+                                ))}
+                            </SelectField>
+                        ) : null}
                         <TextField error={form.errors.name} label="Nama" name="name" onChange={(event) => form.setData('name', event.target.value)} value={form.data.name} />
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                             <TextField error={form.errors.start_date} label="Tanggal Mulai" name="start_date" onChange={(event) => form.setData('start_date', event.target.value)} type="date" value={form.data.start_date} />

@@ -10,76 +10,23 @@ import MetricCard from '@/Components/Admin/MetricCard';
 import Modal from '@/Components/Modal';
 import AdminLayout from '@/Layouts/AdminLayout';
 import Pagination from '@/Components/Admin/Pagination';
-
-function formatCurrency(value) {
-    return new Intl.NumberFormat('id-ID', { currency: 'IDR', maximumFractionDigits: 0, style: 'currency' }).format(Number(value ?? 0));
-}
-
-function formatDateTime(value) {
-    return value ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '-';
-}
-
-function formatDateTimeInput(value = new Date()) {
-    return new Date(value).toISOString().slice(0, 16);
-}
-
-function formatNumber(value) {
-    return new Intl.NumberFormat('id-ID').format(Number(value ?? 0));
-}
-
-function readableLabel(value) {
-    return String(value ?? '-').replaceAll('_', ' ').replaceAll('-', ' ').replace(/\b\w/g, (char) => char.toUpperCase());
-}
-
-function relationName(relation, fallback = '-') {
-    return relation?.name || fallback;
-}
-
-function FieldError({ message }) {
-    return message ? <p className="mt-1 font-body-sm text-xs text-red-700">{message}</p> : null;
-}
-
-function TextField({ error, label, name, onChange, type = 'text', value }) {
-    return (
-        <label className="block">
-            <span className="font-label-sm text-xs font-bold uppercase tracking-[0.12em] text-gray-500">{label}</span>
-            <input className="mt-1.5 block w-full rounded-xl border-[#E5E7EB] font-body-sm text-sm text-[#333333] shadow-sm focus:border-[#1E4D3A] focus:ring-[#1E4D3A]" name={name} onChange={onChange} type={type} value={value ?? ''} />
-            <FieldError message={error} />
-        </label>
-    );
-}
-
-function SelectField({ children, error, label, name, onChange, value }) {
-    return (
-        <label className="block">
-            <span className="font-label-sm text-xs font-bold uppercase tracking-[0.12em] text-gray-500">{label}</span>
-            <select className="mt-1.5 block w-full rounded-xl border-[#E5E7EB] font-body-sm text-sm text-[#333333] shadow-sm focus:border-[#1E4D3A] focus:ring-[#1E4D3A]" name={name} onChange={onChange} value={value ?? ''}>
-                {children}
-            </select>
-            <FieldError message={error} />
-        </label>
-    );
-}
-
-function TextAreaField({ error, label, name, onChange, value }) {
-    return (
-        <label className="block">
-            <span className="font-label-sm text-xs font-bold uppercase tracking-[0.12em] text-gray-500">{label}</span>
-            <textarea className="mt-1.5 block w-full rounded-xl border-[#E5E7EB] font-body-sm text-sm text-[#333333] shadow-sm focus:border-[#1E4D3A] focus:ring-[#1E4D3A]" name={name} onChange={onChange} rows="3" value={value ?? ''} />
-            <FieldError message={error} />
-        </label>
-    );
-}
+import { formatCurrency, formatDateTime, formatDateTimeInput, formatNumber, readableLabel, relationName } from '@/utils/format';
+import { FieldError, TextField, SelectField, TextAreaField } from '@/Components/Admin/FormFields';
 
 // ─── POS Form ───────────────────────────────────────────────────────────────
 
-function OfflineSalePosForm({ products, services, customerProfiles, leads, fieldStaff, events, sources, paymentMethods }) {
+function OfflineSalePosForm({ products, services, customerProfiles, leads, fieldStaff, events, sources, paymentMethods, branches, auth }) {
     const [search, setSearch] = useState('');
     const [itemTab, setItemTab] = useState('products');
     const [successModalData, setSuccessModalData] = useState(null);
     const [voucherCheck, setVoucherCheck] = useState({ status: 'idle', data: null, message: '' });
 
+    const defaultBranchId = auth.user?.admin_scope === 'branch'
+        ? auth.user.branch_id
+        : (branches && branches.length > 0 ? branches[0].id : '');
+
     const form = useForm({
+        branch_id: defaultBranchId || '',
         customer_profile_id: '',
         lead_id: '',
         is_guest: false,
@@ -115,9 +62,10 @@ function OfflineSalePosForm({ products, services, customerProfiles, leads, field
     const isWalkInGuest = form.data.is_guest;
 
     const currentItems = itemTab === 'products' ? products : services;
-    const filteredItems = currentItems.filter((p) =>
-        p.name.toLowerCase().includes(search.toLowerCase())
-    );
+    const filteredItems = currentItems.filter((p) => {
+        const matchName = p.name.toLowerCase().includes(search.toLowerCase());
+        return matchName;
+    });
 
     function resetVoucherCheck() {
         setVoucherCheck({ status: 'idle', data: null, message: '' });
@@ -232,7 +180,7 @@ function OfflineSalePosForm({ products, services, customerProfiles, leads, field
             setVoucherCheck({ status: 'invalid', data: null, message: 'Cek voucher terlebih dahulu sebelum menyimpan transaksi.' });
             return;
         }
-        
+
         form.transform(() => submitData);
         form.post(route('admin.offline-sales.store'), {
             onSuccess: (page) => {
@@ -331,10 +279,22 @@ function OfflineSalePosForm({ products, services, customerProfiles, leads, field
                         </div>
                     ) : (
                         filteredItems.map((item) => {
-                            const isProduct = itemTab === 'products';
+                                                        const isProduct = itemTab === 'products';
                             const key = isProduct ? 'product_id' : 'service_id';
                             const inCart = cart.find((i) => String(i[key]) === String(item.id));
-                            const outOfStock = isProduct && Number(item.stock_quantity ?? 0) <= 0;
+
+                            let availableStock = 0;
+                            if (isProduct) {
+                                if (auth.user?.admin_scope === 'branch' && auth.user?.branch_id) {
+                                    const branchStock = item.branch_stocks?.find(bs => String(bs.branch_id) === String(auth.user.branch_id));
+                                    availableStock = branchStock ? Number(branchStock.stock_quantity ?? 0) : 0;
+                                } else {
+                                    const branchStock = item.branch_stocks?.find(bs => String(bs.branch_id) === String(form.data.branch_id));
+                                    availableStock = branchStock ? Number(branchStock.stock_quantity ?? 0) : 0;
+                                }
+                            }
+                            const outOfStock = isProduct && availableStock <= 0;
+
                             return (
                                 <button
                                     key={item.id}
@@ -358,7 +318,7 @@ function OfflineSalePosForm({ products, services, customerProfiles, leads, field
                                         </div>
                                         <p className="mt-1 text-xs font-extrabold text-[#1E4D3A]">{formatCurrency(item.price)}</p>
                                         <p className={`mt-0.5 text-[10px] ${outOfStock ? 'text-red-500' : 'text-gray-400'}`}>
-                                            {isProduct ? (outOfStock ? 'Stok habis' : `Stok: ${item.stock_quantity}`) : 'Layanan'}
+                                            {isProduct ? (outOfStock ? 'Stok habis' : `Stok: ${availableStock}`) : 'Layanan'}
                                         </p>
                                         {!outOfStock && (
                                             <div className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-[#1E4D3A] text-white opacity-0 shadow-sm transition-opacity duration-200 group-hover:opacity-100">
@@ -475,12 +435,27 @@ function OfflineSalePosForm({ products, services, customerProfiles, leads, field
                     <div className="flex items-center gap-2 mb-4">
                         <Receipt className="h-4 w-4 text-[#1E4D3A]" />
                         <div>
-                            <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.2em] text-[#1E4D3A]">Data Transaksi</p>
+                                    <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.2em] text-[#1E4D3A]">Data Transaksi</p>
                             <p className="text-xs font-extrabold text-[#333333]">Input Offline Sale</p>
                         </div>
                     </div>
                     <p className="mb-4 font-body-sm text-xs leading-5 text-gray-500">Lengkapi sumber transaksi, waktu jual, data customer, dan relasi CRM bila tersedia.</p>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div className="sm:col-span-2">
+                            {auth.user?.admin_scope === 'branch' ? (
+                                <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
+                                    <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-gray-500">Cabang</p>
+                                    <p className="mt-1 font-body-sm text-sm font-bold text-gray-700">
+                                        {branches?.find(b => b.id === auth.user.branch_id)?.name || 'Cabang Aktif'}
+                                    </p>
+                                </div>
+                            ) : (
+                                <SelectField error={form.errors.branch_id} label="Cabang Transaksi" name="branch_id" onChange={(e) => updateField('branch_id', e.target.value)} value={form.data.branch_id}>
+                                    <option value="" disabled>Pilih Cabang (Wajib untuk Produk)</option>
+                                    {branches?.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
+                                </SelectField>
+                            )}
+                        </div>
                         <SelectField error={form.errors.source} label="Sumber" name="source" onChange={(e) => form.setData('source', e.target.value)} value={form.data.source}>
                             {sources.map((source) => <option key={source} value={source}>{readableLabel(source)}</option>)}
                         </SelectField>
@@ -642,13 +617,82 @@ function OfflineSalePosForm({ products, services, customerProfiles, leads, field
 
 // ─── Sale History ────────────────────────────────────────────────────────────
 
-function OfflineSaleList({ offlineSales, filters, historyMetrics }) {
+function OfflineSalesFilter({ filters, branches, auth, handleFilter }) {
+    const hasBranchesOption = auth?.user?.role === 'admin'
+        && auth?.user?.admin_scope !== 'branch'
+        && branches
+        && branches.length > 0;
+
+    return (
+        <AdminCard className="p-5 mb-4">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                    <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">Filter Data</p>
+                    <h2 className="mt-1 font-body-lg text-lg font-extrabold text-[#333333]">Riwayat Penjualan Offline</h2>
+                </div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center flex-wrap">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                        <input
+                            className="w-full sm:w-48 rounded-xl border-[#E5E7EB] bg-white py-1.5 pl-9 pr-3 font-body-sm text-sm text-[#333333] shadow-sm focus:border-[#1E4D3A] focus:outline-none focus:ring-1 focus:ring-[#1E4D3A]"
+                            placeholder="Cari transaksi..."
+                            value={filters.search || ''}
+                            onChange={(e) => handleFilter('search', e.target.value)}
+                            type="search"
+                        />
+                    </div>
+                    {hasBranchesOption && (
+                        <select
+                            className="rounded-xl border-[#E5E7EB] font-body-sm text-sm focus:border-[#1E4D3A] focus:ring-[#1E4D3A] shadow-sm"
+                            value={filters.branch_id || ''}
+                            onChange={(e) => handleFilter('branch_id', e.target.value)}
+                        >
+                            <option value="">Semua Cabang</option>
+                            {branches.map(b => (
+                                <option key={b.id} value={b.id}>{b.name}</option>
+                            ))}
+                        </select>
+                    )}
+                    <div className="flex items-center gap-1.5 rounded-xl border border-[#E5E7EB] bg-white px-3 py-1.5 shadow-sm focus-within:ring-2 focus-within:ring-[#1E4D3A]">
+                        <input
+                            type="date"
+                            value={filters.start_date || ''}
+                            onChange={(e) => handleFilter('start_date', e.target.value)}
+                            className="border-none bg-transparent p-0 font-body-sm text-sm text-[#333333] focus:ring-0 cursor-pointer"
+                        />
+                        <span className="text-gray-400">-</span>
+                        <input
+                            type="date"
+                            value={filters.end_date || ''}
+                            onChange={(e) => handleFilter('end_date', e.target.value)}
+                            className="border-none bg-transparent p-0 font-body-sm text-sm text-[#333333] focus:ring-0 cursor-pointer"
+                        />
+                    </div>
+                </div>
+            </div>
+        </AdminCard>
+    );
+}
+
+function OfflineSaleList({ offlineSales, filters, historyMetrics, branches, auth }) {
     const items = offlineSales.data ?? [];
     const [search, setSearch] = useState(filters?.search || '');
     const [perPage, setPerPage] = useState(filters?.per_page || 10);
-    
-    function handleFilter(overrideSearch = search, overridePerPage = perPage) {
-        router.get(route('admin.offline-sales.index'), { search: overrideSearch, start_date: filters?.start_date, end_date: filters?.end_date, per_page: overridePerPage }, {
+
+    function handleFilterValue(key, value) {
+        if (key === 'search') setSearch(value);
+        if (key === 'per_page') setPerPage(value);
+
+        const newFilters = { 
+            search: key === 'search' ? value : search, 
+            start_date: filters?.start_date, 
+            end_date: filters?.end_date,
+            branch_id: filters?.branch_id,
+            per_page: key === 'per_page' ? value : perPage,
+            [key]: value
+        };
+        
+        router.get(route('admin.offline-sales.index'), newFilters, {
             preserveState: true,
             replace: true,
             preserveScroll: true
@@ -656,13 +700,11 @@ function OfflineSaleList({ offlineSales, filters, historyMetrics }) {
     }
 
     function handleSearchChange(e) {
-        setSearch(e.target.value);
-        handleFilter(e.target.value, perPage);
+        handleFilterValue('search', e.target.value);
     }
-    
+
     function handleLimitChange(e) {
-        setPerPage(e.target.value);
-        handleFilter(search, e.target.value);
+        handleFilterValue('per_page', e.target.value);
     }
 
     const sourceChartOption = {
@@ -744,9 +786,9 @@ function OfflineSaleList({ offlineSales, filters, historyMetrics }) {
         legend: { top: 'top', right: '0', icon: 'circle', itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 10, color: '#666' } },
         grid: { left: '3%', right: '4%', bottom: '3%', top: '15%', containLabel: true },
         xAxis: [
-            { 
-                type: 'value', 
-                axisLabel: { 
+            {
+                type: 'value',
+                axisLabel: {
                     formatter: (value) => {
                         if (value >= 1000000) return (value / 1000000) + 'jt';
                         if (value >= 1000) return (value / 1000) + 'k';
@@ -763,8 +805,8 @@ function OfflineSaleList({ offlineSales, filters, historyMetrics }) {
                 splitLine: { show: false }
             }
         ],
-        yAxis: { 
-            type: 'category', 
+        yAxis: {
+            type: 'category',
             data: staffNames,
             axisLabel: { color: '#4B5563', fontSize: 11, width: 90, overflow: 'truncate' },
             axisLine: { show: false },
@@ -795,7 +837,9 @@ function OfflineSaleList({ offlineSales, filters, historyMetrics }) {
     };
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-4 mt-8">
+            <OfflineSalesFilter filters={filters || {}} branches={branches || []} auth={auth} handleFilter={handleFilterValue} />
+
             <div className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm h-80 flex flex-col">
                 <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                     <div>
@@ -861,22 +905,12 @@ function OfflineSaleList({ offlineSales, filters, historyMetrics }) {
                 <div className="border-b border-[#E5E7EB] px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <p className="font-bold text-[#333333] text-sm shrink-0">Daftar Penjualan Offline Terbaru</p>
                     <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-                        <div className="relative w-full sm:w-64">
-                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                            <input
-                                type="text"
-                                placeholder="Cari transaksi..."
-                                value={search}
-                                onChange={handleSearchChange}
-                                className="w-full rounded-2xl border border-[#E5E7EB] py-2 pl-10 pr-4 text-sm focus:border-[#1E4D3A] focus:outline-none focus:ring-1 focus:ring-[#1E4D3A] font-body-sm"
-                            />
-                        </div>
                         <div className="flex items-center gap-2 text-sm text-gray-500 shrink-0">
                             <span>Tampilkan</span>
                             <select
                                 value={perPage}
                                 onChange={handleLimitChange}
-                                className="rounded-xl border border-[#E5E7EB] py-2 pl-3 pr-8 text-sm focus:border-[#1E4D3A] focus:outline-none focus:ring-1 focus:ring-[#1E4D3A] font-body-sm bg-[#F9FAFB]"
+                                className="rounded-xl border border-[#E5E7EB] py-1.5 pl-3 pr-8 text-sm focus:border-[#1E4D3A] focus:outline-none focus:ring-1 focus:ring-[#1E4D3A] font-body-sm bg-[#F9FAFB]"
                             >
                                 <option value={10}>10</option>
                                 <option value={25}>25</option>
@@ -990,19 +1024,9 @@ function OfflineSaleList({ offlineSales, filters, historyMetrics }) {
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
-function AdminOfflineSalesIndex({ offlineSales, filters, metrics, historyMetrics, products = [], services = [], customerProfiles = [], leads = [], fieldStaff = [], events = [], sources = [], paymentMethods = [] }) {
+function AdminOfflineSalesIndex({ offlineSales, filters, metrics, historyMetrics, products = [], services = [], customerProfiles = [], leads = [], fieldStaff = [], events = [], sources = [], paymentMethods = [], branches = [], auth }) {
     const isHistoryActive = filters?.search || filters?.start_date || filters?.end_date || (typeof window !== 'undefined' && window.location.search.includes('page='));
     const [activeTab, setActiveTab] = useState(isHistoryActive ? 'history' : 'pos');
-    const [startDate, setStartDate] = useState(filters?.start_date || '');
-    const [endDate, setEndDate] = useState(filters?.end_date || '');
-
-    function handleDateFilter() {
-        router.get(route('admin.offline-sales.index'), { search: filters?.search, start_date: startDate, end_date: endDate }, {
-            preserveState: true,
-            replace: true,
-            preserveScroll: true
-        });
-    }
 
     const tabs = [
         { id: 'pos', label: 'POS Penjualan', icon: ShoppingCart },
@@ -1014,30 +1038,9 @@ function AdminOfflineSalesIndex({ offlineSales, filters, metrics, historyMetrics
             <Head title="Admin Penjualan Offline" />
             <div className="space-y-6">
                 <AdminPageHeader
-                    description="Catat penjualan offline langsung, lalu pantau transaksi event, door to door, dan penjualan langsung."
+                    // description="Catat penjualan offline langsung, lalu pantau transaksi event, door to door, dan penjualan langsung."
                     eyebrow="Commerce / Penjualan Offline"
                     title="Penjualan Offline"
-                    action={
-                        <div className="flex flex-wrap items-center gap-2 bg-white rounded-xl border border-[#E5E7EB] px-3 py-1.5 shadow-sm mt-4 sm:mt-0">
-                            <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-wider text-gray-500">Filter Tanggal</span>
-                            <input 
-                                type="date" 
-                                value={startDate} 
-                                onChange={(e) => setStartDate(e.target.value)}
-                                className="border-none text-xs sm:text-sm focus:ring-0 text-[#333333] p-0 sm:p-1 bg-transparent font-body-sm w-[110px] sm:w-auto"
-                            />
-                            <span className="text-gray-300">-</span>
-                            <input 
-                                type="date" 
-                                value={endDate} 
-                                onChange={(e) => setEndDate(e.target.value)}
-                                className="border-none text-xs sm:text-sm focus:ring-0 text-[#333333] p-0 sm:p-1 bg-transparent font-body-sm w-[110px] sm:w-auto"
-                            />
-                            <button type="button" onClick={handleDateFilter} className="ml-1 bg-[#1E4D3A] text-white rounded p-1.5 hover:bg-[#013625] transition-colors" title="Terapkan Filter">
-                                <Search className="h-3.5 w-3.5" />
-                            </button>
-                        </div>
-                    }
                 />
 
                 {/* Global Metric Cards (Shown in both tabs) */}
@@ -1087,10 +1090,12 @@ function AdminOfflineSalesIndex({ offlineSales, filters, metrics, historyMetrics
                             services={services}
                             sources={sources}
                             paymentMethods={paymentMethods}
+                            branches={branches}
+                            auth={auth}
                         />
                     )}
                     {activeTab === 'history' && (
-                        <OfflineSaleList offlineSales={offlineSales} filters={filters} historyMetrics={historyMetrics} />
+                        <OfflineSaleList offlineSales={offlineSales} filters={filters} historyMetrics={historyMetrics} branches={branches} auth={auth} />
                     )}
                 </div>
             </div>

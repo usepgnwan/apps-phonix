@@ -4,48 +4,10 @@ import AdminCard from '@/Components/Admin/AdminCard';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
 import StatusBadge from '@/Components/Admin/StatusBadge';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { readableLabel, formatCurrency, formatDateTime, formatDateTimeInput } from '@/utils/format';
+import { FieldError, TextField, SelectField, TextAreaField, DetailRow } from '@/Components/Admin/FormFields';
 
 const statusOptions = ['waiting_confirmation', 'confirmed', 'completed', 'cancelled'];
-
-function readableLabel(value) {
-    return String(value ?? 'Tidak diketahui')
-        .replaceAll('_', ' ')
-        .replaceAll('-', ' ')
-        .replace(/\b\w/g, (char) => char.toUpperCase());
-}
-
-function formatCurrency(value) {
-    return new Intl.NumberFormat('id-ID', {
-        currency: 'IDR',
-        maximumFractionDigits: 0,
-        style: 'currency',
-    }).format(Number(value ?? 0));
-}
-
-function formatDateTime(value) {
-    if (!value) {
-        return '-';
-    }
-
-    return new Intl.DateTimeFormat('id-ID', {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-    }).format(new Date(value));
-}
-
-function formatDateTimeInput(value) {
-    if (!value) {
-        return '';
-    }
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-        return '';
-    }
-
-    return date.toISOString().slice(0, 16);
-}
 
 function customerName(booking) {
     return booking.customer_profile?.name ?? booking.name ?? booking.user?.name ?? 'Customer';
@@ -64,82 +26,6 @@ function PrimarySubmitButton({ children, disabled }) {
         >
             {children}
         </button>
-    );
-}
-
-function FieldError({ message }) {
-    if (!message) {
-        return null;
-    }
-
-    return <p className="mt-1 font-body-sm text-xs text-red-700">{message}</p>;
-}
-
-function TextField({ error, label, name, onChange, type = 'text', value }) {
-    return (
-        <label className="block">
-            <span className="font-label-sm text-xs font-bold uppercase tracking-[0.12em] text-gray-500">
-                {label}
-            </span>
-            <input
-                className="mt-2 block w-full rounded-2xl border-[#E5E7EB] font-body-sm text-sm text-[#333333] shadow-sm focus:border-[#1E4D3A] focus:ring-[#1E4D3A]"
-                name={name}
-                onChange={onChange}
-                type={type}
-                value={value ?? ''}
-            />
-            <FieldError message={error} />
-        </label>
-    );
-}
-
-function SelectField({ children, error, label, name, onChange, value }) {
-    return (
-        <label className="block">
-            <span className="font-label-sm text-xs font-bold uppercase tracking-[0.12em] text-gray-500">
-                {label}
-            </span>
-            <select
-                className="mt-2 block w-full rounded-2xl border-[#E5E7EB] font-body-sm text-sm text-[#333333] shadow-sm focus:border-[#1E4D3A] focus:ring-[#1E4D3A]"
-                name={name}
-                onChange={onChange}
-                value={value ?? ''}
-            >
-                {children}
-            </select>
-            <FieldError message={error} />
-        </label>
-    );
-}
-
-function TextAreaField({ error, label, name, onChange, value }) {
-    return (
-        <label className="block">
-            <span className="font-label-sm text-xs font-bold uppercase tracking-[0.12em] text-gray-500">
-                {label}
-            </span>
-            <textarea
-                className="mt-2 block w-full rounded-2xl border-[#E5E7EB] font-body-sm text-sm text-[#333333] shadow-sm focus:border-[#1E4D3A] focus:ring-[#1E4D3A]"
-                name={name}
-                onChange={onChange}
-                rows="4"
-                value={value ?? ''}
-            />
-            <FieldError message={error} />
-        </label>
-    );
-}
-
-function DetailRow({ label, children }) {
-    return (
-        <div className="rounded-2xl border border-[#E5E7EB] bg-[#F6F7F7] px-4 py-3">
-            <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400">
-                {label}
-            </p>
-            <div className="mt-1 font-body-sm text-sm font-semibold text-[#333333]">
-                {children ?? '-'}
-            </div>
-        </div>
     );
 }
 
@@ -206,6 +92,13 @@ function AdminBookingShow({ booking }) {
                         <SectionHeader eyebrow="Booking" title="Ringkasan Booking" />
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                             <DetailRow label="Nomor Booking">{title}</DetailRow>
+                            <DetailRow label="Cabang Tujuan">
+                                {booking.branch ? (
+                                    <span className="font-bold text-[#1E4D3A]">{booking.branch.name}</span>
+                                ) : (
+                                    <span className="text-gray-400">-</span>
+                                )}
+                            </DetailRow>
                             <DetailRow label="Status"><StatusBadge status={booking.status} /></DetailRow>
                             <DetailRow label="Tipe Kunjungan">{readableLabel(booking.visit_type)}</DetailRow>
                             <DetailRow label="Jadwal Diinginkan">{formatDateTime(booking.desired_schedule_at)}</DetailRow>

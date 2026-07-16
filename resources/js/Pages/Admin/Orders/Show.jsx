@@ -6,6 +6,8 @@ import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
 import EmptyState from '@/Components/Admin/EmptyState';
 import StatusBadge from '@/Components/Admin/StatusBadge';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { readableLabel, formatCurrency, formatDateTime, formatDateTimeInput } from '@/utils/format';
+import { FieldError, TextField, SelectField, TextAreaField, DetailRow } from '@/Components/Admin/FormFields';
 
 const paymentNextOptions = {
     waiting_payment: ['paid', 'cancelled'],
@@ -25,46 +27,6 @@ const shippingStatusMap = {
     delivered: ['Terkirim', 'forest'],
     cancelled: ['Batal', 'red'],
 };
-
-function readableLabel(value) {
-    return String(value ?? 'Tidak diketahui')
-        .replaceAll('_', ' ')
-        .replaceAll('-', ' ')
-        .replace(/\b\w/g, (char) => char.toUpperCase());
-}
-
-function formatCurrency(value) {
-    return new Intl.NumberFormat('id-ID', {
-        currency: 'IDR',
-        maximumFractionDigits: 0,
-        style: 'currency',
-    }).format(Number(value ?? 0));
-}
-
-function formatDateTime(value) {
-    if (!value) {
-        return '-';
-    }
-
-    return new Intl.DateTimeFormat('id-ID', {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-    }).format(new Date(value));
-}
-
-function formatDateTimeInput(value) {
-    if (!value) {
-        return '';
-    }
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-        return '';
-    }
-
-    return date.toISOString().slice(0, 16);
-}
 
 function paymentMethodNama(method) {
     if (!method) {
@@ -133,85 +95,6 @@ function PrimarySubmitButton({ children, disabled }) {
         >
             {children}
         </button>
-    );
-}
-
-function FieldError({ message }) {
-    if (!message) {
-        return null;
-    }
-
-    return <p className="mt-1 font-body-sm text-xs text-red-700">{message}</p>;
-}
-
-function TextField({ disabled = false, error, label, name, onChange, type = 'text', value }) {
-    return (
-        <label className="block">
-            <span className="font-label-sm text-xs font-bold uppercase tracking-[0.12em] text-gray-500">
-                {label}
-            </span>
-            <input
-                className="mt-2 block w-full rounded-2xl border-[#E5E7EB] font-body-sm text-sm text-[#333333] shadow-sm focus:border-[#1E4D3A] focus:ring-[#1E4D3A] disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500"
-                disabled={disabled}
-                name={name}
-                onChange={onChange}
-                type={type}
-                value={value ?? ''}
-            />
-            <FieldError message={error} />
-        </label>
-    );
-}
-
-function SelectField({ children, disabled = false, error, label, name, onChange, value }) {
-    return (
-        <label className="block">
-            <span className="font-label-sm text-xs font-bold uppercase tracking-[0.12em] text-gray-500">
-                {label}
-            </span>
-            <select
-                className="mt-2 block w-full rounded-2xl border-[#E5E7EB] font-body-sm text-sm text-[#333333] shadow-sm focus:border-[#1E4D3A] focus:ring-[#1E4D3A] disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500"
-                disabled={disabled}
-                name={name}
-                onChange={onChange}
-                value={value ?? ''}
-            >
-                {children}
-            </select>
-            <FieldError message={error} />
-        </label>
-    );
-}
-
-function TextAreaField({ disabled = false, error, label, name, onChange, value }) {
-    return (
-        <label className="block">
-            <span className="font-label-sm text-xs font-bold uppercase tracking-[0.12em] text-gray-500">
-                {label}
-            </span>
-            <textarea
-                className="mt-2 block w-full rounded-2xl border-[#E5E7EB] font-body-sm text-sm text-[#333333] shadow-sm focus:border-[#1E4D3A] focus:ring-[#1E4D3A] disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500"
-                disabled={disabled}
-                name={name}
-                onChange={onChange}
-                rows="4"
-                value={value ?? ''}
-            />
-            <FieldError message={error} />
-        </label>
-    );
-}
-
-function DetailRow({ label, children }) {
-    return (
-        <div className="rounded-2xl border border-[#E5E7EB] bg-[#F6F7F7] px-4 py-3">
-            <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400">
-                {label}
-            </p>
-            <div className="mt-1 font-body-sm text-sm font-semibold text-[#333333]">
-                {children ?? '-'}
-            </div>
-        </div>
     );
 }
 
@@ -415,6 +298,13 @@ function AdminOrderShow({ order }) {
                         <SectionHeader eyebrow="Order" title="Ringkasan Order" />
                         <div className="grid grid-cols-1 gap-3">
                             <DetailRow label="Nomor Order">{title}</DetailRow>
+                            <DetailRow label="Cabang">
+                                {order.branch ? (
+                                    <span className="font-bold text-[#1E4D3A]">{order.branch.name}</span>
+                                ) : (
+                                    <span className="text-gray-400">-</span>
+                                )}
+                            </DetailRow>
                             <DetailRow label="Status Order"><StatusBadge status={order.status} /></DetailRow>
                             <DetailRow label="Subtotal">{formatCurrency(order.subtotal)}</DetailRow>
                             <DetailRow label="Voucher Diskon">{formatCurrency(order.voucher_discount_amount)}</DetailRow>

@@ -5,30 +5,8 @@ import AdminCard from '@/Components/Admin/AdminCard';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
 import StatusBadge from '@/Components/Admin/StatusBadge';
 import AdminLayout from '@/Layouts/AdminLayout';
-
-function formatDateTime(value) {
-    if (!value) {
-        return '-';
-    }
-
-    return new Intl.DateTimeFormat('id-ID', {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-    }).format(new Date(value));
-}
-
-function DetailRow({ children, label }) {
-    return (
-        <div className="rounded-2xl border border-[#E5E7EB] bg-[#F6F7F7] px-4 py-3">
-            <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400">
-                {label}
-            </p>
-            <div className="mt-1 font-body-sm text-sm font-semibold text-[#333333]">
-                {children ?? '-'}
-            </div>
-        </div>
-    );
-}
+import { formatDateTime } from '@/utils/format';
+import { DetailRow } from '@/Components/Admin/FormFields';
 
 function AdminProductKategoriShow({ productCategory: productKategori }) {
     return (
@@ -47,9 +25,9 @@ function AdminProductKategoriShow({ productCategory: productKategori }) {
                             </Link>
                             <Link
                                 className="rounded-full bg-[#1E4D3A] px-4 py-2 font-body-sm text-sm font-bold text-white transition hover:bg-[#013625]"
-                                href={route('admin.product-categories.edit', productKategori.id)}
+                                href={route('admin.product-categories.index')}
                             >
-                                Edit
+                                Ke Daftar
                             </Link>
                             <AdminDeleteButton
                                 className="rounded-full border border-red-200 px-4 py-2 font-body-sm text-sm font-bold text-red-700 transition hover:bg-red-50"

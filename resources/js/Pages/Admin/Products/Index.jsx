@@ -9,24 +9,41 @@ import EmptyState from '@/Components/Admin/EmptyState';
 import StatusBadge from '@/Components/Admin/StatusBadge';
 import AdminLayout from '@/Layouts/AdminLayout';
 import Pagination from '@/Components/Admin/Pagination';
-
-function formatCurrency(value) {
-    return new Intl.NumberFormat('id-ID', {
-        currency: 'IDR',
-        maximumFractionDigits: 0,
-        style: 'currency',
-    }).format(Number(value ?? 0));
-}
+import { formatCurrency } from '@/utils/format';
 
 function productKategori(product) {
     return product.product_category ?? product.productKategori;
 }
 
 function isLowStock(product) {
-    return Number(product.stock_quantity ?? 0) <= Number(product.low_stock_threshold ?? 0);
+    return false; // Deprecated, use getBranchStockInfo instead
 }
 
-function AdminProdukIndex({ products, filters }) {
+function getBranchStockInfo(product, authUser) {
+    // If admin is restricted to a branch, only show that branch's stock
+    if (authUser?.role === 'admin' && authUser?.admin_scope === 'branch' && authUser?.branch_id) {
+        const branchStock = product.branch_stocks?.find(s => s.branch_id === authUser.branch_id);
+        return {
+            quantity: branchStock?.stock_quantity ?? 0,
+            threshold: branchStock?.low_stock_threshold ?? 0,
+            isLowStock: Number(branchStock?.stock_quantity ?? 0) <= Number(branchStock?.low_stock_threshold ?? 0),
+            label: ''
+        };
+    }
+    
+    // Total stock across all branches (for Pusat)
+    const totalQty = product.branch_stocks?.reduce((sum, stock) => sum + (stock.stock_quantity ?? 0), 0) ?? 0;
+    const hasLowStockBranch = product.branch_stocks?.some(s => Number(s.stock_quantity ?? 0) <= Number(s.low_stock_threshold ?? 0));
+    
+    return {
+        quantity: totalQty,
+        threshold: '-',
+        isLowStock: hasLowStockBranch,
+        label: `${product.branch_stocks?.length ?? 0} Cabang`
+    };
+}
+
+function AdminProdukIndex({ auth, products, filters }) {
     const [search, setSearch] = useState(filters?.search || '');
     const [perPage, setPerPage] = useState(filters?.per_page || 10);
 
@@ -152,16 +169,16 @@ function AdminProdukIndex({ products, filters }) {
                                     {product.is_featured && (
                                         <StatusBadge label="Unggulan" tone="sage" />
                                     )}
-                                    {isLowStock(product) && (
+                                    {getBranchStockInfo(product, auth.user).isLowStock && (
                                         <StatusBadge label="Stok Rendah" tone="orange" />
                                     )}
                                 </div>
                                 <div className="mt-4 rounded-2xl border border-[#E5E7EB] bg-[#F6F7F7] px-4 py-3">
                                     <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400">
-                                        Stok
+                                        Stok {getBranchStockInfo(product, auth.user).label && `(${getBranchStockInfo(product, auth.user).label})`}
                                     </p>
                                     <p className="mt-1 font-body-sm text-sm font-bold text-[#333333]">
-                                        {product.stock_quantity ?? 0} tersedia · Ambang {product.low_stock_threshold ?? 0}
+                                        {getBranchStockInfo(product, auth.user).quantity} tersedia · Ambang {getBranchStockInfo(product, auth.user).threshold}
                                     </p>
                                 </div>
                                 <div className="mt-5 flex flex-wrap gap-2">

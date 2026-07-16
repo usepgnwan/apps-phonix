@@ -8,14 +8,7 @@ import EmptyState from '@/Components/Admin/EmptyState';
 import MetricCard from '@/Components/Admin/MetricCard';
 import AdminLayout from '@/Layouts/AdminLayout';
 import Pagination from '@/Components/Admin/Pagination';
-
-function formatDateTime(value) {
-    return value ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '-';
-}
-
-function formatNumber(value) {
-    return new Intl.NumberFormat('id-ID').format(Number(value ?? 0));
-}
+import { formatNumber, formatDateTime } from '@/utils/format';
 
 function serviceName(examination) {
     return examination.service_type ?? examination.booking?.service?.name ?? examination.booking?.booking_number ?? '-';

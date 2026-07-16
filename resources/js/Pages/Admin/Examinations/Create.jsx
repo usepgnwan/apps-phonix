@@ -4,45 +4,10 @@ import { Plus, Trash2 } from 'lucide-react';
 import AdminCard from '@/Components/Admin/AdminCard';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { FieldError, TextField, SelectField, TextAreaField } from '@/Components/Admin/FormFields';
 
 function bookingLabel(booking) {
     return [booking.booking_number, booking.customer_profile?.name, booking.service?.name].filter(Boolean).join(' / ') || `Booking #${booking.id}`;
-}
-
-function FieldError({ message }) {
-    return message ? <p className="mt-1 font-body-sm text-xs text-red-700">{message}</p> : null;
-}
-
-function SelectField({ children, error, label, name, onChange, value }) {
-    return (
-        <label className="block">
-            <span className="font-label-sm text-xs font-bold uppercase tracking-[0.12em] text-gray-500">{label}</span>
-            <select className="mt-2 block w-full rounded-2xl border-[#E5E7EB] font-body-sm text-sm text-[#333333] shadow-sm focus:border-[#1E4D3A] focus:ring-[#1E4D3A]" name={name} onChange={onChange} value={value ?? ''}>
-                {children}
-            </select>
-            <FieldError message={error} />
-        </label>
-    );
-}
-
-function TextAreaField({ error, label, name, onChange, value }) {
-    return (
-        <label className="block">
-            <span className="font-label-sm text-xs font-bold uppercase tracking-[0.12em] text-gray-500">{label}</span>
-            <textarea className="mt-2 block w-full rounded-2xl border-[#E5E7EB] font-body-sm text-sm text-[#333333] shadow-sm focus:border-[#1E4D3A] focus:ring-[#1E4D3A]" name={name} onChange={onChange} rows="4" value={value ?? ''} />
-            <FieldError message={error} />
-        </label>
-    );
-}
-
-function TextField({ error, label, name, onChange, value }) {
-    return (
-        <label className="block">
-            <span className="font-label-sm text-xs font-bold uppercase tracking-[0.12em] text-gray-500">{label}</span>
-            <input className="mt-2 block w-full rounded-2xl border-[#E5E7EB] font-body-sm text-sm text-[#333333] shadow-sm focus:border-[#1E4D3A] focus:ring-[#1E4D3A]" name={name} onChange={onChange} type="text" value={value ?? ''} />
-            <FieldError message={error} />
-        </label>
-    );
 }
 
 function FileField({ error, fileName, label, name, onChange }) {

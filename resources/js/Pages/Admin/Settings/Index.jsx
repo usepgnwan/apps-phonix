@@ -6,10 +6,7 @@ import 'react-quill/dist/quill.snow.css';
 import AdminCard from '@/Components/Admin/AdminCard';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
 import AdminLayout from '@/Layouts/AdminLayout';
-
-function FieldError({ message }) {
-    return message ? <p className="mt-1 font-body-sm text-xs text-red-700">{message}</p> : null;
-}
+import { FieldError } from '@/Components/Admin/FormFields';
 
 const defaultOrderTemplate = `
 <p class="ql-align-center"><strong>Form Pembelian Phoenix Herbal</strong></p>

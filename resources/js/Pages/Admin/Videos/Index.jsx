@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { Plus, Search } from 'lucide-react';
 import { Switch } from '@headlessui/react';
 import { useState } from 'react';
@@ -7,9 +7,10 @@ import AdminDeleteButton from '@/Components/Admin/AdminDeleteButton';
 import AdminCard from '@/Components/Admin/AdminCard';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
 import EmptyState from '@/Components/Admin/EmptyState';
-import StatusBadge from '@/Components/Admin/StatusBadge';
+import Modal from '@/Components/Modal';
 import AdminLayout from '@/Layouts/AdminLayout';
 import Pagination from '@/Components/Admin/Pagination';
+import { FieldError, TextField } from '@/Components/Admin/FormFields';
 
 function formatDate(value) {
     if (!value) {
@@ -23,17 +24,78 @@ function formatDate(value) {
     }).format(new Date(value));
 }
 
+const emptyForm = {
+    title: '',
+    video_link: '',
+    is_pinned: false,
+};
+
+function CheckboxField({ checked, error, label, description, onChange }) {
+    return (
+        <label className="flex items-start gap-3 rounded-2xl border border-[#E5E7EB] bg-[#F6F7F7] px-4 py-3">
+            <input
+                checked={checked}
+                className="mt-1 rounded border-[#E5E7EB] text-[#1E4D3A] focus:ring-[#1E4D3A]"
+                onChange={onChange}
+                type="checkbox"
+            />
+            <span>
+                <span className="block font-body-sm text-sm font-bold text-[#333333]">{label}</span>
+                {description ? (
+                    <span className="block font-body-sm text-xs text-gray-500">{description}</span>
+                ) : null}
+                <FieldError message={error} />
+            </span>
+        </label>
+    );
+}
+
+function VideoFormFields({ data, setData, errors }) {
+    return (
+        <div className="space-y-4">
+            <TextField
+                error={errors.title}
+                label="Judul Video"
+                name="title"
+                onChange={(event) => setData('title', event.target.value)}
+                value={data.title}
+            />
+            <TextField
+                error={errors.video_link}
+                label="Link Video (YouTube URL atau MP4 URL)"
+                name="video_link"
+                onChange={(event) => setData('video_link', event.target.value)}
+                placeholder="Contoh: https://www.youtube.com/watch?v=... atau https://domain.com/video.mp4"
+                value={data.video_link}
+            />
+            <CheckboxField
+                checked={Boolean(data.is_pinned)}
+                description="Sematkan video ini agar tampil di halaman utama. Hanya satu video yang bisa disematkan."
+                error={errors.is_pinned}
+                label="Sematkan (Pin)"
+                onChange={(event) => setData('is_pinned', event.target.checked)}
+            />
+        </div>
+    );
+}
+
 function AdminVideoIndex({ videos, filters }) {
-    // pagination response has 'data' key
     const videoData = videos.data || videos;
     const [search, setSearch] = useState(filters?.search || '');
     const [perPage, setPerPage] = useState(filters?.per_page || 10);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [selectedVideo, setSelectedVideo] = useState(null);
+
+    const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
+        ...emptyForm,
+    });
 
     const handleFilterChange = (newSearch, newPerPage) => {
         router.get(route('admin.videos.index'), { search: newSearch, per_page: newPerPage }, {
             preserveState: true,
             replace: true,
-            preserveScroll: true
+            preserveScroll: true,
         });
     };
 
@@ -47,6 +109,66 @@ function AdminVideoIndex({ videos, filters }) {
         handleFilterChange(search, e.target.value);
     };
 
+    const openCreateModal = () => {
+        clearErrors();
+        reset();
+        setData({ ...emptyForm });
+        setSelectedVideo(null);
+        setIsCreateModalOpen(true);
+    };
+
+    const openEditModal = (video) => {
+        clearErrors();
+        setSelectedVideo(video);
+        setData({
+            title: video.title ?? '',
+            video_link: video.video_link ?? '',
+            is_pinned: Boolean(video.is_pinned),
+        });
+        setIsEditModalOpen(true);
+    };
+
+    const closeCreateModal = () => {
+        setIsCreateModalOpen(false);
+        clearErrors();
+        reset();
+    };
+
+    const closeEditModal = () => {
+        setIsEditModalOpen(false);
+        setSelectedVideo(null);
+        clearErrors();
+        reset();
+    };
+
+    const handleCreate = (e) => {
+        e.preventDefault();
+        post(route('admin.videos.store'), {
+            preserveScroll: true,
+            onSuccess: () => {
+                setIsCreateModalOpen(false);
+                reset();
+                setData({ ...emptyForm });
+            },
+        });
+    };
+
+    const handleEdit = (e) => {
+        e.preventDefault();
+        if (!selectedVideo) {
+            return;
+        }
+
+        put(route('admin.videos.update', selectedVideo.id), {
+            preserveScroll: true,
+            onSuccess: () => {
+                setIsEditModalOpen(false);
+                setSelectedVideo(null);
+                reset();
+            },
+        });
+    };
+
     return (
         <>
             <Head title="Admin Video" />
@@ -54,13 +176,14 @@ function AdminVideoIndex({ videos, filters }) {
             <div className="space-y-8">
                 <AdminPageHeader
                     action={(
-                        <Link
+                        <button
                             className="inline-flex items-center gap-2 rounded-full bg-[#1E4D3A] px-4 py-2 font-body-sm text-sm font-bold text-white transition hover:bg-[#013625]"
-                            href={route('admin.videos.create')}
+                            onClick={openCreateModal}
+                            type="button"
                         >
                             <Plus aria-hidden="true" className="h-4 w-4" />
                             Tambah Video
-                        </Link>
+                        </button>
                     )}
                     description="Kelola video Bukti Nyata Terapi Kami."
                     eyebrow="Konten / Video"
@@ -164,12 +287,13 @@ function AdminVideoIndex({ videos, filters }) {
                                             </td>
                                             <td className="whitespace-nowrap px-4 py-4">
                                                 <div className="flex items-center gap-2">
-                                                    <Link
+                                                    <button
                                                         className="rounded-full border border-[#A8C5B3] px-3 py-1.5 font-body-sm text-xs font-bold text-[#1E4D3A] transition hover:bg-[#A8C5B3]/20"
-                                                        href={route('admin.videos.edit', video.id)}
+                                                        onClick={() => openEditModal(video)}
+                                                        type="button"
                                                     >
                                                         Edit
-                                                    </Link>
+                                                    </button>
                                                     <AdminDeleteButton
                                                         className="rounded-full border border-red-200 px-3 py-1.5 font-body-sm text-xs font-bold text-red-700 transition hover:bg-red-50"
                                                         description="Video ini akan dihapus permanen."
@@ -195,6 +319,58 @@ function AdminVideoIndex({ videos, filters }) {
                     )}
                 </AdminCard>
             </div>
+
+            <Modal show={isCreateModalOpen} onClose={closeCreateModal} maxWidth="md">
+                <form onSubmit={handleCreate} className="p-6">
+                    <h2 className="mb-1 text-lg font-bold text-[#1E4D3A]">Tambah Video</h2>
+                    <p className="mb-5 text-sm text-gray-500">
+                        Tambahkan video baru untuk ditampilkan di halaman utama.
+                    </p>
+                    <VideoFormFields data={data} setData={setData} errors={errors} />
+                    <div className="mt-6 flex justify-end gap-3 border-t border-gray-100 pt-4">
+                        <button
+                            type="button"
+                            onClick={closeCreateModal}
+                            className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+                        >
+                            Batal
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={processing}
+                            className="rounded-xl bg-[#1E4D3A] px-4 py-2 text-sm font-bold text-white hover:bg-[#163B2C] disabled:opacity-50"
+                        >
+                            {processing ? 'Menyimpan...' : 'Simpan Video'}
+                        </button>
+                    </div>
+                </form>
+            </Modal>
+
+            <Modal show={isEditModalOpen} onClose={closeEditModal} maxWidth="md">
+                <form onSubmit={handleEdit} className="p-6">
+                    <h2 className="mb-1 text-lg font-bold text-[#1E4D3A]">Edit Video</h2>
+                    <p className="mb-5 text-sm text-gray-500">
+                        Perbarui video{selectedVideo?.title ? `: ${selectedVideo.title}` : ''}.
+                    </p>
+                    <VideoFormFields data={data} setData={setData} errors={errors} />
+                    <div className="mt-6 flex justify-end gap-3 border-t border-gray-100 pt-4">
+                        <button
+                            type="button"
+                            onClick={closeEditModal}
+                            className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+                        >
+                            Batal
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={processing}
+                            className="rounded-xl bg-[#1E4D3A] px-4 py-2 text-sm font-bold text-white hover:bg-[#163B2C] disabled:opacity-50"
+                        >
+                            {processing ? 'Menyimpan...' : 'Simpan Perubahan'}
+                        </button>
+                    </div>
+                </form>
+            </Modal>
         </>
     );
 }
