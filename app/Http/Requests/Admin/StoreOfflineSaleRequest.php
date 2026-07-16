@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
-use App\Models\Product;
+use App\Models\BranchProductStock;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -16,9 +16,20 @@ class StoreOfflineSaleRequest extends FormRequest
         return $user !== null && $user->role === 'admin' && $user->is_active;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $user = $this->user();
+        $forcedBranchId = $user?->forcedBranchId();
+
+        if ($forcedBranchId !== null) {
+            $this->merge(['branch_id' => $forcedBranchId]);
+        }
+    }
+
     public function rules(): array
     {
         return [
+            'branch_id' => ['nullable', 'exists:branches,id'],
             'customer_profile_id' => ['nullable', 'exists:customer_profiles,id'],
             'lead_id' => ['nullable', 'exists:leads,id'],
             'field_staff_id' => [
@@ -50,6 +61,13 @@ class StoreOfflineSaleRequest extends FormRequest
     {
         return [
             function (Validator $validator): void {
+                $user = $this->user();
+                $branchId = $this->input('branch_id');
+
+                if ($user && $branchId !== null && ! $user->canAccessBranch((int) $branchId)) {
+                    $validator->errors()->add('branch_id', 'Anda hanya dapat membuat penjualan offline untuk cabang Anda sendiri.');
+                }
+
                 $items = $this->input('items', []);
 
                 if (! is_array($items)) {
@@ -62,18 +80,23 @@ class StoreOfflineSaleRequest extends FormRequest
                     }
 
                     if (empty($item['product_id']) && empty($item['service_id'])) {
-                        $validator->errors()->add("items.{$index}.product_id", "Item harus memiliki produk atau layanan.");
+                        $validator->errors()->add("items.{$index}.product_id", 'Item harus memiliki produk atau layanan.');
                         continue;
                     }
 
                     if (! empty($item['product_id'])) {
-                        $product = Product::query()
-                            ->whereKey($item['product_id'])
-                            ->where('is_active', true)
+                        if (empty($branchId)) {
+                            $validator->errors()->add('branch_id', 'Cabang wajib dipilih untuk transaksi dengan produk.');
+                            continue;
+                        }
+
+                        $branchStock = BranchProductStock::query()
+                            ->where('branch_id', $branchId)
+                            ->where('product_id', $item['product_id'])
                             ->first();
 
-                        if ($product !== null && (int) $item['quantity'] > $product->stock_quantity) {
-                            $validator->errors()->add("items.{$index}.quantity", "Stok {$product->name} tidak mencukupi.");
+                        if ($branchStock === null || (int) $item['quantity'] > $branchStock->stock_quantity) {
+                            $validator->errors()->add("items.{$index}.quantity", 'Stok di cabang ini tidak mencukupi.');
                         }
                     }
                 }

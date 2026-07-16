@@ -5,34 +5,18 @@ import AdminCard from '@/Components/Admin/AdminCard';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
 import StatusBadge from '@/Components/Admin/StatusBadge';
 import AdminLayout from '@/Layouts/AdminLayout';
-
-function formatCurrency(value) {
-    return new Intl.NumberFormat('id-ID', {
-        currency: 'IDR',
-        maximumFractionDigits: 0,
-        style: 'currency',
-    }).format(Number(value ?? 0));
-}
+import { formatCurrency } from '@/utils/format';
+import { DetailRow } from '@/Components/Admin/FormFields';
 
 function productKategori(product) {
     return product.product_category ?? product.productKategori;
 }
 
 function isLowStock(product) {
-    return Number(product.stock_quantity ?? 0) <= Number(product.low_stock_threshold ?? 0);
-}
-
-function DetailRow({ children, label }) {
-    return (
-        <div className="rounded-2xl border border-[#E5E7EB] bg-[#F6F7F7] px-4 py-3">
-            <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400">
-                {label}
-            </p>
-            <div className="mt-1 font-body-sm text-sm font-semibold text-[#333333]">
-                {children ?? '-'}
-            </div>
-        </div>
-    );
+    const totalStock = product.branch_stocks ? product.branch_stocks.reduce((acc, bs) => acc + (bs.stock_quantity || 0), 0) : (Number(product.stock_quantity ?? 0));
+    const totalThreshold = product.branch_stocks ? product.branch_stocks.reduce((acc, bs) => acc + (bs.low_stock_threshold || 0), 0) : (Number(product.low_stock_threshold ?? 0));
+    
+    return totalStock <= totalThreshold;
 }
 
 function AdminProdukShow({ product }) {
@@ -78,8 +62,9 @@ function AdminProdukShow({ product }) {
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                             <DetailRow label="Kategori">{category?.name ?? '-'}</DetailRow>
                             <DetailRow label="Harga">{formatCurrency(product.price)}</DetailRow>
-                            <DetailRow label="Stok">{product.stock_quantity ?? 0}</DetailRow>
-                            <DetailRow label="Ambang Stok Rendah">{product.low_stock_threshold ?? 0}</DetailRow>
+                            <DetailRow label="Total Stok">
+                                {product.branch_stocks ? product.branch_stocks.reduce((acc, bs) => acc + (bs.stock_quantity || 0), 0) : (product.stock_quantity ?? 0)}
+                            </DetailRow>
                             <DetailRow label="Status">
                                 <StatusBadge
                                     label={product.is_active ? 'Aktif' : 'Nonaktif'}
@@ -99,6 +84,25 @@ function AdminProdukShow({ product }) {
                                 </DetailRow>
                             )}
                             <DetailRow label="Path Gambar">{product.image_path || '-'}</DetailRow>
+                        </div>
+                    </AdminCard>
+                    <AdminCard className="p-5">
+                        <div className="space-y-3">
+                            <h3 className="font-bold text-[#333333] border-b border-[#E5E7EB] pb-2 mb-2">Stok Per Cabang</h3>
+                            {product.branch_stocks?.length > 0 ? (
+                                <div className="space-y-2">
+                                    {product.branch_stocks.map(bs => (
+                                        <div key={bs.id} className="flex justify-between items-center bg-gray-50 p-2 rounded">
+                                            <span className="font-medium text-sm text-gray-700">{bs.branch?.name}</span>
+                                            <span className={`text-sm font-bold ${bs.stock_quantity <= bs.low_stock_threshold ? 'text-red-600' : 'text-gray-900'}`}>
+                                                {bs.stock_quantity} <span className="font-normal text-xs text-gray-500">(Batas: {bs.low_stock_threshold})</span>
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-gray-500">Belum ada data stok per cabang.</p>
+                            )}
                         </div>
                     </AdminCard>
                     <AdminCard className="p-5">

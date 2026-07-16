@@ -9,36 +9,7 @@ import MetricCard from '@/Components/Admin/MetricCard';
 import StatusBadge from '@/Components/Admin/StatusBadge';
 import AdminLayout from '@/Layouts/AdminLayout';
 import Pagination from '@/Components/Admin/Pagination';
-
-function formatNumber(value) {
-    return new Intl.NumberFormat('id-ID').format(Number(value ?? 0));
-}
-
-function formatCurrency(value) {
-    return new Intl.NumberFormat('id-ID', {
-        currency: 'IDR',
-        maximumFractionDigits: 0,
-        style: 'currency',
-    }).format(Number(value ?? 0));
-}
-
-function formatDateTime(value) {
-    if (!value) {
-        return '-';
-    }
-
-    return new Intl.DateTimeFormat('id-ID', {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-    }).format(new Date(value));
-}
-
-function readableLabel(value) {
-    return String(value ?? 'Tidak diketahui')
-        .replaceAll('_', ' ')
-        .replaceAll('-', ' ')
-        .replace(/\b\w/g, (char) => char.toUpperCase());
-}
+import { formatNumber, formatCurrency, formatDateTime, readableLabel } from '@/utils/format';
 
 function customerName(booking) {
     return booking.customer_profile?.name ?? booking.name ?? booking.user?.name ?? 'Customer';
@@ -129,7 +100,7 @@ function AdminBookingIndex({ bookings, metrics, filters }) {
                             <table className="min-w-full divide-y divide-[#E5E7EB]">
                                 <thead className="bg-[#F6F7F7]">
                                     <tr>
-                                        {['Nomor Booking', 'Customer', 'Layanan', 'Tipe Kunjungan', 'Jadwal', 'Status', 'Layanan Harga', 'Aksi'].map((heading) => (
+                                        {['Nomor Booking', 'Cabang', 'Customer', 'Layanan', 'Tipe Kunjungan', 'Jadwal', 'Status', 'Layanan Harga', 'Aksi'].map((heading) => (
                                             <th
                                                 className="px-4 py-3 text-left font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-gray-500"
                                                 key={heading}
@@ -145,6 +116,15 @@ function AdminBookingIndex({ bookings, metrics, filters }) {
                                         <tr className="transition hover:bg-[#A8C5B3]/10" key={booking.id}>
                                             <td className="whitespace-nowrap px-4 py-4 font-body-sm text-sm font-bold text-[#333333]">
                                                 {booking.booking_number ?? `Booking #${booking.id}`}
+                                            </td>
+                                            <td className="whitespace-nowrap px-4 py-4">
+                                                {booking.branch ? (
+                                                    <span className="inline-flex rounded-full bg-[#1E4D3A]/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[#1E4D3A]">
+                                                        {booking.branch.name}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-gray-400 text-xs">-</span>
+                                                )}
                                             </td>
                                             <td className="whitespace-nowrap px-4 py-4 font-body-sm text-sm text-gray-600">
                                                 {customerName(booking)}

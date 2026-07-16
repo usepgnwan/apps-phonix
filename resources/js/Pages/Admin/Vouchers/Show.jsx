@@ -6,29 +6,8 @@ import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
 import MetricCard from '@/Components/Admin/MetricCard';
 import StatusBadge from '@/Components/Admin/StatusBadge';
 import AdminLayout from '@/Layouts/AdminLayout';
-
-function formatNumber(value) {
-    return new Intl.NumberFormat('id-ID').format(Number(value ?? 0));
-}
-
-function formatCurrency(value) {
-    return new Intl.NumberFormat('id-ID', {
-        currency: 'IDR',
-        maximumFractionDigits: 0,
-        style: 'currency',
-    }).format(Number(value ?? 0));
-}
-
-function formatDateTime(value) {
-    if (!value) {
-        return '-';
-    }
-
-    return new Intl.DateTimeFormat('id-ID', {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-    }).format(new Date(value));
-}
+import { formatNumber, formatCurrency, formatDateTime } from '@/utils/format';
+import { DetailRow } from '@/Components/Admin/FormFields';
 
 function discountDisplay(voucher) {
     if (voucher.discount_type === 'percentage') {
@@ -36,19 +15,6 @@ function discountDisplay(voucher) {
     }
 
     return formatCurrency(voucher.discount_value);
-}
-
-function DetailRow({ children, label }) {
-    return (
-        <div className="rounded-2xl border border-[#E5E7EB] bg-[#F6F7F7] px-4 py-3">
-            <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400">
-                {label}
-            </p>
-            <div className="mt-1 font-body-sm text-sm font-semibold text-[#333333]">
-                {children ?? '-'}
-            </div>
-        </div>
-    );
 }
 
 function AdminVouchersShow({ voucher }) {

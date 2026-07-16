@@ -1,4 +1,4 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link, usePage, router } from '@inertiajs/react';
 import { ImageIcon, Leaf } from 'lucide-react';
 import { forwardRef, useEffect } from 'react';
 
@@ -47,10 +47,35 @@ export function serviceVisitOptions(service) {
     return [];
 }
 
+export function changeSelectedBranch(newBranchId, { cartCount = 0, currentBranchId = null } = {}) {
+    if (!newBranchId) {
+        return false;
+    }
+
+    if (String(newBranchId) === String(currentBranchId ?? '')) {
+        return false;
+    }
+
+    if (cartCount > 0) {
+        const confirmed = window.confirm(
+            'Anda memiliki barang di keranjang. Mengubah cabang akan mengosongkan keranjang Anda. Lanjutkan?',
+        );
+
+        if (!confirmed) {
+            return false;
+        }
+    }
+
+    router.post(route('branches.set'), { branch_id: newBranchId }, { preserveScroll: true });
+
+    return true;
+}
+
 export function PublicShell({ children, fullWidth = false }) {
-    const { auth, cartSummary, flash } = usePage().props;
+    const { auth, cartSummary, flash, branches, selectedBranchId } = usePage().props;
     const cartCount = Number(cartSummary?.count ?? 0);
     const isAuthenticated = Boolean(auth?.user);
+    const selectedBranch = (branches ?? []).find((branch) => String(branch.id) === String(selectedBranchId ?? ''));
     const accountHref = (() => {
         if (!isAuthenticated) {
             return route('login');
@@ -75,6 +100,18 @@ export function PublicShell({ children, fullWidth = false }) {
             window.open(flash.whatsappUrl, '_blank', 'noopener,noreferrer');
         }
     }, [flash?.whatsappUrl]);
+
+    function handleBranchChange(e) {
+        const newBranchId = e.target.value;
+        const changed = changeSelectedBranch(newBranchId, {
+            cartCount,
+            currentBranchId: selectedBranchId,
+        });
+
+        if (!changed) {
+            e.target.value = selectedBranchId || '';
+        }
+    }
 
     return (
         <div className="min-h-screen bg-surface font-body-md text-on-surface selection:bg-primary-fixed selection:text-on-primary-fixed">
@@ -102,8 +139,38 @@ export function PublicShell({ children, fullWidth = false }) {
                         </Link>
                     </nav>
 
-                    <div className="flex items-center gap-2 sm:gap-3">
-                        <Link href={route('cart.index')} className="relative flex h-11 w-11 items-center justify-center rounded-full border border-[#1E4D3A]/30 bg-white text-[#1E4D3A] transition-all duration-150 hover:border-[#1E4D3A] hover:bg-[#A8C5B3]/20 active:scale-95" aria-label="Keranjang belanja" data-cart-link>
+                    <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
+                        {branches && branches.length > 0 && (
+                            <div className="relative h-10 w-[7.25rem] shrink-0 sm:w-[10.5rem]">
+                                <label className="sr-only" htmlFor="header-branch-select">
+                                    Cabang aktif
+                                </label>
+                                <select
+                                    id="header-branch-select"
+                                    value={selectedBranchId || ''}
+                                    onChange={handleBranchChange}
+                                    title={selectedBranch?.name ? `Cabang: ${selectedBranch.name}` : 'Pilih cabang'}
+                                    className="absolute inset-0 z-0 h-10 w-full cursor-pointer appearance-none truncate rounded-full border border-[#1E4D3A]/25 bg-white py-0 pl-8 pr-7 text-[11px] font-semibold leading-10 text-[#1E4D3A] shadow-sm outline-none transition hover:border-[#1E4D3A] focus:border-[#1E4D3A] focus:outline-none focus:ring-0 sm:pl-9 sm:pr-8 sm:text-xs [background-image:none] [-webkit-appearance:none] [-moz-appearance:none]"
+                                    aria-label="Cabang aktif"
+                                >
+                                    <option value="" disabled>
+                                        Cabang
+                                    </option>
+                                    {branches.map((b) => (
+                                        <option key={b.id} value={b.id}>
+                                            {b.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                <span className="material-symbols-outlined pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-[15px] leading-none text-[#1E4D3A] sm:left-3">
+                                    location_on
+                                </span>
+                                <span className="material-symbols-outlined pointer-events-none absolute right-1 top-1/2 z-10 -translate-y-1/2 text-[18px] leading-none text-[#1E4D3A] sm:right-1.5">
+                                    arrow_drop_down
+                                </span>
+                            </div>
+                        )}
+                        <Link href={route('cart.index')} className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#1E4D3A]/30 bg-white text-[#1E4D3A] transition-all duration-150 hover:border-[#1E4D3A] hover:bg-[#A8C5B3]/20 active:scale-95 sm:h-11 sm:w-11" aria-label="Keranjang belanja" data-cart-link>
                             <span className="material-symbols-outlined text-xl" data-cart-icon>shopping_bag</span>
                             {cartCount > 0 && (
                                 <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-tertiary px-1.5 font-body-sm text-[10px] font-black leading-none text-white shadow-sm shadow-[#1E4D3A]/20" data-cart-count>

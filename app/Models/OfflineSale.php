@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['sale_number', 'customer_profile_id', 'voucher_id', 'lead_id', 'field_staff_id', 'event_id', 'payment_method_id', 'source', 'customer_name', 'customer_whatsapp_number', 'subtotal', 'voucher_discount_amount', 'total', 'notes', 'sold_at'])]
+#[Fillable(['sale_number', 'branch_id', 'customer_profile_id', 'voucher_id', 'lead_id', 'field_staff_id', 'event_id', 'payment_method_id', 'source', 'customer_name', 'customer_whatsapp_number', 'subtotal', 'voucher_discount_amount', 'total', 'notes', 'sold_at'])]
 class OfflineSale extends Model
 {
     protected function casts(): array
@@ -18,6 +18,11 @@ class OfflineSale extends Model
             'total' => 'decimal:2',
             'sold_at' => 'datetime',
         ];
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function customerProfile(): BelongsTo

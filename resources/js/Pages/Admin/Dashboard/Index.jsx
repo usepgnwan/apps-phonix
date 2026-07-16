@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     ArrowRight,
     CalendarCheck,
@@ -12,6 +12,7 @@ import {
     UserRound,
     UsersRound,
 } from 'lucide-react';
+import { formatNumber, formatCurrency } from '@/utils/format';
 
 import AdminCard from '@/Components/Admin/AdminCard';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
@@ -19,6 +20,7 @@ import EmptyState from '@/Components/Admin/EmptyState';
 import MetricCard from '@/Components/Admin/MetricCard';
 import StatusBadge from '@/Components/Admin/StatusBadge';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { adminBranchName, isBranchAdmin, isCentralAdmin } from '@/utils/adminScope';
 
 const mainMetrics = [
     ['Produk & Layanan', 'productsAndServices', 'Produk trend data', Package, 'sage', 'bar'],
@@ -33,18 +35,6 @@ const secondaryMetrics = [
     ['Penjualan offline', 'offlineSales', Store, 'admin.offline-sales.index'],
     ['Pemeriksaan internal', 'examinations', ClipboardPlus, 'admin.examinations.index'],
 ];
-
-function formatNumber(value) {
-    return new Intl.NumberFormat('id-ID').format(Number(value ?? 0));
-}
-
-function formatCurrency(value) {
-    return new Intl.NumberFormat('id-ID', {
-        currency: 'IDR',
-        maximumFractionDigits: 0,
-        style: 'currency',
-    }).format(Number(value ?? 0));
-}
 
 function formatDate(value) {
     if (!value) {
@@ -246,22 +236,22 @@ function LowStockProducts({ products = [] }) {
                 {products.length === 0 ? (
                     <EmptyState title="Stok produk aman." description="Produk stok rendah akan muncul saat stok melewati ambang." />
                 ) : (
-                    products.map((product) => (
+                    products.map((stock) => (
                         <div
                             className="rounded-2xl border border-[#F08A2B]/20 bg-[#F08A2B]/10 px-4 py-3"
-                            key={product.id}
+                            key={stock.id}
                         >
                             <div className="flex items-start justify-between gap-4">
                                 <div className="min-w-0">
                                     <p className="truncate font-body-sm text-sm font-bold text-[#333333]">
-                                        {product.name ?? `Produk #${product.id}`}
+                                        {stock.product?.name ?? `Produk #${stock.product_id}`}
                                     </p>
                                     <p className="mt-1 font-body-sm text-xs text-[#B57A2E]">
-                                        Ambang: {formatNumber(product.low_stock_threshold)}
+                                        {stock.branch?.name} · Ambang: {formatNumber(stock.low_stock_threshold)}
                                     </p>
                                 </div>
                                 <StatusBadge
-                                    label={`Stok ${formatNumber(product.stock_quantity)}`}
+                                    label={`Stok ${formatNumber(stock.stock_quantity)}`}
                                     tone="orange"
                                 />
                             </div>
@@ -273,9 +263,76 @@ function LowStockProducts({ products = [] }) {
     );
 }
 
-function AdminDashboard({ summary = {}, recent = {}, lowStockProducts = [], trends = {}, filters = {} }) {
-    const handleDateRangeChange = (e, type) => {
-        const newFilters = { ...filters, [type]: e.target.value };
+function DashboardFilter({ filters, branches, handleFilterChange, showBranchFilter, lockedBranchName }) {
+    const hasBranchesOption = showBranchFilter && branches && branches.length > 0;
+
+    return (
+        <AdminCard className="p-5">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                    <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">Filter Data</p>
+                    <h2 className="mt-1 font-body-lg text-lg font-extrabold text-[#333333]">Ringkasan Operasional</h2>
+                    {lockedBranchName && (
+                        <p className="mt-1 font-body-sm text-xs text-gray-500">
+                            Data dibatasi ke cabang: <span className="font-bold text-[#1E4D3A]">{lockedBranchName}</span>
+                        </p>
+                    )}
+                </div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    {hasBranchesOption && (
+                        <div className="flex items-center gap-1.5 rounded-xl border border-[#E5E7EB] bg-white px-3 py-1.5 shadow-sm">
+                            <MapPin aria-hidden="true" className="h-4 w-4 text-[#333333]" />
+                            <select
+                                className="border-none bg-transparent p-0 font-body-sm text-sm font-medium text-[#333333] focus:ring-0 cursor-pointer"
+                                value={filters.branch_id || ''}
+                                onChange={(e) => handleFilterChange(e.target.value, 'branch_id')}
+                            >
+                                <option value="">Semua Cabang</option>
+                                {branches.map((b) => (
+                                    <option key={b.id} value={b.id}>{b.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+                    {!showBranchFilter && lockedBranchName && (
+                        <div className="inline-flex items-center gap-1.5 rounded-xl border border-[#E5E7EB] bg-[#F6F7F7] px-3 py-1.5 font-body-sm text-sm font-bold text-[#1E4D3A]">
+                            <MapPin aria-hidden="true" className="h-4 w-4" />
+                            {lockedBranchName}
+                        </div>
+                    )}
+                    <div className="flex items-center gap-1.5 rounded-xl border border-[#E5E7EB] bg-white px-3 py-1.5 shadow-sm focus-within:ring-2 focus-within:ring-[#1E4D3A]">
+                        <CalendarCheck aria-hidden="true" className="h-4 w-4 text-[#333333]" />
+                        <input
+                            type="date"
+                            value={filters.start_date || ''}
+                            onChange={(e) => handleFilterChange(e.target.value, 'start_date')}
+                            className="border-none bg-transparent p-0 font-body-sm text-sm text-[#333333] focus:ring-0 cursor-pointer"
+                        />
+                        <span className="text-gray-400">-</span>
+                        <input
+                            type="date"
+                            value={filters.end_date || ''}
+                            onChange={(e) => handleFilterChange(e.target.value, 'end_date')}
+                            className="border-none bg-transparent p-0 font-body-sm text-sm text-[#333333] focus:ring-0 cursor-pointer"
+                        />
+                    </div>
+                </div>
+            </div>
+        </AdminCard>
+    );
+}
+
+function AdminDashboard({ summary = {}, recent = {}, lowStockProducts = [], trends = {}, filters = {}, branches = [] }) {
+    const { auth } = usePage().props;
+    const user = auth?.user;
+    const showBranchFilter = isCentralAdmin(user) && branches && branches.length > 0;
+    const lockedBranchName = isBranchAdmin(user) ? (adminBranchName(user, branches) || 'Cabang Aktif') : null;
+
+    const handleFilterChange = (value, type) => {
+        const newFilters = { ...filters, [type]: value };
+        if (!showBranchFilter) {
+            delete newFilters.branch_id;
+        }
         router.get(
             route('admin.dashboard.index'),
             newFilters,
@@ -289,34 +346,17 @@ function AdminDashboard({ summary = {}, recent = {}, lowStockProducts = [], tren
 
             <div className="space-y-8">
                 <AdminPageHeader
-                    action={
-                        <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-1.5 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 shadow-sm">
-                                <MapPin aria-hidden="true" className="h-4 w-4 text-[#333333]" />
-                                <span className="font-body-sm text-sm font-medium text-[#333333]">Semua Cabang</span>
-                                <ChevronDown aria-hidden="true" className="h-4 w-4 text-gray-400" />
-                            </div>
-                            <div className="flex items-center gap-1.5 rounded-lg border border-[#E5E7EB] bg-white px-3 py-1.5 shadow-sm focus-within:ring-2 focus-within:ring-[#1E4D3A]">
-                                <CalendarCheck aria-hidden="true" className="h-4 w-4 text-[#333333]" />
-                                <input 
-                                    type="date" 
-                                    value={filters.start_date || ''} 
-                                    onChange={(e) => handleDateRangeChange(e, 'start_date')}
-                                    className="border-none bg-transparent p-0 font-body-sm text-sm text-[#333333] focus:ring-0" 
-                                />
-                                <span className="text-gray-400">-</span>
-                                <input 
-                                    type="date" 
-                                    value={filters.end_date || ''} 
-                                    onChange={(e) => handleDateRangeChange(e, 'end_date')}
-                                    className="border-none bg-transparent p-0 font-body-sm text-sm text-[#333333] focus:ring-0" 
-                                />
-                            </div>
-                        </div>
-                    }
-                    description="Pantau ringkasan commerce, booking, lead, aktivitas lapangan, dan stok Phoenix."
-                    eyebrow="Panel Admin"
+                    // description="Pantau ringkasan commerce, booking, lead, aktivitas lapangan, dan stok Phoenix."
+                    // eyebrow="Panel Admin"
                     title="Dashboard"
+                />
+
+                <DashboardFilter
+                    filters={filters}
+                    branches={branches}
+                    handleFilterChange={handleFilterChange}
+                    showBranchFilter={showBranchFilter}
+                    lockedBranchName={lockedBranchName}
                 />
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">

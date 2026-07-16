@@ -286,6 +286,51 @@ Rekomendasi MVP:
 - Mulai dari Model 1 jika belum ada kebutuhan keamanan cabang yang ketat.
 - Naik ke Model 2 jika tiap cabang harus dibatasi akses datanya.
 
+Keputusan final:
+
+- Gunakan Model 2: ada admin pusat dan admin cabang scoped.
+- Admin pusat dapat melihat dan mengelola data semua cabang.
+- Admin cabang hanya dapat melihat dan mengelola data cabangnya sendiri.
+- Implementasi membutuhkan penanda scope admin, misalnya `admin_scope = all|branch` atau role/permission setara.
+- `users.branch_id` menjadi cabang default untuk admin cabang dan staff.
+- Query admin untuk data operasional harus disiapkan agar bisa difilter atau dibatasi berdasarkan cabang.
+
+## Keputusan Final Flow Cabang
+
+### Pemilihan Cabang Customer
+
+- Customer memilih cabang saat membuka detail produk atau detail layanan.
+- Untuk produk, stok yang ditampilkan mengikuti cabang yang dipilih.
+- Pilihan cabang harus terbawa ke cart, checkout, order, dan fulfillment agar validasi stok memakai cabang yang sama.
+- Untuk layanan, cabang yang dipilih harus terbawa ke booking.
+
+### Produk dan Layanan Pusat/Per Cabang
+
+- Produk tetap menjadi master global di `products`.
+- Stok produk per cabang disimpan di `branch_product_stocks`.
+- Produk dapat berlaku pusat/global, tetapi ketersediaan dan stok aktual tetap mengikuti cabang.
+- Layanan dapat berlaku pusat/global dan juga dapat dibatasi per cabang.
+- Jika layanan berbeda per cabang, gunakan tabel pivot seperti `branch_services` untuk availability layanan per cabang.
+- Hindari duplikasi master produk atau layanan per cabang kecuali ada kebutuhan data yang benar-benar berbeda.
+
+### Payment Method dan Voucher
+
+- Payment method belum masuk scope implementasi cabang tahap awal.
+- Voucher harus mendukung dua mode:
+  - berlaku pusat/global untuk semua cabang,
+  - berlaku hanya untuk cabang tertentu.
+- Rekomendasi struktur voucher cabang: field seperti `applies_to_all_branches` pada `vouchers` dan pivot seperti `branch_voucher` untuk daftar cabang yang diizinkan.
+
+### Nomor Transaksi Berbasis Cabang
+
+- Kode cabang harus masuk ke nomor transaksi agar asal cabang transaksi mudah diaudit.
+- `branch_id` tetap wajib disimpan di record transaksi; kode cabang di nomor transaksi hanya untuk readability dan audit manual.
+- Contoh format:
+  - `BDG-ORD-20260713-0001` untuk order online cabang Bandung,
+  - `JKT-OFF-20260713-0001` untuk offline sale cabang Jakarta,
+  - `PST-BKG-20260713-0001` untuk booking cabang pusat.
+- Format final dapat disesuaikan saat implementasi generator nomor transaksi.
+
 ## Tahapan Implementasi yang Disarankan
 
 ### Phase 1: Foundation Cabang
@@ -403,12 +448,20 @@ Rekomendasi:
 
 ## Pertanyaan Terbuka Sebelum Coding
 
-1. Apakah admin semua cabang boleh melihat semua data, atau perlu admin cabang yang terbatas?
-2. Customer memilih cabang saat browsing, saat checkout, atau admin yang menentukan cabang fulfillment?
-3. Apakah layanan berbeda per cabang, atau layanan global tetapi booking punya cabang?
-4. Apakah payment method berbeda per cabang?
-5. Apakah voucher berlaku global atau bisa dibatasi per cabang?
-6. Apakah cabang punya kode wajib untuk nomor transaksi, misalnya `BDG-ORD-...`?
+Sudah diputuskan:
+
+1. Admin memakai model scoped: admin pusat melihat semua cabang, admin cabang hanya melihat cabangnya.
+2. Customer memilih cabang saat membuka detail produk atau detail layanan.
+3. Produk dan layanan dapat berlaku pusat/global, tetapi stok dan availability dapat dibatasi per cabang.
+4. Payment method belum diimplementasikan untuk scope cabang tahap awal.
+5. Voucher dapat berlaku global/pusat atau dibatasi per cabang.
+6. Kode cabang wajib masuk ke nomor transaksi, misalnya `BDG-ORD-...`.
+
+Masih perlu dirinci saat implementasi:
+
+- Nama field final untuk scope admin, misalnya `admin_scope` atau pendekatan role/permission lain.
+- Struktur final untuk layanan per cabang, terutama apakah cukup `bookings.branch_id` atau perlu `branch_services` sejak awal.
+- Format final nomor transaksi per jenis transaksi.
 
 ## Rekomendasi Keputusan Awal
 
@@ -417,6 +470,6 @@ Untuk implementasi paling aman:
 1. Buat `Branch` baru, jangan reuse `Team`.
 2. Tetapkan `branch_product_stocks` sebagai source of truth stok setelah Phase 2.
 3. Simpan `branch_id` langsung di transaksi.
-4. Mulai dari admin semua cabang dengan filter cabang, lalu tambah admin cabang scoped jika diminta.
+4. Implementasikan admin pusat dan admin cabang scoped, tetapi jangan mencampur authorization scoped dengan migrasi stok dalam satu batch besar.
 5. Gunakan cabang default untuk backfill data lama.
-6. Pilih cabang di checkout pada jangka panjang agar stok publik akurat.
+6. Pilihan cabang dimulai dari detail produk atau detail layanan agar stok/availability publik akurat sejak sebelum checkout.

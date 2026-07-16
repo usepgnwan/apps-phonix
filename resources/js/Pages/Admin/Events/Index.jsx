@@ -9,19 +9,15 @@ import EmptyState from '@/Components/Admin/EmptyState';
 import MetricCard from '@/Components/Admin/MetricCard';
 import AdminLayout from '@/Layouts/AdminLayout';
 import Pagination from '@/Components/Admin/Pagination';
+import { formatNumber } from '@/utils/format';
 
 function formatDate(value) {
     return value ? new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value)) : '-';
 }
 
-function formatNumber(value) {
-    return new Intl.NumberFormat('id-ID').format(Number(value ?? 0));
-}
-
 function StatusBadge({ isActive }) {
     return <span className={`inline-flex rounded-full px-3 py-1 font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] ${isActive ? 'bg-[#1E4D3A] text-white' : 'bg-gray-200 text-gray-600'}`}>{isActive ? 'Aktif' : 'Nonaktif'}</span>;
 }
-
 
 function AdminEventIndex({ events, metrics, filters }) {
     const items = events?.data ?? events ?? [];

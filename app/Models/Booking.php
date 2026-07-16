@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['booking_number', 'user_id', 'customer_profile_id', 'service_id', 'name', 'whatsapp_number', 'visit_type', 'desired_schedule_at', 'complaint_notes', 'status', 'admin_notes'])]
+#[Fillable(['booking_number', 'user_id', 'customer_profile_id', 'branch_id', 'service_id', 'affiliate_id', 'name', 'whatsapp_number', 'visit_type', 'desired_schedule_at', 'complaint_notes', 'status', 'admin_notes'])]
 class Booking extends Model
 {
     protected function casts(): array
@@ -15,6 +15,11 @@ class Booking extends Model
         return [
             'desired_schedule_at' => 'datetime',
         ];
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function user(): BelongsTo
@@ -30,6 +35,11 @@ class Booking extends Model
     public function service(): BelongsTo
     {
         return $this->belongsTo(Service::class);
+    }
+
+    public function affiliate(): BelongsTo
+    {
+        return $this->belongsTo(Affiliate::class);
     }
 
     public function examinations(): HasMany

@@ -4,9 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['name', 'start_date', 'end_date', 'location', 'organizer', 'notes', 'is_active'])]
+#[Fillable(['branch_id', 'name', 'start_date', 'end_date', 'location', 'organizer', 'notes', 'is_active'])]
 class Event extends Model
 {
     protected function casts(): array
@@ -16,6 +17,11 @@ class Event extends Model
             'end_date' => 'date',
             'is_active' => 'boolean',
         ];
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function leads(): HasMany

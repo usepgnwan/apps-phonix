@@ -20,7 +20,7 @@ class TestimonialController extends Controller
     private function authorizeAdmin(): void
     {
         $user = request()->user();
-        abort_unless($user !== null && $user->role === 'admin' && $user->is_active, 403);
+        abort_unless($user !== null && $user->isAdminPusat(), 403, 'Hanya Admin Pusat yang dapat mengelola testimoni.');
     }
 
     private function processAndSavePhoto($file): ?string
@@ -68,15 +68,6 @@ class TestimonialController extends Controller
         ]);
     }
 
-    public function create(): Response
-    {
-        $this->authorizeAdmin();
-
-        return Inertia::render('Admin/Testimonials/Create', [
-            'page' => 'admin.testimonials.create',
-        ]);
-    }
-
     public function store(StoreTestimonialRequest $request): RedirectResponse
     {
         $data = $request->validated();
@@ -91,16 +82,6 @@ class TestimonialController extends Controller
         return redirect()
             ->route('admin.testimonials.index')
             ->with('success', 'Testimoni berhasil disimpan.');
-    }
-
-    public function edit(Testimonial $testimonial): Response
-    {
-        $this->authorizeAdmin();
-
-        return Inertia::render('Admin/Testimonials/Edit', [
-            'page' => 'admin.testimonials.edit',
-            'testimonial' => $testimonial,
-        ]);
     }
 
     public function update(UpdateTestimonialRequest $request, Testimonial $testimonial): RedirectResponse

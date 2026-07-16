@@ -9,6 +9,7 @@ import MetricCard from '@/Components/Admin/MetricCard';
 import StatusBadge from '@/Components/Admin/StatusBadge';
 import AdminLayout from '@/Layouts/AdminLayout';
 import Pagination from '@/Components/Admin/Pagination';
+import { formatNumber, formatCurrency } from '@/utils/format';
 
 const shippingStatusMap = {
     pending_shipping_confirmation: ['Menunggu Konfirmasi Ongkir', 'orange'],
@@ -18,18 +19,6 @@ const shippingStatusMap = {
     delivered: ['Terkirim', 'forest'],
     cancelled: ['Batal', 'red'],
 };
-
-function formatNumber(value) {
-    return new Intl.NumberFormat('id-ID').format(Number(value ?? 0));
-}
-
-function formatCurrency(value) {
-    return new Intl.NumberFormat('id-ID', {
-        currency: 'IDR',
-        maximumFractionDigits: 0,
-        style: 'currency',
-    }).format(Number(value ?? 0));
-}
 
 function formatDate(value) {
     if (!value) {
@@ -92,7 +81,7 @@ function LifecycleCard({ label, count, tone, icon: IconComponent, isActive, onCl
     const cursorClass = 'cursor-pointer hover:-translate-y-1 hover:shadow-md transition-all duration-200';
 
     return (
-        <div 
+        <div
             onClick={onClick}
             className={`relative overflow-hidden rounded-2xl border ${baseBorder} ${cursorClass} ${toneStyles[tone]} p-4 shadow-sm flex flex-col justify-between h-full min-h-[120px]`}
         >
@@ -170,14 +159,14 @@ function AdminOrderIndex({ orders = {}, filters = {}, metrics = {} }) {
 
             <div className="space-y-8">
                 <AdminPageHeader
-                    description="Konfirmasi biaya pengiriman, verifikasi pembayaran, dan pantau fulfillment order website Phoenix dari satu halaman."
+                    // description="Konfirmasi biaya pengiriman, verifikasi pembayaran, dan pantau fulfillment order website Phoenix dari satu halaman."
                     eyebrow="Commerce / Order"
                     title="Order"
                 />
 
                 <div className="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-7">
                     {lifecycleCards.map((card, idx) => (
-                        <LifecycleCard 
+                        <LifecycleCard
                             key={idx}
                             label={card.label}
                             count={formatNumber(card.count)}
@@ -290,6 +279,7 @@ function AdminOrderIndex({ orders = {}, filters = {}, metrics = {} }) {
                                         </th>
                                         {[
                                             'Nomor Order',
+                                            'Cabang',
                                             'Customer',
                                             'Status Order',
                                             'Status Pengiriman',
@@ -327,6 +317,15 @@ function AdminOrderIndex({ orders = {}, filters = {}, metrics = {} }) {
                                             </td>
                                             <td className="whitespace-nowrap px-4 py-4 font-body-sm text-sm font-bold text-[#333333]">
                                                 {order.order_number ?? `Order #${order.id}`}
+                                            </td>
+                                            <td className="whitespace-nowrap px-4 py-4">
+                                                {order.branch ? (
+                                                    <span className="inline-flex rounded-full bg-[#1E4D3A]/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[#1E4D3A]">
+                                                        {order.branch.name}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-gray-400 text-xs">-</span>
+                                                )}
                                             </td>
                                             <td className="whitespace-nowrap px-4 py-4 font-body-sm text-sm text-gray-600">
                                                 {customerName(order)}
@@ -386,7 +385,7 @@ function AdminOrderIndex({ orders = {}, filters = {}, metrics = {} }) {
                             </table>
                         </div>
                     )}
-                    
+
                     {orders.links && <div className="p-5 border-t border-[#E5E7EB]"><Pagination links={orders.links} /></div>}
                 </AdminCard>
             </div>

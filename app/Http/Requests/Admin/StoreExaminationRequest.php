@@ -13,23 +13,37 @@ class StoreExaminationRequest extends FormRequest
     {
         $user = $this->user();
 
-        return $user !== null && $user->role === 'admin' && $user->is_active;
+        return $user !== null && $user->isAdmin();
     }
 
     public function rules(): array
     {
+        $user = $this->user();
+        $branchId = $user?->isAdminCabang() ? $user->branch_id : null;
+
+        $customerProfileRule = Rule::exists('customer_profiles', 'id');
+        $bookingRule = Rule::exists('bookings', 'id');
+        $staffRule = Rule::exists('users', 'id')
+            ->whereIn('role', ['field_staff', 'admin'])
+            ->where('is_active', true);
+
+        if ($branchId) {
+            $bookingRule = Rule::exists('bookings', 'id')->where('branch_id', $branchId);
+            $staffRule = Rule::exists('users', 'id')
+                ->whereIn('role', ['field_staff', 'admin'])
+                ->where('is_active', true)
+                ->where('branch_id', $branchId);
+        }
+
         return [
             'customer_mode' => ['required', Rule::in(['registered', 'guest'])],
-            'customer_profile_id' => ['required_if:customer_mode,registered', 'nullable', 'exists:customer_profiles,id'],
+            'customer_profile_id' => ['required_if:customer_mode,registered', 'nullable', $customerProfileRule],
             'guest_name' => ['required_if:customer_mode,guest', 'nullable', 'string', 'max:255'],
             'guest_whatsapp_number' => ['required_if:customer_mode,guest', 'nullable', 'string', 'max:30'],
             'guest_address' => ['required_if:customer_mode,guest', 'nullable', 'string', 'max:1000'],
-            'booking_id' => ['nullable', 'exists:bookings,id'],
+            'booking_id' => ['nullable', $bookingRule],
             'service_type' => ['required', 'string', 'max:255'],
-            'assigned_staff_id' => [
-                'nullable',
-                Rule::exists('users', 'id')->whereIn('role', ['field_staff', 'admin'])->where('is_active', true),
-            ],
+            'assigned_staff_id' => ['nullable', $staffRule],
             'complaint' => ['required', 'string'],
             'result' => ['required', 'string'],
             'result_pdf' => ['nullable', 'file', 'mimes:pdf', 'max:10240'],
@@ -59,6 +73,7 @@ class StoreExaminationRequest extends FormRequest
     {
         return [
             function (Validator $validator): void {
+                $user = $this->user();
                 $bookingId = $this->input('booking_id');
                 $customerProfileId = $this->input('customer_profile_id');
                 $customerMode = $this->input('customer_mode');
@@ -67,6 +82,20 @@ class StoreExaminationRequest extends FormRequest
                     $validator->errors()->add('booking_id', 'Booking hanya dapat dipilih untuk customer terdaftar.');
 
                     return;
+                }
+
+                if (
+                    $customerMode === 'registered'
+                    && $customerProfileId !== null
+                    && $user?->isAdminCabang()
+                ) {
+                    $profile = \App\Models\CustomerProfile::query()->find((int) $customerProfileId);
+                    if ($profile === null || ! $profile->isVisibleToAdmin($user)) {
+                        $validator->errors()->add(
+                            'customer_profile_id',
+                            'Customer tidak terkait cabang Anda.'
+                        );
+                    }
                 }
 
                 if ($bookingId === null || $customerProfileId === null) {

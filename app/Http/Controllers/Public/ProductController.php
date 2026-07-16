@@ -10,11 +10,19 @@ use Inertia\Response;
 
 class ProductController extends Controller
 {
-    public function index(): Response
+    public function index(\Illuminate\Http\Request $request): Response
     {
+        $selectedBranchId = $request->session()->get('selected_branch_id');
+
         $query = Product::query()
-            ->with('productCategory:id,name,slug')
+            ->with(['productCategory:id,name,slug'])
             ->where('is_active', true);
+
+        if ($selectedBranchId) {
+            $query->with(['branchStocks' => function ($q) use ($selectedBranchId) {
+                $q->where('branch_id', $selectedBranchId);
+            }]);
+        }
 
         if ($search = request('search')) {
             $query->where('name', 'ilike', '%' . $search . '%');
@@ -52,22 +60,46 @@ class ProductController extends Controller
         ]);
     }
 
-    public function show(Product $product): Response
+    public function show(\Illuminate\Http\Request $request, Product $product): Response
     {
         abort_unless($product->is_active, 404);
 
-        $product->load('productCategory:id,name,slug');
+        $selectedBranchId = $request->session()->get('selected_branch_id');
+
+        $product->load([
+            'productCategory:id,name,slug',
+            'branchStocks' => function ($q) use ($selectedBranchId) {
+                if ($selectedBranchId) {
+                    $q->where('branch_id', $selectedBranchId);
+                }
+            }
+        ]);
+
+        $branches = \App\Models\Branch::query()
+            ->where('is_active', true)
+            ->with(['productStocks' => function ($query) use ($product) {
+                $query->where('product_id', $product->id);
+            }])
+            ->get(['id', 'name', 'address']);
+
+        $relatedProductsQuery = Product::query()
+            ->with('productCategory:id,name,slug')
+            ->where('is_active', true)
+            ->where('product_category_id', $product->product_category_id)
+            ->whereKeyNot($product->id)
+            ->latest()
+            ->limit(4);
+
+        if ($selectedBranchId) {
+            $relatedProductsQuery->with(['branchStocks' => function ($q) use ($selectedBranchId) {
+                $q->where('branch_id', $selectedBranchId);
+            }]);
+        }
 
         return Inertia::render('Public/Products/Show', [
             'product' => $product,
-            'relatedProducts' => Product::query()
-                ->with('productCategory:id,name,slug')
-                ->where('is_active', true)
-                ->where('product_category_id', $product->product_category_id)
-                ->whereKeyNot($product->id)
-                ->latest()
-                ->limit(4)
-                ->get(['id', 'product_category_id', 'name', 'slug', 'price', 'short_description', 'image_path', 'is_featured']),
+            'branches' => $branches,
+            'relatedProducts' => $relatedProductsQuery->get(['id', 'product_category_id', 'name', 'slug', 'price', 'short_description', 'image_path', 'is_featured']),
         ]);
     }
 }

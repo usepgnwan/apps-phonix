@@ -4,9 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['code', 'name', 'description', 'discount_type', 'discount_value', 'minimum_purchase', 'starts_at', 'ends_at', 'usage_limit', 'is_published', 'target_audience'])]
+#[Fillable(['code', 'name', 'description', 'discount_type', 'discount_value', 'minimum_purchase', 'starts_at', 'ends_at', 'usage_limit', 'is_published', 'target_audience', 'affiliate_id'])]
 class Voucher extends Model
 {
     protected function casts(): array
@@ -18,6 +19,11 @@ class Voucher extends Model
             'ends_at' => 'datetime',
             'is_published' => 'boolean',
         ];
+    }
+
+    public function affiliate(): BelongsTo
+    {
+        return $this->belongsTo(Affiliate::class);
     }
 
     public function orders(): HasMany

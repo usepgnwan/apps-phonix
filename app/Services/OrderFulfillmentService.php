@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Order;
 use App\Models\Product;
+use App\Services\Affiliate\AffiliateCommissionService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -43,7 +44,13 @@ class OrderFulfillmentService
             'status' => $status,
         ]);
 
-        return $order->fresh();
+        $fresh = $order->fresh();
+
+        if ($paymentStatus === 'paid') {
+            app(AffiliateCommissionService::class)->createFromOrder($fresh);
+        }
+
+        return $fresh;
     }
 
     private function decrementStock(Order $order): void
@@ -62,13 +69,23 @@ class OrderFulfillmentService
                         ->lockForUpdate()
                         ->firstOrFail();
 
-                    if ($product->stock_quantity < $item->quantity) {
+                    $branchStock = \App\Models\BranchProductStock::query()
+                        ->where('branch_id', $lockedOrder->branch_id)
+                        ->where('product_id', $item->product_id)
+                        ->lockForUpdate()
+                        ->first();
+
+                    $availableStock = $branchStock?->stock_quantity ?? 0;
+
+                    if ($availableStock < $item->quantity) {
                         throw ValidationException::withMessages([
-                            'payment_status' => "Stok {$product->name} tidak mencukupi untuk memproses pembayaran.",
+                            'payment_status' => "Stok {$product->name} tidak mencukupi untuk memproses pembayaran di cabang ini.",
                         ]);
                     }
 
-                    $product->decrement('stock_quantity', $item->quantity);
+                    if ($branchStock) {
+                        $branchStock->decrement('stock_quantity', $item->quantity);
+                    }
                 }
 
                 $lockedOrder->stock_decremented_at = now();
@@ -93,7 +110,15 @@ class OrderFulfillmentService
                         ->lockForUpdate()
                         ->firstOrFail();
 
-                    $product->increment('stock_quantity', $item->quantity);
+                    $branchStock = \App\Models\BranchProductStock::query()
+                        ->where('branch_id', $lockedOrder->branch_id)
+                        ->where('product_id', $item->product_id)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if ($branchStock) {
+                        $branchStock->increment('stock_quantity', $item->quantity);
+                    }
                 }
 
                 $lockedOrder->stock_decremented_at = null;

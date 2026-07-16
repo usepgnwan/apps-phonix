@@ -11,6 +11,7 @@ import MetricCard from '@/Components/Admin/MetricCard';
 import StatusBadge from '@/Components/Admin/StatusBadge';
 import AdminLayout from '@/Layouts/AdminLayout';
 import Modal from '@/Components/Modal';
+import { formatNumber, formatCurrency, readableLabel } from '@/utils/format';
 
 const periodOptions = [
     ['today', 'Hari Ini'],
@@ -19,25 +20,6 @@ const periodOptions = [
     ['year', 'Tahun Ini'],
     ['custom', 'Custom'],
 ];
-
-function formatNumber(value) {
-    return new Intl.NumberFormat('id-ID').format(Number(value ?? 0));
-}
-
-function formatCurrency(value) {
-    return new Intl.NumberFormat('id-ID', {
-        currency: 'IDR',
-        maximumFractionDigits: 0,
-        style: 'currency',
-    }).format(Number(value ?? 0));
-}
-
-function readableLabel(value) {
-    return String(value ?? 'Tidak diketahui')
-        .replaceAll('_', ' ')
-        .replaceAll('-', ' ')
-        .replace(/\b\w/g, (char) => char.toUpperCase());
-}
 
 function routeExists(routeName) {
     return typeof route === 'function' && route().has(routeName);
@@ -189,7 +171,7 @@ function PeriodFilter({ filters }) {
                 <div>
                     <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">Filter Periode</p>
                     <h2 className="mt-1 font-body-lg text-lg font-extrabold text-[#333333]">Laporan Kantor Pusat</h2>
-                    <p className="mt-1 font-body-sm text-xs text-gray-500">Data bersifat global kantor pusat. Filter cabang/lokasi tidak termasuk fase ini.</p>
+                    {/* <p className="mt-1 font-body-sm text-xs text-gray-500">Data bersifat global kantor pusat. Filter cabang/lokasi tidak termasuk fase ini.</p> */}
                 </div>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                     <select
@@ -276,8 +258,8 @@ function AdminLaporan({ reports = {}, filters = {} }) {
 
             <div className="space-y-8">
                 <AdminPageHeader
-                    description="Analisis revenue, lead, booking, order, aktivitas lapangan, dan rekomendasi produk untuk operasional kantor pusat."
-                    eyebrow="Panel Admin"
+                    // description="Analisis revenue, lead, booking, order, aktivitas lapangan, dan rekomendasi produk untuk operasional kantor pusat."
+                    // eyebrow="Panel Admin"
                     title="Laporan"
                 />
 
@@ -382,7 +364,7 @@ function AdminLaporan({ reports = {}, filters = {} }) {
                             rows={productRecommendationsByProduct}
                             title="Rekomendasi Produk per Produk"
                         />
-                        
+
                         <ReportGroup
                             description="Informasi stok produk tersedia dan jumlah terjual pada periode terkait."
                             emptyDeskripsi="Stok dan penjualan produk akan tampil di sini."

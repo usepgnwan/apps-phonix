@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Branch;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -30,6 +31,10 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            'role' => 'customer',
+            'is_active' => true,
+            'admin_scope' => null,
+            'branch_id' => null,
         ];
     }
 
@@ -40,6 +45,50 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
+        ]);
+    }
+
+    public function adminCentral(?int $branchId = null): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'admin',
+            'admin_scope' => 'central',
+            'is_active' => true,
+            'branch_id' => $branchId,
+        ]);
+    }
+
+    public function adminBranch(?int $branchId = null): static
+    {
+        return $this->state(function (array $attributes) use ($branchId) {
+            return [
+                'role' => 'admin',
+                'admin_scope' => 'branch',
+                'is_active' => true,
+                'branch_id' => $branchId ?? Branch::query()->value('id'),
+            ];
+        });
+    }
+
+    public function fieldStaff(?int $branchId = null): static
+    {
+        return $this->state(function (array $attributes) use ($branchId) {
+            return [
+                'role' => 'field_staff',
+                'admin_scope' => null,
+                'is_active' => true,
+                'branch_id' => $branchId ?? Branch::query()->value('id'),
+            ];
+        });
+    }
+
+    public function customer(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'customer',
+            'admin_scope' => null,
+            'branch_id' => null,
+            'is_active' => true,
         ]);
     }
 }

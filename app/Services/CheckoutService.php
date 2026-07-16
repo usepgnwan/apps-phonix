@@ -7,15 +7,17 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\Voucher;
 use App\Models\VoucherRedemption;
+use App\Services\Affiliate\AffiliateAttributionService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class CheckoutService
 {
-    public function checkout(Cart $cart, array $data): Order
+    public function checkout(Cart $cart, array $data, ?Request $request = null): Order
     {
-        return DB::transaction(function () use ($cart, $data): Order {
+        return DB::transaction(function () use ($cart, $data, $request): Order {
             $cart->load('cartItems.product', 'user', 'customerProfile');
 
             if ($cart->cartItems->isEmpty()) {
@@ -24,7 +26,18 @@ class CheckoutService
                 ]);
             }
 
-            $items = $cart->cartItems->map(function ($cartItem): array {
+            $affiliateId = null;
+            if ($request !== null) {
+                $attribution = app(AffiliateAttributionService::class);
+                $affiliate = $attribution->resolveForCheckout(
+                    $data['voucher_code'] ?? null,
+                    $cart->user_id,
+                    $request
+                );
+                $affiliateId = $affiliate?->id;
+            }
+
+            $items = $cart->cartItems->map(function ($cartItem) use ($cart): array {
                 $product = Product::query()
                     ->whereKey($cartItem->product_id)
                     ->lockForUpdate()
@@ -36,9 +49,17 @@ class CheckoutService
                     ]);
                 }
 
-                if ($cartItem->quantity > $product->stock_quantity) {
+                $branchStock = \App\Models\BranchProductStock::query()
+                    ->where('branch_id', $cart->branch_id)
+                    ->where('product_id', $cartItem->product_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                $availableStock = $branchStock?->stock_quantity ?? 0;
+
+                if ($cartItem->quantity > $availableStock) {
                     throw ValidationException::withMessages([
-                        'cart' => "Stok {$product->name} tidak mencukupi.",
+                        'cart' => "Stok {$product->name} tidak mencukupi di cabang yang dipilih.",
                     ]);
                 }
 
@@ -62,10 +83,12 @@ class CheckoutService
             }
 
             $order = Order::query()->create([
-                'order_number' => $this->generateOrderNumber(),
+                'order_number' => $this->generateOrderNumber($cart->branch_id),
                 'user_id' => $cart->user_id,
                 'customer_profile_id' => $cart->customer_profile_id,
+                'branch_id' => $cart->branch_id,
                 'voucher_id' => $voucher?->id,
+                'affiliate_id' => $affiliateId,
                 'payment_method_id' => $data['payment_method_id'],
                 'customer_name' => $data['customer_name'],
                 'customer_whatsapp_number' => $data['customer_whatsapp_number'],
@@ -103,6 +126,7 @@ class CheckoutService
             }
 
             $cart->cartItems()->delete();
+            $cart->update(['branch_id' => null]);
 
             $receiptEmail = \App\Models\Setting::where('key', 'receipt_email')->value('value');
             $orderTemplate = \App\Models\Setting::where('key', 'order_template')->value('value');
@@ -229,10 +253,18 @@ class CheckoutService
         ]);
     }
 
-    private function generateOrderNumber(): string
+    private function generateOrderNumber(?int $branchId): string
     {
+        $branchCode = 'ONL';
+        if ($branchId !== null) {
+            $branch = \App\Models\Branch::find($branchId);
+            if ($branch !== null && !empty($branch->code)) {
+                $branchCode = Str::upper($branch->code);
+            }
+        }
+
         do {
-            $orderNumber = 'ORD-'.now()->format('Ymd').'-'.Str::upper(Str::random(6));
+            $orderNumber = $branchCode . '-ORD-'.now()->format('Ymd').'-'.Str::upper(Str::random(6));
         } while (Order::query()->where('order_number', $orderNumber)->exists());
 
         return $orderNumber;

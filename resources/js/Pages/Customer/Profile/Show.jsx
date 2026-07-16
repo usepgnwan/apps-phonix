@@ -1,10 +1,10 @@
 import { Head, Link } from '@inertiajs/react';
 import { Edit3, UserRound } from 'lucide-react';
 
-import CustomerCard from '@/Components/Customer/CustomerCard';
-import CustomerDetailRow from '@/Components/Customer/CustomerDetailRow';
 import CustomerPageHeader from '@/Components/Customer/CustomerPageHeader';
 import CustomerSectionHeader from '@/Components/Customer/CustomerSectionHeader';
+import { DetailRow } from '@/Components/Panel/FormFields';
+import PanelCard from '@/Components/Panel/PanelCard';
 import CustomerLayout from '@/Layouts/CustomerLayout';
 
 export default function CustomerProfileShow({ customerProfile }) {
@@ -18,7 +18,7 @@ export default function CustomerProfileShow({ customerProfile }) {
                 <CustomerPageHeader
                     action={(
                         <Link
-                            className="inline-flex items-center gap-2 rounded-full bg-primary-container px-4 py-2 font-body-sm text-sm font-bold text-white shadow-sm shadow-primary-container/20 transition hover:bg-primary"
+                            className="inline-flex items-center gap-2 rounded-full bg-[#1E4D3A] px-4 py-2 text-sm font-bold text-white shadow-sm shadow-[#1E4D3A]/20 transition hover:bg-[#163B2C]"
                             href={route('customer.profile.edit')}
                         >
                             <Edit3 aria-hidden="true" className="h-4 w-4" />
@@ -31,14 +31,14 @@ export default function CustomerProfileShow({ customerProfile }) {
                     title={title}
                 />
 
-                <CustomerCard className="p-5">
+                <PanelCard className="p-5">
                     <CustomerSectionHeader eyebrow="Data Kontak" title="Informasi Utama" />
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                        <CustomerDetailRow label="Nama">{customerProfile?.name}</CustomerDetailRow>
-                        <CustomerDetailRow label="WhatsApp">{customerProfile?.whatsapp_number}</CustomerDetailRow>
-                        <CustomerDetailRow className="md:col-span-2" label="Alamat Utama">{customerProfile?.primary_address}</CustomerDetailRow>
+                        <DetailRow label="Nama">{customerProfile?.name}</DetailRow>
+                        <DetailRow label="WhatsApp">{customerProfile?.whatsapp_number}</DetailRow>
+                        <DetailRow className="md:col-span-2" label="Alamat Utama">{customerProfile?.primary_address}</DetailRow>
                     </div>
-                </CustomerCard>
+                </PanelCard>
             </div>
         </>
     );

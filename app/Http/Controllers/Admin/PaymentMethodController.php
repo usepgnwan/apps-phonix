@@ -16,7 +16,7 @@ class PaymentMethodController extends Controller
     {
         $user = request()->user();
 
-        abort_unless($user !== null && $user->role === 'admin' && $user->is_active, 403);
+        abort_unless($user !== null && $user->isAdminPusat(), 403, 'Hanya Admin Pusat yang dapat mengelola metode pembayaran.');
     }
 
     public function index(\Illuminate\Http\Request $request): Response
@@ -55,15 +55,6 @@ class PaymentMethodController extends Controller
         ]);
     }
 
-    public function create(): Response
-    {
-        $this->authorizeAdmin();
-
-        return Inertia::render('Admin/PaymentMethods/Create', [
-            'page' => 'admin.payment-methods.create',
-        ]);
-    }
-
     public function store(StorePaymentMethodRequest $request): RedirectResponse
     {
         $data = $request->validated();
@@ -89,16 +80,6 @@ class PaymentMethodController extends Controller
 
         return Inertia::render('Admin/PaymentMethods/Show', [
             'page' => 'admin.payment-methods.show',
-            'paymentMethod' => $paymentMethod,
-        ]);
-    }
-
-    public function edit(PaymentMethod $paymentMethod): Response
-    {
-        $this->authorizeAdmin();
-
-        return Inertia::render('Admin/PaymentMethods/Edit', [
-            'page' => 'admin.payment-methods.edit',
             'paymentMethod' => $paymentMethod,
         ]);
     }

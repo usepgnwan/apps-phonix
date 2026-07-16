@@ -16,7 +16,7 @@ class ProductCategoryController extends Controller
     {
         $user = request()->user();
 
-        abort_unless($user !== null && $user->role === 'admin' && $user->is_active, 403);
+        abort_unless($user !== null && $user->isAdmin(), 403);
     }
 
     public function index(\Illuminate\Http\Request $request): Response
@@ -42,15 +42,6 @@ class ProductCategoryController extends Controller
         ]);
     }
 
-    public function create(): Response
-    {
-        $this->authorizeAdmin();
-
-        return Inertia::render('Admin/ProductCategories/Create', [
-            'page' => 'admin.product-categories.create',
-        ]);
-    }
-
     public function store(StoreProductCategoryRequest $request): RedirectResponse
     {
         ProductCategory::query()->create($request->validated());
@@ -66,16 +57,6 @@ class ProductCategoryController extends Controller
 
         return Inertia::render('Admin/ProductCategories/Show', [
             'page' => 'admin.product-categories.show',
-            'productCategory' => $productCategory,
-        ]);
-    }
-
-    public function edit(ProductCategory $productCategory): Response
-    {
-        $this->authorizeAdmin();
-
-        return Inertia::render('Admin/ProductCategories/Edit', [
-            'page' => 'admin.product-categories.edit',
             'productCategory' => $productCategory,
         ]);
     }

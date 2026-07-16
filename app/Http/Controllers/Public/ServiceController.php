@@ -39,12 +39,21 @@ class ServiceController extends Controller
         ]);
     }
 
-    public function show(Service $service): Response
+    public function show(\Illuminate\Http\Request $request, Service $service): Response
     {
         abort_unless($service->is_active, 404);
 
+        $selectedBranchId = $request->session()->get('selected_branch_id');
+        $branchName = null;
+
+        if ($selectedBranchId) {
+            $branchName = \App\Models\Branch::query()->where('id', $selectedBranchId)->value('name');
+        }
+
         return Inertia::render('Public/Services/Show', [
             'service' => $service,
+            'branchName' => $branchName,
+            'selectedBranchId' => $selectedBranchId,
             'relatedServices' => Service::query()
                 ->where('is_active', true)
                 ->whereKeyNot($service->id)

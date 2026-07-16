@@ -9,17 +9,7 @@ import MetricCard from '@/Components/Admin/MetricCard';
 import StatusBadge from '@/Components/Admin/StatusBadge';
 import AdminLayout from '@/Layouts/AdminLayout';
 import Pagination from '@/Components/Admin/Pagination';
-
-function formatNumber(value) {
-    return new Intl.NumberFormat('id-ID').format(Number(value ?? 0));
-}
-
-function readableLabel(value) {
-    return String(value ?? 'Tidak diketahui')
-        .replaceAll('_', ' ')
-        .replaceAll('-', ' ')
-        .replace(/\b\w/g, (char) => char.toUpperCase());
-}
+import { formatNumber, readableLabel } from '@/utils/format';
 
 function customerName(profile) {
     return profile.name ?? profile.user?.name ?? `Customer #${profile.id}`;

@@ -3,10 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import InputError from '@/Components/InputError';
 import GuestLayout from '@/Layouts/GuestLayout';
-
-function FieldError({ message }) {
-    return message ? <p className="mt-1 font-body-sm text-xs text-error">{message}</p> : null;
-}
+import { FieldError } from '@/Components/Admin/FormFields';
 
 function SearchableSelect({ disabled = false, error, label, loading = false, name, onChange, options, placeholder, value }) {
     const [isOpen, setIsOpen] = useState(false);

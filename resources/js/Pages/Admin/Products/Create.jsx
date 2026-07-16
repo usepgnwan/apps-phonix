@@ -1,69 +1,11 @@
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 
 import AdminCard from '@/Components/Admin/AdminCard';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
 import AdminLayout from '@/Layouts/AdminLayout';
 import ImageUploadField from '@/Components/Admin/ImageUploadField';
-
-function FieldError({ message }) {
-    return message ? (
-        <p className="mt-1 font-body-sm text-xs text-red-700">
-            {message}
-        </p>
-    ) : null;
-}
-
-function TextField({ error, label, onChange, type = 'text', value }) {
-    return (
-        <label className="block">
-            <span className="font-label-sm text-xs font-bold uppercase tracking-[0.12em] text-gray-500">
-                {label}
-            </span>
-            <input
-                className="mt-2 block w-full rounded-2xl border-[#E5E7EB] font-body-sm text-sm text-[#333333] shadow-sm focus:border-[#1E4D3A] focus:ring-[#1E4D3A]"
-                onChange={onChange}
-                type={type}
-                value={value ?? ''}
-            />
-            <FieldError message={error} />
-        </label>
-    );
-}
-
-function TextAreaField({ error, label, onChange, value }) {
-    return (
-        <label className="block">
-            <span className="font-label-sm text-xs font-bold uppercase tracking-[0.12em] text-gray-500">
-                {label}
-            </span>
-            <textarea
-                className="mt-2 block w-full rounded-2xl border-[#E5E7EB] font-body-sm text-sm text-[#333333] shadow-sm focus:border-[#1E4D3A] focus:ring-[#1E4D3A]"
-                onChange={onChange}
-                rows="4"
-                value={value ?? ''}
-            />
-            <FieldError message={error} />
-        </label>
-    );
-}
-
-function SelectField({ children, error, label, onChange, value }) {
-    return (
-        <label className="block">
-            <span className="font-label-sm text-xs font-bold uppercase tracking-[0.12em] text-gray-500">
-                {label}
-            </span>
-            <select
-                className="mt-2 block w-full rounded-2xl border-[#E5E7EB] font-body-sm text-sm text-[#333333] shadow-sm focus:border-[#1E4D3A] focus:ring-[#1E4D3A]"
-                onChange={onChange}
-                value={value ?? ''}
-            >
-                {children}
-            </select>
-            <FieldError message={error} />
-        </label>
-    );
-}
+import { isBranchAdmin } from '@/utils/adminScope';
+import { FieldError, TextField, SelectField, TextAreaField } from '@/Components/Admin/FormFields';
 
 function CheckboxField({ checked, error, label, onChange }) {
     return (
@@ -84,7 +26,11 @@ function CheckboxField({ checked, error, label, onChange }) {
     );
 }
 
-function AdminProdukTambah({ productCategories: productKategori = [] }) {
+function AdminProdukTambah({ productCategories: productKategori = [], branches = [] }) {
+    const { auth } = usePage().props;
+    const user = auth?.user;
+    const branchAdmin = isBranchAdmin(user);
+
     const form = useForm({
         product_category_id: '',
         name: '',
@@ -103,6 +49,7 @@ function AdminProdukTambah({ productCategories: productKategori = [] }) {
         thumbnail: null,
         stock_quantity: 0,
         low_stock_threshold: 0,
+        branch_stocks: {}, // { [branchId]: { stock_quantity: 0, low_stock_threshold: 0 } }
         is_active: true,
         is_featured: false,
     });
@@ -170,20 +117,6 @@ function AdminProdukTambah({ productCategories: productKategori = [] }) {
                                 type="number"
                                 value={form.data.price}
                             />
-                            <TextField
-                                error={form.errors.stock_quantity}
-                                label="Stok"
-                                onChange={(event) => form.setData('stock_quantity', event.target.value)}
-                                type="number"
-                                value={form.data.stock_quantity}
-                            />
-                            <TextField
-                                error={form.errors.low_stock_threshold}
-                                label="Ambang Stok Rendah"
-                                onChange={(event) => form.setData('low_stock_threshold', event.target.value)}
-                                type="number"
-                                value={form.data.low_stock_threshold}
-                            />
                             <ImageUploadField
                                 error={form.errors.thumbnail}
                                 label="Thumbnail Gambar"
@@ -191,6 +124,63 @@ function AdminProdukTambah({ productCategories: productKategori = [] }) {
                                 currentImage={null}
                             />
                         </div>
+                        
+                        <div className="mt-8 border-t border-[#E5E7EB] pt-6">
+                            <h3 className="mb-1 font-bold text-[#333333]">
+                                {branchAdmin ? 'Stok Produk (Cabang Anda)' : 'Stok Produk (Per Cabang)'}
+                            </h3>
+                            {branchAdmin && (
+                                <p className="mb-4 font-body-sm text-xs text-gray-500">
+                                    Admin cabang hanya dapat mengatur stok untuk cabang sendiri.
+                                </p>
+                            )}
+                            {!branchAdmin && <div className="mb-4" />}
+                            <div className="space-y-4">
+                                {branches.map((branch) => (
+                                    <div key={branch.id} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                                        <div className="font-medium text-gray-800 mb-3">{branch.name}</div>
+                                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                            <TextField
+                                                error={form.errors[`branch_stocks.${branch.id}.stock_quantity`]}
+                                                label="Stok Tersedia"
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    form.setData('branch_stocks', {
+                                                        ...form.data.branch_stocks,
+                                                        [branch.id]: {
+                                                            ...form.data.branch_stocks[branch.id],
+                                                            stock_quantity: val
+                                                        }
+                                                    });
+                                                }}
+                                                type="number"
+                                                value={form.data.branch_stocks[branch.id]?.stock_quantity ?? 0}
+                                            />
+                                            <TextField
+                                                error={form.errors[`branch_stocks.${branch.id}.low_stock_threshold`]}
+                                                label="Batas Stok Rendah"
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    form.setData('branch_stocks', {
+                                                        ...form.data.branch_stocks,
+                                                        [branch.id]: {
+                                                            ...form.data.branch_stocks[branch.id],
+                                                            low_stock_threshold: val
+                                                        }
+                                                    });
+                                                }}
+                                                type="number"
+                                                value={form.data.branch_stocks[branch.id]?.low_stock_threshold ?? 0}
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+                                {branches.length === 0 && (
+                                    <p className="text-sm text-gray-500">Belum ada cabang yang terdaftar. Tambahkan cabang terlebih dahulu.</p>
+                                )}
+                            </div>
+                        </div>
+
                         <TextAreaField
                             error={form.errors.short_description}
                             label="Deskripsi Singkat"

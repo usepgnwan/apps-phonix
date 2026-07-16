@@ -6,11 +6,10 @@ import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
 import EmptyState from '@/Components/Admin/EmptyState';
 import MetricCard from '@/Components/Admin/MetricCard';
 import AdminLayout from '@/Layouts/AdminLayout';
+import { formatNumber, formatDateTime } from '@/utils/format';
+import { DetailRow } from '@/Components/Admin/FormFields';
 
-function formatDateTime(value) { return value ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '-'; }
-function formatNumber(value) { return new Intl.NumberFormat('id-ID').format(Number(value ?? 0)); }
 function recommendations(examination) { return examination.product_recommendations ?? examination.productRecommendations ?? []; }
-function DetailRow({ label, children }) { return <div className="rounded-2xl border border-[#E5E7EB] bg-[#F6F7F7] px-4 py-3"><p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400">{label}</p><div className="mt-1 font-body-sm text-sm font-semibold text-[#333333]">{children || '-'}</div></div>; }
 function TextBlock({ label, children }) { return <div className="rounded-2xl border border-[#E5E7EB] bg-white px-4 py-3"><p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400">{label}</p><p className="mt-2 whitespace-pre-line font-body-sm text-sm leading-6 text-[#333333]">{children || '-'}</p></div>; }
 
 function AdminPemeriksaanShow({ examination }) {

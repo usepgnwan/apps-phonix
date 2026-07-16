@@ -10,7 +10,7 @@ class UpdateProductRequest extends FormRequest
     {
         $user = $this->user();
 
-        return $user !== null && $user->role === 'admin' && $user->is_active;
+        return $user !== null && $user->isAdmin();
     }
 
     public function rules(): array
@@ -34,10 +34,13 @@ class UpdateProductRequest extends FormRequest
             'notes' => ['nullable', 'string'],
             'image_path' => ['nullable', 'string', 'max:255'],
             'thumbnail' => ['nullable', 'image', 'max:4096'],
-            'stock_quantity' => ['required', 'integer', 'min:0'],
-            'low_stock_threshold' => ['required', 'integer', 'min:0'],
             'is_active' => ['required', 'boolean'],
             'is_featured' => ['required', 'boolean'],
+
+            // New Branch specific stocks
+            'branch_stocks' => ['nullable', 'array'],
+            'branch_stocks.*.stock_quantity' => ['nullable', 'integer', 'min:0'],
+            'branch_stocks.*.low_stock_threshold' => ['nullable', 'integer', 'min:0'],
         ];
     }
 }

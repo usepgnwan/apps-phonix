@@ -5,17 +5,11 @@ import AdminDeleteButton from '@/Components/Admin/AdminDeleteButton';
 import AdminLayout from '@/Layouts/AdminLayout';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
 import MetricCard from '@/Components/Admin/MetricCard';
+import { formatNumber } from '@/utils/format';
+import { DetailRow } from '@/Components/Admin/FormFields';
 
 function formatDate(value) {
     return value ? new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }).format(new Date(value)) : '-';
-}
-
-function formatNumber(value) {
-    return new Intl.NumberFormat('id-ID').format(Number(value ?? 0));
-}
-
-function DetailRow({ label, children }) {
-    return <div className="rounded-2xl border border-[#E5E7EB] bg-[#F6F7F7] px-4 py-3"><p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400">{label}</p><div className="mt-1 font-body-sm text-sm font-semibold text-[#333333]">{children || '-'}</div></div>;
 }
 
 function StatusBadge({ isActive }) {
@@ -38,6 +32,7 @@ function AdminEventShow({ event }) {
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <DetailRow label="Nama">{event.name}</DetailRow>
                         <DetailRow label="Status"><StatusBadge isActive={event.is_active} /></DetailRow>
+                        <DetailRow label="Cabang">{event.branch?.name || '-'}</DetailRow>
                         <DetailRow label="Tanggal Mulai">{formatDate(event.start_date)}</DetailRow>
                         <DetailRow label="Tanggal Selesai">{formatDate(event.end_date)}</DetailRow>
                         <DetailRow label="Lokasi">{event.location}</DetailRow>

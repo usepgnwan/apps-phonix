@@ -3,6 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\Booking;
+use App\Models\Branch;
+use App\Models\BranchProductStock;
 use App\Models\CustomerProfile;
 use App\Models\Event;
 use App\Models\FieldActivity;
@@ -26,12 +28,36 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // 1) Master cabang dulu — dibutuhkan branch_id user admin/staff
+        $this->call([
+            BranchSeeder::class,
+        ]);
+
+        $pusatBranch = Branch::query()->where('slug', 'pusat')->firstOrFail();
+        $bandungBranch = Branch::query()->where('slug', 'cabang-bandung')->firstOrFail();
+
+        // 2) Akun dummy sesuai kontrak admin_scope central|branch
         $admin = User::query()->updateOrCreate(
             ['email' => 'admin@phoenix.test'],
             [
                 'name' => 'Admin Phoenix',
                 'password' => Hash::make('password'),
                 'role' => 'admin',
+                'admin_scope' => 'central',
+                'branch_id' => $pusatBranch->id,
+                'is_active' => true,
+                'email_verified_at' => now(),
+            ]
+        );
+
+        $adminCabang = User::query()->updateOrCreate(
+            ['email' => 'admin.cabang@phoenix.test'],
+            [
+                'name' => 'Admin Cabang Bandung',
+                'password' => Hash::make('password'),
+                'role' => 'admin',
+                'admin_scope' => 'branch',
+                'branch_id' => $bandungBranch->id,
                 'is_active' => true,
                 'email_verified_at' => now(),
             ]
@@ -43,6 +69,8 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Field Staff Phoenix',
                 'password' => Hash::make('password'),
                 'role' => 'field_staff',
+                'admin_scope' => null,
+                'branch_id' => $bandungBranch->id,
                 'is_active' => true,
                 'email_verified_at' => now(),
             ]
@@ -54,6 +82,8 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Customer Phoenix Member',
                 'password' => Hash::make('password'),
                 'role' => 'customer',
+                'admin_scope' => null,
+                'branch_id' => null,
                 'is_active' => true,
                 'email_verified_at' => now(),
             ]
@@ -76,6 +106,8 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Customer Phoenix Non Member',
                 'password' => Hash::make('password'),
                 'role' => 'customer',
+                'admin_scope' => null,
+                'branch_id' => null,
                 'is_active' => true,
                 'email_verified_at' => now(),
             ]
@@ -145,8 +177,6 @@ class DatabaseSeeder extends Seeder
                 'usage_rules' => 'Gunakan hanya sebagai data dummy.',
                 'notes' => 'Data seeder lokal.',
                 'image_path' => null,
-                'stock_quantity' => 25,
-                'low_stock_threshold' => 5,
                 'is_active' => true,
                 'is_featured' => true,
             ]
@@ -174,6 +204,7 @@ class DatabaseSeeder extends Seeder
                 'location' => 'Jakarta Convention Dummy Hall',
                 'organizer' => 'Tim Phoenix',
                 'notes' => 'Event dummy untuk testing lead dan offline sales.',
+                'branch_id' => $bandungBranch->id,
             ]
         );
 
@@ -190,15 +221,16 @@ class DatabaseSeeder extends Seeder
             [
                 'assigned_staff_id' => $fieldStaff->id,
                 'customer_profile_id' => $customerProfile->id,
+                'branch_id' => $bandungBranch->id,
                 'lead_source_id' => $leadSource->id,
                 'event_id' => $event->id,
                 'name' => 'Prospek Dummy Phoenix',
-                'address' => 'Jl. Prospek Sehat No. 8, Jakarta',
+                'address' => 'Jl. Prospek Sehat No. 8, Bandung',
                 'interested_product_notes' => $product->name,
                 'interested_service_notes' => $service->name,
                 'initial_complaint' => 'Ingin konsultasi herbal dan terapi.',
                 'follow_up_status' => 'needs_follow_up',
-                'internal_notes' => 'Lead dummy assigned ke Field Staff Phoenix.',
+                'internal_notes' => 'Lead dummy assigned ke Field Staff Phoenix (Cabang Bandung).',
             ]
         );
 
@@ -207,6 +239,7 @@ class DatabaseSeeder extends Seeder
             [
                 'user_id' => $customer->id,
                 'customer_profile_id' => $customerProfile->id,
+                'branch_id' => $pusatBranch->id,
                 'service_id' => $service->id,
                 'name' => $customerProfile->name,
                 'whatsapp_number' => $customerProfile->whatsapp_number,
@@ -231,6 +264,21 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
+        BranchProductStock::query()->updateOrCreate(
+            ['branch_id' => $pusatBranch->id, 'product_id' => $product->id],
+            ['stock_quantity' => 25, 'low_stock_threshold' => 5]
+        );
+
+        BranchProductStock::query()->updateOrCreate(
+            ['branch_id' => $bandungBranch->id, 'product_id' => $product->id],
+            ['stock_quantity' => 10, 'low_stock_threshold' => 3]
+        );
+
+        $this->call([
+            AffiliateCommissionRuleSeeder::class,
+        ]);
+
         $admin->touch();
+        $adminCabang->touch();
     }
 }

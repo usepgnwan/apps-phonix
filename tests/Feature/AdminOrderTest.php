@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\Branch;
+use App\Models\BranchProductStock;
 use App\Models\CustomerProfile;
 use App\Models\Order;
 use App\Models\PaymentMethod;
@@ -119,8 +121,9 @@ class AdminOrderTest extends TestCase
             'payment_status' => 'paid',
             'status' => 'processing',
         ]);
-        $this->assertSame(8, $product->fresh()->stock_quantity);
-        $this->assertNotNull($order->fresh()->stock_decremented_at);
+        // Stok hanya berkurang saat payment ditandai paid via processPayment, bukan saat shipping update.
+        $this->assertSame(10, $this->branchStockFor($order, $product));
+        $this->assertNull($order->fresh()->stock_decremented_at);
     }
 
     public function test_payment_update_persists_fields_and_sets_received_timestamp(): void
@@ -166,7 +169,7 @@ class AdminOrderTest extends TestCase
         ]);
     }
 
-    public function test_status_update_to_processing_decrements_order_item_stock_once(): void
+    public function test_status_update_to_processing_does_not_decrement_stock(): void
     {
         $admin = $this->createAdmin();
         $order = $this->createOrder(itemQuantity: 2, productStock: 10);
@@ -179,34 +182,12 @@ class AdminOrderTest extends TestCase
 
         $response->assertRedirect(route('admin.orders.show', $order));
 
-        $this->assertSame(8, $product->fresh()->stock_quantity);
+        $this->assertSame(10, $this->branchStockFor($order, $product));
         $this->assertSame('processing', $order->fresh()->status);
-        $this->assertNotNull($order->fresh()->stock_decremented_at);
+        $this->assertNull($order->fresh()->stock_decremented_at);
     }
 
-    public function test_repeated_processing_status_update_does_not_decrement_stock_twice(): void
-    {
-        $admin = $this->createAdmin();
-        $order = $this->createOrder(itemQuantity: 2, productStock: 10);
-        $product = $order->orderItems()->firstOrFail()->product;
-
-        $this->actingAs($admin)->patch(route('admin.orders.status.update', $order), [
-            'status' => 'processing',
-            'admin_notes' => 'Mulai diproses',
-        ])->assertRedirect(route('admin.orders.show', $order));
-
-        $firstStockDecrementedAt = $order->fresh()->stock_decremented_at;
-
-        $this->actingAs($admin)->patch(route('admin.orders.status.update', $order), [
-            'status' => 'processing',
-            'admin_notes' => 'Tetap diproses',
-        ])->assertRedirect(route('admin.orders.show', $order));
-
-        $this->assertSame(8, $product->fresh()->stock_quantity);
-        $this->assertTrue($firstStockDecrementedAt->equalTo($order->fresh()->stock_decremented_at));
-    }
-
-    public function test_payment_update_to_paid_does_not_decrement_stock(): void
+    public function test_payment_update_to_paid_decrements_branch_stock_once(): void
     {
         $admin = $this->createAdmin();
         $order = $this->createOrder(itemQuantity: 2, productStock: 10);
@@ -219,23 +200,45 @@ class AdminOrderTest extends TestCase
 
         $response->assertRedirect(route('admin.orders.show', $order));
 
-        $this->assertSame(10, $product->fresh()->stock_quantity);
+        $this->assertSame(8, $this->branchStockFor($order, $product));
         $this->assertSame('payment_received', $order->fresh()->status);
-        $this->assertNull($order->fresh()->stock_decremented_at);
+        $this->assertNotNull($order->fresh()->stock_decremented_at);
     }
 
-    public function test_status_update_to_processing_fails_when_stock_is_insufficient(): void
+    public function test_repeated_payment_paid_update_does_not_decrement_stock_twice(): void
+    {
+        $admin = $this->createAdmin();
+        $order = $this->createOrder(itemQuantity: 2, productStock: 10);
+        $product = $order->orderItems()->firstOrFail()->product;
+
+        $this->actingAs($admin)->patch(route('admin.orders.payment.update', $order), [
+            'payment_status' => 'paid',
+            'payment_notes' => 'Lunas',
+        ])->assertRedirect(route('admin.orders.show', $order));
+
+        $firstStockDecrementedAt = $order->fresh()->stock_decremented_at;
+
+        $this->actingAs($admin)->patch(route('admin.orders.payment.update', $order), [
+            'payment_status' => 'paid',
+            'payment_notes' => 'Konfirmasi ulang',
+        ])->assertRedirect(route('admin.orders.show', $order));
+
+        $this->assertSame(8, $this->branchStockFor($order, $product));
+        $this->assertTrue($firstStockDecrementedAt->equalTo($order->fresh()->stock_decremented_at));
+    }
+
+    public function test_payment_update_to_paid_fails_when_branch_stock_is_insufficient(): void
     {
         $admin = $this->createAdmin();
         $order = $this->createOrder(itemQuantity: 2, productStock: 1);
         $product = $order->orderItems()->firstOrFail()->product;
 
-        $this->actingAs($admin)->patch(route('admin.orders.status.update', $order), [
-            'status' => 'processing',
-            'admin_notes' => 'Mulai diproses',
-        ])->assertSessionHasErrors('status');
+        $this->actingAs($admin)->patch(route('admin.orders.payment.update', $order), [
+            'payment_status' => 'paid',
+            'payment_notes' => 'Lunas',
+        ])->assertSessionHasErrors('payment_status');
 
-        $this->assertSame(1, $product->fresh()->stock_quantity);
+        $this->assertSame(1, $this->branchStockFor($order, $product));
         $this->assertSame('waiting_shipping_confirmation', $order->fresh()->status);
         $this->assertNull($order->fresh()->stock_decremented_at);
     }
@@ -339,7 +342,19 @@ class AdminOrderTest extends TestCase
 
     private function createAdmin(): User
     {
-        return User::factory()->create(['role' => 'admin', 'is_active' => true]);
+        return User::factory()->adminCentral()->create();
+    }
+
+    private function createBranch(): Branch
+    {
+        return Branch::query()->firstOrCreate(
+            ['slug' => 'pusat-test'],
+            [
+                'name' => 'Pusat Test',
+                'code' => 'PSTT',
+                'is_active' => true,
+            ]
+        );
     }
 
     private function createPaymentMethod(array $attributes = []): PaymentMethod
@@ -357,7 +372,8 @@ class AdminOrderTest extends TestCase
 
     private function createOrder(array $attributes = [], bool $withRelations = false, int $itemQuantity = 1, int $productStock = 10): Order
     {
-        $user = User::factory()->create();
+        $branch = $this->createBranch();
+        $user = User::factory()->customer()->create();
         $profile = CustomerProfile::query()->create([
             'user_id' => $user->id,
             'name' => 'Customer A',
@@ -366,7 +382,7 @@ class AdminOrderTest extends TestCase
             'member_status' => 'member',
         ]);
         $voucher = Voucher::query()->create([
-            'code' => 'DISC10',
+            'code' => 'DISC10-'.Voucher::query()->count(),
             'name' => 'Diskon 10',
             'discount_type' => 'fixed',
             'discount_value' => 10000,
@@ -379,6 +395,7 @@ class AdminOrderTest extends TestCase
 
         $order = Order::query()->create(array_merge([
             'order_number' => 'ORD-'.Order::query()->count(),
+            'branch_id' => $branch->id,
             'user_id' => $user->id,
             'customer_profile_id' => $profile->id,
             'voucher_id' => $voucher->id,
@@ -395,7 +412,18 @@ class AdminOrderTest extends TestCase
             'status' => 'waiting_shipping_confirmation',
         ], $attributes));
 
-        $product = $this->createProduct(['stock_quantity' => $productStock]);
+        $product = $this->createProduct();
+        BranchProductStock::query()->updateOrCreate(
+            [
+                'branch_id' => $order->branch_id,
+                'product_id' => $product->id,
+            ],
+            [
+                'stock_quantity' => $productStock,
+                'low_stock_threshold' => 1,
+            ]
+        );
+
         $order->orderItems()->create([
             'product_id' => $product->id,
             'product_name' => $product->name,
@@ -432,10 +460,16 @@ class AdminOrderTest extends TestCase
             'price' => 100000,
             'short_description' => 'Singkat',
             'full_description' => 'Lengkap',
-            'stock_quantity' => 10,
-            'low_stock_threshold' => 1,
             'is_active' => true,
             'is_featured' => false,
         ], $attributes));
+    }
+
+    private function branchStockFor(Order $order, Product $product): int
+    {
+        return (int) BranchProductStock::query()
+            ->where('branch_id', $order->branch_id)
+            ->where('product_id', $product->id)
+            ->value('stock_quantity');
     }
 }

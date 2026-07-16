@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Booking;
+use App\Models\Branch;
 use App\Models\CustomerProfile;
 use App\Models\Order;
 use App\Models\Service;
@@ -45,9 +46,9 @@ class AdminCustomerProfileTest extends TestCase
             ->assertOk()
             ->assertJsonPath('component', 'Admin/Customers/Index')
             ->assertJsonPath('props.page', 'admin.customers.index')
-            ->assertJsonPath('props.customerProfiles.0.orders_count', 1)
-            ->assertJsonPath('props.customerProfiles.0.bookings_count', 1)
-            ->assertJsonPath('props.customerProfiles.0.voucher_redemptions_count', 1);
+            ->assertJsonPath('props.customerProfiles.data.0.orders_count', 1)
+            ->assertJsonPath('props.customerProfiles.data.0.bookings_count', 1)
+            ->assertJsonPath('props.customerProfiles.data.0.voucher_redemptions_count', 1);
     }
 
     public function test_active_admin_can_view_customer_show_with_relations(): void
@@ -148,7 +149,7 @@ class AdminCustomerProfileTest extends TestCase
 
     private function createAdmin(): User
     {
-        return User::factory()->create(['role' => 'admin', 'is_active' => true]);
+        return User::factory()->adminCentral()->create();
     }
 
     private function inertiaGet(User $admin, string $url)
@@ -162,9 +163,21 @@ class AdminCustomerProfileTest extends TestCase
         return $this->actingAs($admin)->withHeaders($headers)->get($url);
     }
 
+    private function createBranch(): Branch
+    {
+        return Branch::query()->firstOrCreate(
+            ['slug' => 'pusat-test'],
+            [
+                'name' => 'Pusat Test',
+                'code' => 'PSTT',
+                'is_active' => true,
+            ]
+        );
+    }
+
     private function createCustomerProfile(?User $user = null): CustomerProfile
     {
-        $user ??= User::factory()->create();
+        $user ??= User::factory()->customer()->create();
 
         return CustomerProfile::query()->create([
             'user_id' => $user->id,
@@ -178,6 +191,7 @@ class AdminCustomerProfileTest extends TestCase
 
     private function createRelatedData(CustomerProfile $profile): void
     {
+        $branch = $this->createBranch();
         $service = Service::query()->create([
             'name' => 'Layanan A',
             'slug' => 'layanan-a-'.Service::query()->count(),
@@ -190,7 +204,7 @@ class AdminCustomerProfileTest extends TestCase
         ]);
 
         $voucher = Voucher::query()->create([
-            'code' => 'DISC10',
+            'code' => 'DISC10-'.Voucher::query()->count(),
             'name' => 'Diskon 10',
             'discount_type' => 'fixed',
             'discount_value' => 10000,
@@ -202,6 +216,7 @@ class AdminCustomerProfileTest extends TestCase
 
         Order::query()->create([
             'order_number' => 'ORD-'.Order::query()->count(),
+            'branch_id' => $branch->id,
             'user_id' => $profile->user_id,
             'customer_profile_id' => $profile->id,
             'customer_name' => $profile->name,
@@ -218,6 +233,7 @@ class AdminCustomerProfileTest extends TestCase
 
         Booking::query()->create([
             'booking_number' => 'BK-TEST-'.Booking::query()->count(),
+            'branch_id' => $branch->id,
             'user_id' => $profile->user_id,
             'customer_profile_id' => $profile->id,
             'service_id' => $service->id,

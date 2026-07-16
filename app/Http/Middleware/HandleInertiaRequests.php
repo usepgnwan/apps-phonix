@@ -35,11 +35,18 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $branches = \App\Models\Branch::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']);
+        $selectedBranchId = $request->session()->get('selected_branch_id') ?: $branches->first()?->id;
+        $user = $request->user();
+
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user ? $user->load('branch') : null,
+                'affiliate' => fn () => $this->sharedAffiliateSummary($request),
             ],
+            'branches' => $branches,
+            'selectedBranchId' => $selectedBranchId,
             'cartSummary' => fn (): array => [
                 'count' => (int) ($this->cartResolver->existing($request)?->cartItems()->sum('quantity') ?? 0),
             ],
@@ -52,6 +59,22 @@ class HandleInertiaRequests extends Middleware
                 'error' => fn () => $request->session()->get('error'),
                 'whatsappUrl' => fn () => $request->session()->get('whatsapp_url'),
             ],
+        ];
+    }
+
+    private function sharedAffiliateSummary(Request $request): ?array
+    {
+        $user = $request->user();
+
+        if ($user === null || ! $user->isCustomer()) {
+            return null;
+        }
+
+        $affiliate = $user->affiliate;
+
+        return [
+            'status' => $affiliate?->status,
+            'is_active' => $affiliate?->isActive() ?? false,
         ];
     }
 }
