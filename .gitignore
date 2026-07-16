@@ -26,6 +26,10 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 .omo
+# Legacy production extract (PII / production data — jangan commit)
+/database/data/legacy/
+*.pgdump
+dump-*.sql
 /public/images/products/*
 !/public/images/products/.gitignore
 /public/images/services/*
