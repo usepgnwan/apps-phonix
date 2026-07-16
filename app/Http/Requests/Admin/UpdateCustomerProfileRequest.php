@@ -10,8 +10,12 @@ class UpdateCustomerProfileRequest extends FormRequest
     public function authorize(): bool
     {
         $user = $this->user();
+        $customerProfile = $this->route('customerProfile');
 
-        return $user !== null && $user->role === 'admin' && $user->is_active;
+        return $user !== null
+            && $user->isAdmin()
+            && $customerProfile !== null
+            && $customerProfile->isVisibleToAdmin($user);
     }
 
     public function rules(): array

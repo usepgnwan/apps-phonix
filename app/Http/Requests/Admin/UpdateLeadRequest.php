@@ -14,9 +14,20 @@ class UpdateLeadRequest extends FormRequest
         return $user !== null && $user->role === 'admin' && $user->is_active;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $user = $this->user();
+        $forcedBranchId = $user?->forcedBranchId();
+
+        if ($forcedBranchId !== null) {
+            $this->merge(['branch_id' => $forcedBranchId]);
+        }
+    }
+
     public function rules(): array
     {
         return [
+            'branch_id' => ['nullable', 'exists:branches,id'],
             'assigned_staff_id' => [
                 'nullable',
                 Rule::exists('users', 'id')
@@ -35,5 +46,20 @@ class UpdateLeadRequest extends FormRequest
             'follow_up_status' => ['required', Rule::in(['new', 'interested', 'needs_follow_up', 'booking_examination', 'purchased', 'not_interested'])],
             'internal_notes' => ['nullable', 'string'],
         ];
+    }
+
+    public function withValidator($validator)
+    {
+        $validator->after(function ($validator) {
+            $user = $this->user();
+            if (! $user) {
+                return;
+            }
+
+            $branchId = $this->input('branch_id');
+            if ($branchId !== null && ! $user->canAccessBranch((int) $branchId)) {
+                $validator->errors()->add('branch_id', 'Anda hanya dapat mengubah lead ke cabang Anda sendiri.');
+            }
+        });
     }
 }

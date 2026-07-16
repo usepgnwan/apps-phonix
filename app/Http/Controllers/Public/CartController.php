@@ -7,6 +7,7 @@ use App\Http\Requests\Public\StoreCartItemRequest;
 use App\Http\Requests\Public\UpdateCartItemRequest;
 use App\Models\CartItem;
 use App\Models\Product;
+use App\Models\BranchProductStock;
 use App\Services\CartResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,7 +23,7 @@ class CartController extends Controller
 
     public function index(Request $request): Response
     {
-        $cart = $this->cartResolver->resolve($request)->load('cartItems.product.productCategory');
+        $cart = $this->cartResolver->resolve($request)->load('cartItems.product.productCategory', 'branch');
 
         return Inertia::render('Public/Cart/Index', [
             'cart' => $cart,
@@ -34,6 +35,7 @@ class CartController extends Controller
         $cart = $this->cartResolver->resolve($request);
         $product = Product::query()->findOrFail($request->integer('product_id'));
         $quantity = $request->integer('quantity');
+        $branchId = $request->integer('branch_id');
 
         if (! $product->is_active) {
             throw ValidationException::withMessages([
@@ -41,14 +43,31 @@ class CartController extends Controller
             ]);
         }
 
+        if ($cart->branch_id === null && $cart->cartItems()->count() === 0) {
+            $cart->update(['branch_id' => $branchId]);
+        }
+
+        if ($cart->branch_id !== null && $cart->branch_id !== $branchId) {
+            throw ValidationException::withMessages([
+                'branch_id' => 'Barang di keranjang Anda berasal dari cabang lain. Silakan selesaikan pesanan terlebih dahulu atau kosongkan keranjang.',
+            ]);
+        }
+
+        $branchStock = BranchProductStock::query()
+            ->where('branch_id', $branchId)
+            ->where('product_id', $product->id)
+            ->first();
+
+        $availableStock = $branchStock?->stock_quantity ?? 0;
+
         $cartItem = $cart->cartItems()
             ->where('product_id', $product->id)
             ->first();
         $newQuantity = ($cartItem?->quantity ?? 0) + $quantity;
 
-        if ($newQuantity > $product->stock_quantity) {
+        if ($newQuantity > $availableStock) {
             throw ValidationException::withMessages([
-                'quantity' => 'Jumlah produk melebihi stok tersedia.',
+                'quantity' => 'Jumlah produk melebihi stok tersedia di cabang ini.',
             ]);
         }
 
@@ -79,9 +98,16 @@ class CartController extends Controller
             ]);
         }
 
-        if ($quantity > $cartItem->product->stock_quantity) {
+        $branchStock = BranchProductStock::query()
+            ->where('branch_id', $cart->branch_id)
+            ->where('product_id', $cartItem->product->id)
+            ->first();
+
+        $availableStock = $branchStock?->stock_quantity ?? 0;
+
+        if ($quantity > $availableStock) {
             throw ValidationException::withMessages([
-                'quantity' => 'Jumlah produk melebihi stok tersedia.',
+                'quantity' => 'Jumlah produk melebihi stok tersedia di cabang ini.',
             ]);
         }
 
@@ -101,6 +127,10 @@ class CartController extends Controller
         }
 
         $cartItem->delete();
+
+        if ($cart->cartItems()->count() === 0) {
+            $cart->update(['branch_id' => null]);
+        }
 
         return redirect()
             ->back()

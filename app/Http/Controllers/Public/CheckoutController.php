@@ -80,7 +80,7 @@ class CheckoutController extends Controller
     public function store(StoreCheckoutRequest $request): RedirectResponse
     {
         $cart = $this->cartResolver->resolve($request);
-        $order = $this->checkoutService->checkout($cart, $request->validated());
+        $order = $this->checkoutService->checkout($cart, $request->validated(), $request);
         OrderLookupController::authorizeOrderForSession($request, $order);
 
         return redirect()

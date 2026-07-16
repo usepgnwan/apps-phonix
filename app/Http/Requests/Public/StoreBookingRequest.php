@@ -18,6 +18,7 @@ class StoreBookingRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'branch_id' => ['required', 'integer', Rule::exists('branches', 'id')->where('is_active', true)],
             'service_id' => ['required', 'integer', 'exists:services,id'],
             'name' => [$this->user() === null ? 'required' : 'nullable', 'string', 'max:255'],
             'whatsapp_number' => [$this->user() === null ? 'required' : 'nullable', 'string', 'max:30'],
