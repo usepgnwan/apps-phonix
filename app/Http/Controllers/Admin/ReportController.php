@@ -33,12 +33,20 @@ class ReportController extends Controller
     {
         $this->authorizeAdmin();
 
+        $user = $request->user();
         $period = $this->resolvePeriod($request);
-        $reports = $this->buildReports($period);
+        $branchId = $this->resolveBranchId($request);
+        $filters = array_merge($period, [
+            'branch_id' => $branchId,
+        ]);
+        $reports = $this->buildReports($filters);
 
         return Inertia::render('Admin/Reports/Index', [
             'page' => 'admin.reports.index',
-            'filters' => $period,
+            'filters' => $filters,
+            'branches' => $user->isAdminPusat()
+                ? \App\Models\Branch::query()->where('is_active', true)->orderBy('name')->get(['id', 'name'])
+                : [],
             'reports' => $reports,
         ]);
     }
@@ -48,11 +56,14 @@ class ReportController extends Controller
         $this->authorizeAdmin();
 
         $period = $this->resolvePeriod($request);
-        $reports = $this->buildReports($period);
+        $filters = array_merge($period, [
+            'branch_id' => $this->resolveBranchId($request),
+        ]);
+        $reports = $this->buildReports($filters);
         $filename = 'laporan-phoenix-'.$period['start_date'].'-'.$period['end_date'].'.xlsx';
 
-        return response()->streamDownload(function () use ($period, $reports): void {
-            $path = $this->buildXlsxFile($this->reportRows($period, $reports));
+        return response()->streamDownload(function () use ($filters, $reports): void {
+            $path = $this->buildXlsxFile($this->reportRows($filters, $reports));
 
             readfile($path);
             unlink($path);
@@ -60,20 +71,25 @@ class ReportController extends Controller
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ]);
     }
+
     public function exportPdf(Request $request): HttpResponse
     {
         $this->authorizeAdmin();
 
         $period = $this->resolvePeriod($request);
-        $reports = $this->buildReports($period);
+        $filters = array_merge($period, [
+            'branch_id' => $this->resolveBranchId($request),
+        ]);
+        $reports = $this->buildReports($filters);
 
         $pdf = app('dompdf.wrapper')->loadView('admin.reports.summary', [
-            'period' => $period,
+            'period' => $filters,
             'reports' => $reports,
         ]);
 
         return $pdf->stream('laporan-phoenix-'.$period['start_date'].'-'.$period['end_date'].'.pdf');
     }
+
     public function productSales(Request $request, \App\Models\Product $product)
     {
         $this->authorizeAdmin();
@@ -81,7 +97,7 @@ class ReportController extends Controller
         $period = $this->resolvePeriod($request);
         $start = Carbon::parse($period['start_date'])->startOfDay();
         $end = Carbon::parse($period['end_date'])->endOfDay();
-        $user = $request->user();
+        $branchId = $this->resolveBranchId($request);
 
         $onlineSalesQuery = \Illuminate\Support\Facades\DB::table('order_items')
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
@@ -92,9 +108,8 @@ class ReportController extends Controller
                     ->orWhereIn('orders.status', ['payment_received', 'completed']);
             });
 
-        $forcedBranchId = $user?->forcedBranchId();
-        if ($forcedBranchId !== null) {
-            $onlineSalesQuery->where('orders.branch_id', $forcedBranchId);
+        if ($branchId !== null) {
+            $onlineSalesQuery->where('orders.branch_id', $branchId);
         }
 
         $onlineSales = $onlineSalesQuery->selectRaw("
@@ -110,8 +125,8 @@ class ReportController extends Controller
             ->where('offline_sale_items.product_id', $product->id)
             ->whereBetween('offline_sales.sold_at', [$start, $end]);
 
-        if ($forcedBranchId !== null) {
-            $offlineSalesQuery->where('offline_sales.branch_id', $forcedBranchId);
+        if ($branchId !== null) {
+            $offlineSalesQuery->where('offline_sales.branch_id', $branchId);
         }
 
         $offlineSales = $offlineSalesQuery->selectRaw("
@@ -153,9 +168,17 @@ class ReportController extends Controller
             'productStockAndSales' => 'Stok & Penjualan Produk',
         ];
 
+        $branchLabel = 'Semua Cabang';
+        if (! empty($period['branch_id'])) {
+            $branchLabel = \App\Models\Branch::query()
+                ->whereKey((int) $period['branch_id'])
+                ->value('name') ?? ('Cabang #'.$period['branch_id']);
+        }
+
         $rows = [
-            ['Laporan Phoenix Kantor Pusat'],
+            ['Laporan Phoenix'],
             ['Periode', $period['start_date'].' s/d '.$period['end_date']],
+            ['Cabang', $branchLabel],
             [],
             ['KPI', 'Nilai'],
         ];
@@ -376,35 +399,62 @@ class ReportController extends Controller
         ];
     }
 
-    private function buildReports(array $period): array
+    /**
+     * null = semua cabang (admin pusat tanpa filter).
+     * int = cabang aktif (admin cabang, atau admin pusat yang memilih cabang).
+     */
+    private function resolveBranchId(Request $request): ?int
     {
-        $start = Carbon::parse($period['start_date'])->startOfDay();
-        $end = Carbon::parse($period['end_date'])->endOfDay();
+        $user = $request->user();
+
+        if ($user === null) {
+            return null;
+        }
+
+        $forcedBranchId = $user->forcedBranchId();
+        if ($forcedBranchId !== null) {
+            return $forcedBranchId;
+        }
+
+        if ($user->isAdminPusat() && $request->filled('branch_id')) {
+            return (int) $request->input('branch_id');
+        }
+
+        return null;
+    }
+
+    private function buildReports(array $filters): array
+    {
+        $start = Carbon::parse($filters['start_date'])->startOfDay();
+        $end = Carbon::parse($filters['end_date'])->endOfDay();
+        $branchId = array_key_exists('branch_id', $filters)
+            ? $filters['branch_id']
+            : $this->resolveBranchId(request());
 
         $segments = [
-            'leadsBySource' => $this->leadsBySource($start, $end),
-            'leadsByAssignedStaff' => $this->leadsByAssignedStaff($start, $end),
-            'bookingsByService' => $this->bookingsByService($start, $end),
-            'bookingsByStatus' => $this->bookingsByStatus($start, $end),
-            'ordersByStatus' => $this->ordersByStatus($start, $end),
-            'fieldActivitiesByType' => $this->fieldActivitiesByType($start, $end),
-            'productRecommendationsByProduct' => $this->productRecommendationsByProduct($start, $end),
-            'productStockAndSales' => $this->productStockAndSales($start, $end, request()->user()),
+            'leadsBySource' => $this->leadsBySource($start, $end, $branchId),
+            'leadsByAssignedStaff' => $this->leadsByAssignedStaff($start, $end, $branchId),
+            'bookingsByService' => $this->bookingsByService($start, $end, $branchId),
+            'bookingsByStatus' => $this->bookingsByStatus($start, $end, $branchId),
+            'ordersByStatus' => $this->ordersByStatus($start, $end, $branchId),
+            'fieldActivitiesByType' => $this->fieldActivitiesByType($start, $end, $branchId),
+            'productRecommendationsByProduct' => $this->productRecommendationsByProduct($start, $end, $branchId),
+            'productStockAndSales' => $this->productStockAndSales($start, $end, $branchId),
         ];
 
-        $websiteOrderRevenue = $this->paidOrders($start, $end)->sum('total');
-        $offlineSalesRevenue = $this->between(OfflineSale::query(), $start, $end, 'sold_at')->sum('total');
+        $websiteOrderRevenue = $this->paidOrders($start, $end, $branchId)->sum('total');
+        $offlineSalesRevenue = $this->between(OfflineSale::query(), $start, $end, 'sold_at', $branchId)->sum('total');
 
         return [
             'kpis' => [
                 'websiteOrderRevenue' => (float) $websiteOrderRevenue,
                 'offlineSalesRevenue' => (float) $offlineSalesRevenue,
                 'totalRevenue' => (float) $websiteOrderRevenue + (float) $offlineSalesRevenue,
-                'totalLeads' => $this->between(Lead::query(), $start, $end)->count(),
-                'totalBookings' => $this->between(Booking::query(), $start, $end)->count(),
-                'totalOrders' => $this->between(Order::query(), $start, $end)->count(),
-                'totalFieldActivities' => $this->between(FieldActivity::query(), $start, $end, 'activity_at')->count(),
-                'totalProductRecommendations' => $this->between(ProductRecommendation::query(), $start, $end)->count(),
+                'totalLeads' => $this->between(Lead::query(), $start, $end, 'created_at', $branchId)->count(),
+                'totalBookings' => $this->between(Booking::query(), $start, $end, 'created_at', $branchId)->count(),
+                'totalOrders' => $this->between(Order::query(), $start, $end, 'created_at', $branchId)->count(),
+                'totalFieldActivities' => $this->between(FieldActivity::query(), $start, $end, 'activity_at', $branchId)->count(),
+                'totalProductRecommendations' => $this->between(ProductRecommendation::query(), $start, $end, 'created_at', $branchId)->count(),
             ],
             'segments' => $segments,
             'charts' => [
@@ -412,7 +462,7 @@ class ReportController extends Controller
                     ['name' => 'Order Website', 'value' => (float) $websiteOrderRevenue],
                     ['name' => 'Penjualan Offline', 'value' => (float) $offlineSalesRevenue],
                 ],
-                'trends' => $this->trends($start, $end),
+                'trends' => $this->trends($start, $end, $branchId),
             ],
             ...$segments,
             'websiteOrderRevenue' => (float) $websiteOrderRevenue,
@@ -420,24 +470,31 @@ class ReportController extends Controller
         ];
     }
 
-    private function between(Builder $query, Carbon $start, Carbon $end, string $column = 'created_at'): Builder
-    {
+    private function between(
+        Builder $query,
+        Carbon $start,
+        Carbon $end,
+        string $column = 'created_at',
+        ?int $branchId = null
+    ): Builder {
         $user = request()->user();
+        $resolvedBranchId = $branchId ?? $this->resolveBranchId(request());
 
         if ($user) {
             $model = $query->getModel();
 
             if ($model instanceof FieldActivity) {
-                $forcedBranchId = $user->forcedBranchId();
-                if ($forcedBranchId !== null) {
-                    $query->whereHas('fieldStaff', function (Builder $staffQuery) use ($forcedBranchId): void {
-                        $staffQuery->where('branch_id', $forcedBranchId);
+                if ($resolvedBranchId !== null) {
+                    $query->whereHas('fieldStaff', function (Builder $staffQuery) use ($resolvedBranchId): void {
+                        $staffQuery->where('branch_id', $resolvedBranchId);
                     });
                 } elseif (! $user->isAdminPusat()) {
                     $query->whereRaw('0 = 1');
                 }
             } elseif ($model instanceof ProductRecommendation) {
                 // ProductRecommendation tidak punya branch_id; dibiarkan global.
+            } elseif ($resolvedBranchId !== null) {
+                $query->where('branch_id', $resolvedBranchId);
             } else {
                 $user->applyBranchScope($query);
             }
@@ -446,9 +503,9 @@ class ReportController extends Controller
         return $query->whereBetween($column, [$start, $end]);
     }
 
-    private function paidOrders(Carbon $start, Carbon $end): Builder
+    private function paidOrders(Carbon $start, Carbon $end, ?int $branchId = null): Builder
     {
-        return $this->between(Order::query(), $start, $end)
+        return $this->between(Order::query(), $start, $end, 'created_at', $branchId)
             ->where(function (Builder $query): void {
                 $query->where('payment_status', 'paid')
                     ->orWhere('status', 'payment_received')
@@ -456,9 +513,9 @@ class ReportController extends Controller
             });
     }
 
-    private function leadsBySource(Carbon $start, Carbon $end)
+    private function leadsBySource(Carbon $start, Carbon $end, ?int $branchId = null)
     {
-        return $this->between(Lead::query(), $start, $end)
+        return $this->between(Lead::query(), $start, $end, 'created_at', $branchId)
             ->selectRaw('lead_source_id, COUNT(*) as total')
             ->with('leadSource:id,name')
             ->groupBy('lead_source_id')
@@ -471,9 +528,9 @@ class ReportController extends Controller
             ]);
     }
 
-    private function leadsByAssignedStaff(Carbon $start, Carbon $end)
+    private function leadsByAssignedStaff(Carbon $start, Carbon $end, ?int $branchId = null)
     {
-        return $this->between(Lead::query(), $start, $end)
+        return $this->between(Lead::query(), $start, $end, 'created_at', $branchId)
             ->selectRaw('assigned_staff_id, COUNT(*) as total')
             ->with('assignedStaff:id,name,email')
             ->groupBy('assigned_staff_id')
@@ -487,9 +544,9 @@ class ReportController extends Controller
             ]);
     }
 
-    private function bookingsByService(Carbon $start, Carbon $end)
+    private function bookingsByService(Carbon $start, Carbon $end, ?int $branchId = null)
     {
-        return $this->between(Booking::query(), $start, $end)
+        return $this->between(Booking::query(), $start, $end, 'created_at', $branchId)
             ->selectRaw('service_id, COUNT(*) as total')
             ->with('service:id,name')
             ->groupBy('service_id')
@@ -502,9 +559,9 @@ class ReportController extends Controller
             ]);
     }
 
-    private function bookingsByStatus(Carbon $start, Carbon $end)
+    private function bookingsByStatus(Carbon $start, Carbon $end, ?int $branchId = null)
     {
-        return $this->between(Booking::query(), $start, $end)
+        return $this->between(Booking::query(), $start, $end, 'created_at', $branchId)
             ->selectRaw('status, COUNT(*) as total')
             ->groupBy('status')
             ->orderBy('status')
@@ -515,9 +572,9 @@ class ReportController extends Controller
             ]);
     }
 
-    private function ordersByStatus(Carbon $start, Carbon $end)
+    private function ordersByStatus(Carbon $start, Carbon $end, ?int $branchId = null)
     {
-        return $this->between(Order::query(), $start, $end)
+        return $this->between(Order::query(), $start, $end, 'created_at', $branchId)
             ->selectRaw('status, COUNT(*) as total')
             ->groupBy('status')
             ->orderBy('status')
@@ -528,9 +585,9 @@ class ReportController extends Controller
             ]);
     }
 
-    private function fieldActivitiesByType(Carbon $start, Carbon $end)
+    private function fieldActivitiesByType(Carbon $start, Carbon $end, ?int $branchId = null)
     {
-        return $this->between(FieldActivity::query(), $start, $end, 'activity_at')
+        return $this->between(FieldActivity::query(), $start, $end, 'activity_at', $branchId)
             ->selectRaw('activity_type, COUNT(*) as total')
             ->groupBy('activity_type')
             ->orderBy('activity_type')
@@ -541,9 +598,9 @@ class ReportController extends Controller
             ]);
     }
 
-    private function productRecommendationsByProduct(Carbon $start, Carbon $end)
+    private function productRecommendationsByProduct(Carbon $start, Carbon $end, ?int $branchId = null)
     {
-        return $this->between(ProductRecommendation::query(), $start, $end)
+        return $this->between(ProductRecommendation::query(), $start, $end, 'created_at', $branchId)
             ->selectRaw('product_id, COUNT(*) as total')
             ->with('product:id,name,slug')
             ->groupBy('product_id')
@@ -557,20 +614,18 @@ class ReportController extends Controller
             ]);
     }
 
-    private function productStockAndSales(Carbon $start, Carbon $end, $user)
+    private function productStockAndSales(Carbon $start, Carbon $end, ?int $branchId = null)
     {
-        $forcedBranchId = $user?->forcedBranchId();
-
         $query = \App\Models\Product::query()
             ->select('id', 'name')
-            ->with(['branchStocks' => function ($q) use ($forcedBranchId) {
-                if ($forcedBranchId !== null) {
-                    $q->where('branch_id', $forcedBranchId);
+            ->with(['branchStocks' => function ($q) use ($branchId) {
+                if ($branchId !== null) {
+                    $q->where('branch_id', $branchId);
                 }
             }]);
 
         return $query->get()
-            ->map(function (\App\Models\Product $product) use ($start, $end, $forcedBranchId): array {
+            ->map(function (\App\Models\Product $product) use ($start, $end, $branchId): array {
                 $onlineSalesQuery = \Illuminate\Support\Facades\DB::table('order_items')
                     ->join('orders', 'order_items.order_id', '=', 'orders.id')
                     ->where('order_items.product_id', $product->id)
@@ -580,8 +635,8 @@ class ReportController extends Controller
                             ->orWhereIn('orders.status', ['payment_received', 'completed']);
                     });
 
-                if ($forcedBranchId !== null) {
-                    $onlineSalesQuery->where('orders.branch_id', $forcedBranchId);
+                if ($branchId !== null) {
+                    $onlineSalesQuery->where('orders.branch_id', $branchId);
                 }
 
                 $onlineSales = $onlineSalesQuery->sum('order_items.quantity');
@@ -591,21 +646,21 @@ class ReportController extends Controller
                     ->where('offline_sale_items.product_id', $product->id)
                     ->whereBetween('offline_sales.sold_at', [$start, $end]);
 
-                if ($forcedBranchId !== null) {
-                    $offlineSalesQuery->where('offline_sales.branch_id', $forcedBranchId);
+                if ($branchId !== null) {
+                    $offlineSalesQuery->where('offline_sales.branch_id', $branchId);
                 }
 
                 $offlineSales = $offlineSalesQuery->sum('offline_sale_items.quantity');
 
                 $totalSold = (int) ($onlineSales + $offlineSales);
-                
+
                 // Calculate stock available
                 $stockQuantity = $product->branchStocks->sum('stock_quantity');
 
                 return [
                     'id' => $product->id,
                     'name' => $product->name,
-                    'slug' => 'Stok Tersedia: ' . number_format($stockQuantity, 0, ',', '.'),
+                    'slug' => 'Stok Tersedia: '.number_format($stockQuantity, 0, ',', '.'),
                     'total' => $totalSold,
                 ];
             })
@@ -614,7 +669,7 @@ class ReportController extends Controller
             ->all();
     }
 
-    private function trends(Carbon $start, Carbon $end): array
+    private function trends(Carbon $start, Carbon $end, ?int $branchId = null): array
     {
         $period = collect(CarbonPeriod::create($start->toDateString(), $end->toDateString()))
             ->map(fn (Carbon $date): string => $date->toDateString())
@@ -629,11 +684,11 @@ class ReportController extends Controller
         $trendStart = Carbon::parse($period->first())->startOfDay();
 
         return [
-            'websiteOrderRevenue' => $this->sumTrend($this->paidOrders($trendStart, $end), $period, 'total'),
-            'offlineSalesRevenue' => $this->sumTrend($this->between(OfflineSale::query(), $trendStart, $end, 'sold_at'), $period, 'total', 'sold_at'),
-            'leads' => $this->countTrend($this->between(Lead::query(), $trendStart, $end), $period),
-            'bookings' => $this->countTrend($this->between(Booking::query(), $trendStart, $end), $period),
-            'orders' => $this->countTrend($this->between(Order::query(), $trendStart, $end), $period),
+            'websiteOrderRevenue' => $this->sumTrend($this->paidOrders($trendStart, $end, $branchId), $period, 'total'),
+            'offlineSalesRevenue' => $this->sumTrend($this->between(OfflineSale::query(), $trendStart, $end, 'sold_at', $branchId), $period, 'total', 'sold_at'),
+            'leads' => $this->countTrend($this->between(Lead::query(), $trendStart, $end, 'created_at', $branchId), $period),
+            'bookings' => $this->countTrend($this->between(Booking::query(), $trendStart, $end, 'created_at', $branchId), $period),
+            'orders' => $this->countTrend($this->between(Order::query(), $trendStart, $end, 'created_at', $branchId), $period),
         ];
     }
 

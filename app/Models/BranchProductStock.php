@@ -17,6 +17,14 @@ class BranchProductStock extends Model
         'low_stock_threshold',
     ];
 
+    protected function casts(): array
+    {
+        return [
+            'stock_quantity' => 'integer',
+            'low_stock_threshold' => 'integer',
+        ];
+    }
+
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);

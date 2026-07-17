@@ -77,7 +77,11 @@ class ProductController extends Controller
         $perPage = $request->input('per_page', 10);
         
         $products = Product::query()
-            ->with(['productCategory:id,name,slug', 'branchStocks.branch'])
+            ->with([
+                'productCategory:id,name,slug',
+                'branchStocks' => fn ($query) => $query->whereHas('branch'),
+                'branchStocks.branch:id,name',
+            ])
             ->when($search, function ($query, $search) {
                 $query->where('name', 'like', "%{$search}%");
             })
@@ -125,7 +129,11 @@ class ProductController extends Controller
     {
         $this->authorizeAdmin();
 
-        $product->load(['productCategory:id,name,slug', 'branchStocks.branch']);
+        $product->load([
+            'productCategory:id,name,slug',
+            'branchStocks' => fn ($query) => $query->whereHas('branch')->orderBy('branch_id'),
+            'branchStocks.branch:id,name',
+        ]);
 
         return Inertia::render('Admin/Products/Show', [
             'page' => 'admin.products.show',
@@ -137,7 +145,11 @@ class ProductController extends Controller
     {
         $this->authorizeAdmin();
 
-        $product->load(['productCategory:id,name,slug', 'branchStocks.branch']);
+        $product->load([
+            'productCategory:id,name,slug',
+            'branchStocks' => fn ($query) => $query->whereHas('branch')->orderBy('branch_id'),
+            'branchStocks.branch:id,name',
+        ]);
 
         return Inertia::render('Admin/Products/Edit', [
             'page' => 'admin.products.edit',

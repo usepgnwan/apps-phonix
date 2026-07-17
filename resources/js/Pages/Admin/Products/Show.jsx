@@ -12,15 +12,50 @@ function productKategori(product) {
     return product.product_category ?? product.productKategori;
 }
 
+function getValidBranchStocks(product) {
+    return (product.branch_stocks ?? []).filter((stock) => stock?.branch != null);
+}
+
+function toStockNumber(value) {
+    const n = Number(value ?? 0);
+    return Number.isNaN(n) ? 0 : n;
+}
+
+function isBranchLowStock(stock) {
+    const qty = toStockNumber(stock?.stock_quantity);
+    const threshold = toStockNumber(stock?.low_stock_threshold);
+
+    return threshold > 0 && qty <= threshold;
+}
+
+function getTotalStock(product) {
+    const stocks = getValidBranchStocks(product);
+
+    if (stocks.length > 0) {
+        return stocks.reduce((acc, bs) => acc + toStockNumber(bs.stock_quantity), 0);
+    }
+
+    return toStockNumber(product.stock_quantity);
+}
+
 function isLowStock(product) {
-    const totalStock = product.branch_stocks ? product.branch_stocks.reduce((acc, bs) => acc + (bs.stock_quantity || 0), 0) : (Number(product.stock_quantity ?? 0));
-    const totalThreshold = product.branch_stocks ? product.branch_stocks.reduce((acc, bs) => acc + (bs.low_stock_threshold || 0), 0) : (Number(product.low_stock_threshold ?? 0));
-    
-    return totalStock <= totalThreshold;
+    const stocks = getValidBranchStocks(product);
+
+    if (stocks.length > 0) {
+        return stocks.some(isBranchLowStock);
+    }
+
+    const totalStock = toStockNumber(product.stock_quantity);
+    const totalThreshold = toStockNumber(product.low_stock_threshold);
+
+    return totalThreshold > 0 && totalStock <= totalThreshold;
 }
 
 function AdminProdukShow({ product }) {
     const category = productKategori(product);
+    const branchStocks = getValidBranchStocks(product);
+    const totalStock = getTotalStock(product);
+    const productIsLowStock = isLowStock(product);
 
     return (
         <>
@@ -63,7 +98,7 @@ function AdminProdukShow({ product }) {
                             <DetailRow label="Kategori">{category?.name ?? '-'}</DetailRow>
                             <DetailRow label="Harga">{formatCurrency(product.price)}</DetailRow>
                             <DetailRow label="Total Stok">
-                                {product.branch_stocks ? product.branch_stocks.reduce((acc, bs) => acc + (bs.stock_quantity || 0), 0) : (product.stock_quantity ?? 0)}
+                                {totalStock}
                             </DetailRow>
                             <DetailRow label="Status">
                                 <StatusBadge
@@ -78,7 +113,7 @@ function AdminProdukShow({ product }) {
                                     <StatusBadge label="Tidak" tone="gray" />
                                 )}
                             </DetailRow>
-                            {isLowStock(product) && (
+                            {productIsLowStock && (
                                 <DetailRow label="Peringatan">
                                     <StatusBadge label="Stok Rendah" tone="orange" />
                                 </DetailRow>
@@ -89,16 +124,22 @@ function AdminProdukShow({ product }) {
                     <AdminCard className="p-5">
                         <div className="space-y-3">
                             <h3 className="font-bold text-[#333333] border-b border-[#E5E7EB] pb-2 mb-2">Stok Per Cabang</h3>
-                            {product.branch_stocks?.length > 0 ? (
+                            {branchStocks.length > 0 ? (
                                 <div className="space-y-2">
-                                    {product.branch_stocks.map(bs => (
-                                        <div key={bs.id} className="flex justify-between items-center bg-gray-50 p-2 rounded">
-                                            <span className="font-medium text-sm text-gray-700">{bs.branch?.name}</span>
-                                            <span className={`text-sm font-bold ${bs.stock_quantity <= bs.low_stock_threshold ? 'text-red-600' : 'text-gray-900'}`}>
-                                                {bs.stock_quantity} <span className="font-normal text-xs text-gray-500">(Batas: {bs.low_stock_threshold})</span>
-                                            </span>
-                                        </div>
-                                    ))}
+                                    {branchStocks.map((bs) => {
+                                        const qty = toStockNumber(bs.stock_quantity);
+                                        const threshold = toStockNumber(bs.low_stock_threshold);
+                                        const isLow = isBranchLowStock(bs) || qty === 0;
+
+                                        return (
+                                            <div key={bs.id} className="flex justify-between items-center bg-gray-50 p-2 rounded">
+                                                <span className="font-medium text-sm text-gray-700">{bs.branch?.name ?? `Cabang #${bs.branch_id}`}</span>
+                                                <span className={`text-sm font-bold ${isLow ? 'text-red-600' : 'text-gray-900'}`}>
+                                                    {qty} <span className="font-normal text-xs text-gray-500">(Batas: {threshold})</span>
+                                                </span>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             ) : (
                                 <p className="text-sm text-gray-500">Belum ada data stok per cabang.</p>

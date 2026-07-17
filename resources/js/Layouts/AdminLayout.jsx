@@ -16,6 +16,7 @@ import {
     Settings,
     Store,
     Tags,
+    Warehouse,
     UserRound,
     UsersRound,
     Video,
@@ -49,6 +50,7 @@ const navigationGroups = [
             { label: 'Customer', routeName: 'admin.customers.index', pattern: 'admin.customers.*', icon: UsersRound },
             { label: 'Lead', routeName: 'admin.leads.index', pattern: 'admin.leads.*', icon: UserRound },
             { label: 'Event', routeName: 'admin.events.index', pattern: 'admin.events.*', icon: CalendarCheck },
+            { label: 'Sumber Lead', routeName: 'admin.lead-sources.index', pattern: 'admin.lead-sources.*', icon: Tags, centralOnly: true },
         ],
     },
     {
@@ -60,19 +62,28 @@ const navigationGroups = [
         ],
     },
     {
-        label: 'Master Data',
+        label: 'Katalog',
+        items: [
+            { label: 'Produk', routeName: 'admin.products.index', pattern: 'admin.products.*', icon: Package },
+            { label: 'Kategori Produk', routeName: 'admin.product-categories.index', pattern: 'admin.product-categories.*', icon: Tags },
+            { label: 'Layanan', routeName: 'admin.services.index', pattern: 'admin.services.*', icon: Leaf },
+            { label: 'Stok Cabang', routeName: 'admin.stock.index', pattern: 'admin.stock.*', icon: Warehouse, centralOnly: true },
+            { label: 'Voucher', routeName: 'admin.vouchers.index', pattern: 'admin.vouchers.*', icon: BadgePercent, centralOnly: true },
+        ],
+    },
+    {
+        label: 'Organisasi',
         items: [
             { label: 'Cabang', routeName: 'admin.branches.index', pattern: 'admin.branches.*', icon: MapPin, centralOnly: true },
             { label: 'Admin', routeName: 'admin.admins.index', pattern: 'admin.admins.*', icon: UserRound, centralOnly: true },
             { label: 'Staff', routeName: 'admin.staff.index', pattern: 'admin.staff.*', icon: UsersRound },
             { label: 'Tim', routeName: 'admin.teams.index', pattern: 'admin.teams.*', icon: UsersRound, centralOnly: true },
             { label: 'Jabatan', routeName: 'admin.positions.index', pattern: 'admin.positions.*', icon: UserRound, centralOnly: true },
-            { label: 'Produk', routeName: 'admin.products.index', pattern: 'admin.products.*', icon: Package },
-            { label: 'Kategori Produk', routeName: 'admin.product-categories.index', pattern: 'admin.product-categories.*', icon: Tags },
-            { label: 'Layanan', routeName: 'admin.services.index', pattern: 'admin.services.*', icon: Leaf },
-            { label: 'Voucher', routeName: 'admin.vouchers.index', pattern: 'admin.vouchers.*', icon: BadgePercent, centralOnly: true },
-            { label: 'Metode Pembayaran', routeName: 'admin.payment-methods.index', pattern: 'admin.payment-methods.*', icon: CreditCard, centralOnly: true },
-            { label: 'Sumber Lead', routeName: 'admin.lead-sources.index', pattern: 'admin.lead-sources.*', icon: Tags, centralOnly: true },
+        ],
+    },
+    {
+        label: 'Konten',
+        items: [
             { label: 'Video', routeName: 'admin.videos.index', pattern: 'admin.videos.*', icon: Video, centralOnly: true },
             { label: 'Testimoni', routeName: 'admin.testimonials.index', pattern: 'admin.testimonials.*', icon: MessageSquare, centralOnly: true },
         ],
@@ -80,6 +91,7 @@ const navigationGroups = [
     {
         label: 'Sistem',
         items: [
+            { label: 'Metode Pembayaran', routeName: 'admin.payment-methods.index', pattern: 'admin.payment-methods.*', icon: CreditCard, centralOnly: true },
             { label: 'Pengaturan', routeName: 'admin.settings.index', pattern: 'admin.settings.*', icon: Settings, centralOnly: true },
         ],
     },

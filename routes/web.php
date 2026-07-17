@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\AffiliateController as AdminAffiliateController;
 use App\Http\Controllers\Admin\AffiliatePayoutController as AdminAffiliatePayoutController;
 use App\Http\Controllers\Admin\ProductCategoryController as AdminProductCategoryController;
 use App\Http\Controllers\Admin\ProductController as AdminProductController;
+use App\Http\Controllers\Admin\BranchStockController as AdminBranchStockController;
 use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Admin\CustomerController as AdminCustomerController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
@@ -95,6 +96,7 @@ Route::middleware('auth')->group(function () {
 
         Route::resource('product-categories', AdminProductCategoryController::class)->except(['create', 'edit']);
         Route::resource('products', AdminProductController::class);
+        Route::get('/stock', [AdminBranchStockController::class, 'index'])->name('stock.index');
         Route::resource('services', AdminServiceController::class);
         Route::resource('events', AdminEventController::class);
         Route::resource('payment-methods', AdminPaymentMethodController::class)->except(['create', 'edit']);
