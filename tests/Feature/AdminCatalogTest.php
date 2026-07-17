@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\Branch;
+use App\Models\BranchProductStock;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\Service;
@@ -36,37 +38,37 @@ class AdminCatalogTest extends TestCase
         $product = $this->createProduct($category);
         $service = $this->createService();
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.product-categories.index'))
+        $this->inertiaGet($admin, route('admin.product-categories.index'))
             ->assertOk()->assertJsonPath('component', 'Admin/ProductCategories/Index')->assertJsonPath('props.page', 'admin.product-categories.index')
-            ->assertJsonCount(1, 'props.productCategories');
+            ->assertJsonCount(1, 'props.productCategories.data');
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.product-categories.show', $category))
+        $this->inertiaGet($admin, route('admin.product-categories.show', $category))
             ->assertOk()->assertJsonPath('component', 'Admin/ProductCategories/Show')->assertJsonPath('props.page', 'admin.product-categories.show');
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.products.index'))
+        $this->inertiaGet($admin, route('admin.products.index'))
             ->assertOk()->assertJsonPath('component', 'Admin/Products/Index')->assertJsonPath('props.page', 'admin.products.index');
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.products.create'))
+        $this->inertiaGet($admin, route('admin.products.create'))
             ->assertOk()->assertJsonPath('component', 'Admin/Products/Create')->assertJsonPath('props.page', 'admin.products.create')
             ->assertJsonCount(1, 'props.productCategories');
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.products.show', $product))
+        $this->inertiaGet($admin, route('admin.products.show', $product))
             ->assertOk()->assertJsonPath('component', 'Admin/Products/Show')->assertJsonPath('props.page', 'admin.products.show');
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.products.edit', $product))
+        $this->inertiaGet($admin, route('admin.products.edit', $product))
             ->assertOk()->assertJsonPath('component', 'Admin/Products/Edit')->assertJsonPath('props.page', 'admin.products.edit')
             ->assertJsonCount(1, 'props.productCategories');
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.services.index'))
+        $this->inertiaGet($admin, route('admin.services.index'))
             ->assertOk()->assertJsonPath('component', 'Admin/Services/Index')->assertJsonPath('props.page', 'admin.services.index');
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.services.create'))
+        $this->inertiaGet($admin, route('admin.services.create'))
             ->assertOk()->assertJsonPath('component', 'Admin/Services/Create')->assertJsonPath('props.page', 'admin.services.create');
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.services.show', $service))
+        $this->inertiaGet($admin, route('admin.services.show', $service))
             ->assertOk()->assertJsonPath('component', 'Admin/Services/Show')->assertJsonPath('props.page', 'admin.services.show');
 
-        $this->actingAs($admin)->withHeader('X-Inertia', 'true')->get(route('admin.services.edit', $service))
+        $this->inertiaGet($admin, route('admin.services.edit', $service))
             ->assertOk()->assertJsonPath('component', 'Admin/Services/Edit')->assertJsonPath('props.page', 'admin.services.edit');
     }
 
@@ -163,8 +165,6 @@ class AdminCatalogTest extends TestCase
             'usage_rules' => 'Aturan',
             'notes' => 'Catatan',
             'image_path' => null,
-            'stock_quantity' => 10,
-            'low_stock_threshold' => 2,
             'is_active' => true,
             'is_featured' => false,
         ]);
@@ -183,8 +183,6 @@ class AdminCatalogTest extends TestCase
             'usage_rules' => null,
             'notes' => null,
             'image_path' => 'images/product.jpg',
-            'stock_quantity' => 5,
-            'low_stock_threshold' => 1,
             'is_active' => false,
             'is_featured' => true,
         ]);
@@ -217,6 +215,80 @@ class AdminCatalogTest extends TestCase
 
         $this->actingAs($admin)->patch(route('admin.products.update', $product), $this->productPayload($category->id, slug: 'unik-produk'))
             ->assertSessionHasNoErrors();
+    }
+
+    public function test_admin_products_index_and_show_return_only_valid_branch_stocks(): void
+    {
+        $admin = $this->createAdmin();
+        $category = $this->createCategory();
+        $product = $this->createProduct($category, slug: 'pason-stok');
+
+        $headOffice = $this->createBranch('Head Office', 'HO');
+        $indramayu = $this->createBranch('Indramayu', 'IDM');
+        $deletedBranch = $this->createBranch('Cabang Dihapus', 'DEL');
+        $deletedBranch->delete();
+
+        BranchProductStock::query()->create([
+            'branch_id' => $headOffice->id,
+            'product_id' => $product->id,
+            'stock_quantity' => 8,
+            'low_stock_threshold' => 0,
+        ]);
+        BranchProductStock::query()->create([
+            'branch_id' => $indramayu->id,
+            'product_id' => $product->id,
+            'stock_quantity' => 4,
+            'low_stock_threshold' => 0,
+        ]);
+        BranchProductStock::query()->create([
+            'branch_id' => $deletedBranch->id,
+            'product_id' => $product->id,
+            'stock_quantity' => 99,
+            'low_stock_threshold' => 0,
+        ]);
+
+        $indexResponse = $this->inertiaGet($admin, route('admin.products.index'));
+
+        $indexResponse->assertOk()
+            ->assertJsonPath('component', 'Admin/Products/Index');
+
+        $indexProduct = collect($indexResponse->json('props.products.data'))
+            ->firstWhere('id', $product->id);
+
+        $this->assertNotNull($indexProduct);
+        $this->assertCount(2, $indexProduct['branch_stocks']);
+        $this->assertSame(
+            12,
+            collect($indexProduct['branch_stocks'])->sum(fn ($stock) => (int) $stock['stock_quantity']),
+        );
+        $this->assertIsInt($indexProduct['branch_stocks'][0]['stock_quantity']);
+        $this->assertIsInt($indexProduct['branch_stocks'][0]['low_stock_threshold']);
+
+        $showResponse = $this->inertiaGet($admin, route('admin.products.show', $product));
+
+        $showResponse->assertOk()
+            ->assertJsonPath('component', 'Admin/Products/Show');
+
+        $showStocks = $showResponse->json('props.product.branch_stocks');
+        $this->assertCount(2, $showStocks);
+        $this->assertSame(
+            12,
+            collect($showStocks)->sum(fn ($stock) => (int) $stock['stock_quantity']),
+        );
+        $this->assertFalse(
+            collect($showStocks)->contains(fn ($stock) => (int) $stock['stock_quantity'] === 99),
+        );
+    }
+
+    private function inertiaGet(User $user, string $url)
+    {
+        $headers = ['X-Inertia' => 'true'];
+
+        if (file_exists(public_path('build/manifest.json'))) {
+            $headers['X-Inertia-Version'] = hash_file('xxh128', public_path('build/manifest.json'));
+        }
+
+        return $this->actingAs($user)->withHeaders($headers)->get($url);
     }
 
     public function test_active_admin_can_crud_services(): void
@@ -285,8 +357,20 @@ class AdminCatalogTest extends TestCase
 
     private function createAdmin(): User
     {
-        return User::factory()->create([
-            'role' => 'admin',
+        return User::factory()->adminCentral()->create([
+            'is_active' => true,
+        ]);
+    }
+
+    private function createBranch(string $name, string $code): Branch
+    {
+        return Branch::query()->create([
+            'name' => $name,
+            'slug' => str($name)->slug()->toString(),
+            'code' => $code,
+            'address' => 'Alamat '.$name,
+            'phone_number' => '08'.random_int(100000000, 999999999),
+            'description' => null,
             'is_active' => true,
         ]);
     }
@@ -318,8 +402,6 @@ class AdminCatalogTest extends TestCase
             'usage_rules' => 'Aturan',
             'notes' => 'Catatan',
             'image_path' => null,
-            'stock_quantity' => 10,
-            'low_stock_threshold' => 1,
             'is_active' => true,
             'is_featured' => false,
         ]);
@@ -356,8 +438,6 @@ class AdminCatalogTest extends TestCase
             'usage_rules' => null,
             'notes' => null,
             'image_path' => null,
-            'stock_quantity' => 10,
-            'low_stock_threshold' => 1,
             'is_active' => true,
             'is_featured' => false,
         ];

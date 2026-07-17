@@ -15,31 +15,51 @@ function productKategori(product) {
     return product.product_category ?? product.productKategori;
 }
 
-function isLowStock(product) {
-    return false; // Deprecated, use getBranchStockInfo instead
+function getValidBranchStocks(product) {
+    return (product.branch_stocks ?? []).filter((stock) => stock?.branch != null);
+}
+
+function toStockNumber(value) {
+    const n = Number(value ?? 0);
+    return Number.isNaN(n) ? 0 : n;
+}
+
+function isBranchLowStock(stock) {
+    const qty = toStockNumber(stock?.stock_quantity);
+    const threshold = toStockNumber(stock?.low_stock_threshold);
+
+    return threshold > 0 && qty <= threshold;
 }
 
 function getBranchStockInfo(product, authUser) {
-    // If admin is restricted to a branch, only show that branch's stock
+    const stocks = getValidBranchStocks(product);
+
     if (authUser?.role === 'admin' && authUser?.admin_scope === 'branch' && authUser?.branch_id) {
-        const branchStock = product.branch_stocks?.find(s => s.branch_id === authUser.branch_id);
+        const branchStock = stocks.find(
+            (s) => Number(s.branch_id) === Number(authUser.branch_id),
+        );
+
         return {
-            quantity: branchStock?.stock_quantity ?? 0,
-            threshold: branchStock?.low_stock_threshold ?? 0,
-            isLowStock: Number(branchStock?.stock_quantity ?? 0) <= Number(branchStock?.low_stock_threshold ?? 0),
-            label: ''
+            quantity: toStockNumber(branchStock?.stock_quantity),
+            threshold: toStockNumber(branchStock?.low_stock_threshold),
+            isLowStock: isBranchLowStock(branchStock),
+            label: '',
+            branchCount: branchStock ? 1 : 0,
         };
     }
-    
-    // Total stock across all branches (for Pusat)
-    const totalQty = product.branch_stocks?.reduce((sum, stock) => sum + (stock.stock_quantity ?? 0), 0) ?? 0;
-    const hasLowStockBranch = product.branch_stocks?.some(s => Number(s.stock_quantity ?? 0) <= Number(s.low_stock_threshold ?? 0));
-    
+
+    const totalQty = stocks.reduce(
+        (sum, stock) => sum + toStockNumber(stock.stock_quantity),
+        0,
+    );
+    const branchCount = stocks.length;
+
     return {
         quantity: totalQty,
         threshold: '-',
-        isLowStock: hasLowStockBranch,
-        label: `${product.branch_stocks?.length ?? 0} Cabang`
+        isLowStock: stocks.some(isBranchLowStock),
+        label: `${branchCount} Cabang`,
+        branchCount,
     };
 }
 
@@ -161,26 +181,34 @@ function AdminProdukIndex({ auth, products, filters }) {
                                         </p>
                                     </div>
                                 </div>
-                                <div className="mt-4 flex flex-wrap gap-2">
-                                    <StatusBadge
-                                        label={product.is_active ? 'Aktif' : 'Nonaktif'}
-                                        tone={product.is_active ? 'forest' : 'gray'}
-                                    />
-                                    {product.is_featured && (
-                                        <StatusBadge label="Unggulan" tone="sage" />
-                                    )}
-                                    {getBranchStockInfo(product, auth.user).isLowStock && (
-                                        <StatusBadge label="Stok Rendah" tone="orange" />
-                                    )}
-                                </div>
-                                <div className="mt-4 rounded-2xl border border-[#E5E7EB] bg-[#F6F7F7] px-4 py-3">
-                                    <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400">
-                                        Stok {getBranchStockInfo(product, auth.user).label && `(${getBranchStockInfo(product, auth.user).label})`}
-                                    </p>
-                                    <p className="mt-1 font-body-sm text-sm font-bold text-[#333333]">
-                                        {getBranchStockInfo(product, auth.user).quantity} tersedia · Ambang {getBranchStockInfo(product, auth.user).threshold}
-                                    </p>
-                                </div>
+                                {(() => {
+                                    const stockInfo = getBranchStockInfo(product, auth.user);
+
+                                    return (
+                                        <>
+                                            <div className="mt-4 flex flex-wrap gap-2">
+                                                <StatusBadge
+                                                    label={product.is_active ? 'Aktif' : 'Nonaktif'}
+                                                    tone={product.is_active ? 'forest' : 'gray'}
+                                                />
+                                                {product.is_featured && (
+                                                    <StatusBadge label="Unggulan" tone="sage" />
+                                                )}
+                                                {stockInfo.isLowStock && (
+                                                    <StatusBadge label="Stok Rendah" tone="orange" />
+                                                )}
+                                            </div>
+                                            <div className="mt-4 rounded-2xl border border-[#E5E7EB] bg-[#F6F7F7] px-4 py-3">
+                                                <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400">
+                                                    Stok {stockInfo.label ? `(${stockInfo.label})` : ''}
+                                                </p>
+                                                <p className="mt-1 font-body-sm text-sm font-bold text-[#333333]">
+                                                    {stockInfo.quantity} tersedia · Ambang {stockInfo.threshold}
+                                                </p>
+                                            </div>
+                                        </>
+                                    );
+                                })()}
                                 <div className="mt-5 flex flex-wrap gap-2">
                                     <Link
                                         className="inline-flex items-center gap-1.5 rounded-full border border-[#1E4D3A] px-3 py-1.5 font-body-sm text-xs font-bold text-[#1E4D3A] transition hover:bg-[#1E4D3A] hover:text-white"

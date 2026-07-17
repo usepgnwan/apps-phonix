@@ -17,8 +17,17 @@
     </style>
 </head>
 <body>
-    <h1>Laporan Phoenix Kantor Pusat</h1>
+    @php
+        $branchLabel = 'Semua Cabang';
+        if (! empty($period['branch_id'])) {
+            $branchLabel = \App\Models\Branch::query()
+                ->whereKey((int) $period['branch_id'])
+                ->value('name') ?? ('Cabang #'.$period['branch_id']);
+        }
+    @endphp
+    <h1>Laporan Phoenix</h1>
     <p>Periode: {{ $period['start_date'] }} s/d {{ $period['end_date'] }}</p>
+    <p>Cabang: {{ $branchLabel }}</p>
 
     @php
         $kpiLabels = [
