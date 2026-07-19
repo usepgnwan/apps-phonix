@@ -52,38 +52,86 @@ class OfflineSaleController extends Controller
         return Branch::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']);
     }
 
+    /**
+     * Admin cabang: selalu cabangnya.
+     * Admin pusat: boleh filter branch_id dari request (null = semua cabang).
+     */
+    private function resolveBranchId(User $user, mixed $requestedBranchId): ?int
+    {
+        $forcedBranchId = $user->forcedBranchId();
+
+        if ($forcedBranchId !== null) {
+            return $forcedBranchId;
+        }
+
+        if ($user->isAdminPusat() && $requestedBranchId !== null && $requestedBranchId !== '') {
+            return (int) $requestedBranchId;
+        }
+
+        return null;
+    }
+
+    private function applyOptionalBranchFilter($query, ?int $branchId, string $column = 'branch_id'): void
+    {
+        if ($branchId !== null) {
+            $query->where($column, $branchId);
+        }
+    }
+
     public function index(): Response
     {
         $user = $this->authorizeAdmin();
 
-        $metricsQuery = $user->applyBranchScope(OfflineSale::query());
-
         $startDate = request('start_date');
         $endDate = request('end_date');
+        $branchId = $this->resolveBranchId($user, request('branch_id'));
+        $search = request('search');
+        $perPage = request('per_page', 10);
 
-        $historyQuery = $user->applyBranchScope(
-            OfflineSale::query()
-                ->when($startDate && $endDate, function ($query) use ($startDate, $endDate) {
-                    $query->whereBetween('sold_at', [$startDate, $endDate]);
-                })
-        );
+        $metricsQuery = $user->applyBranchScope(OfflineSale::query());
+        $this->applyOptionalBranchFilter($metricsQuery, $branchId);
+
+        $historyQuery = $user->applyBranchScope(OfflineSale::query());
+        $this->applyOptionalBranchFilter($historyQuery, $branchId);
+
+        if ($startDate) {
+            $historyQuery->whereDate('sold_at', '>=', $startDate);
+        }
+
+        if ($endDate) {
+            $historyQuery->whereDate('sold_at', '<=', $endDate);
+        }
 
         $totalRevenue = (clone $historyQuery)->sum('total');
         $totalTransactions = (clone $historyQuery)->count();
         $averageTransaction = $totalTransactions > 0 ? $totalRevenue / $totalTransactions : 0;
         $convertedLeadTransactions = (clone $historyQuery)->whereNotNull('lead_id')->count();
-        $totalLeads = $user->applyBranchScope(Lead::query())
-            ->when($startDate && $endDate, function ($query) use ($startDate, $endDate) {
-                $query->whereBetween('created_at', [$startDate, $endDate]);
-            })
-            ->count();
+
+        $totalLeadsQuery = $user->applyBranchScope(Lead::query());
+        $this->applyOptionalBranchFilter($totalLeadsQuery, $branchId);
+
+        if ($startDate) {
+            $totalLeadsQuery->whereDate('created_at', '>=', $startDate);
+        }
+
+        if ($endDate) {
+            $totalLeadsQuery->whereDate('created_at', '<=', $endDate);
+        }
+
+        $totalLeads = $totalLeadsQuery->count();
         $leadConversionRate = $totalLeads > 0 ? ($convertedLeadTransactions / $totalLeads) * 100 : 0;
 
         $bestSellingProduct = \App\Models\OfflineSaleItem::query()
-            ->whereHas('offlineSale', function ($query) use ($user, $startDate, $endDate) {
+            ->whereHas('offlineSale', function ($query) use ($user, $startDate, $endDate, $branchId) {
                 $user->applyBranchScope($query);
-                if ($startDate && $endDate) {
-                    $query->whereBetween('sold_at', [$startDate, $endDate]);
+                $this->applyOptionalBranchFilter($query, $branchId);
+
+                if ($startDate) {
+                    $query->whereDate('sold_at', '>=', $startDate);
+                }
+
+                if ($endDate) {
+                    $query->whereDate('sold_at', '<=', $endDate);
                 }
             })
             ->whereNotNull('product_id')
@@ -123,6 +171,36 @@ class OfflineSaleController extends Controller
         );
         $eventsQuery = $user->applyBranchScope(Event::query()->latest());
 
+        $offlineSalesQuery = $user->applyBranchScope(
+            OfflineSale::query()
+                ->with(['customerProfile', 'lead', 'fieldStaff', 'event', 'paymentMethod', 'voucherRedemption.voucher', 'branch'])
+        );
+        $this->applyOptionalBranchFilter($offlineSalesQuery, $branchId);
+
+        if ($search) {
+            $offlineSalesQuery->where(function ($query) use ($search) {
+                $query->where('customer_name', 'ILIKE', "%{$search}%")
+                    ->orWhere('sale_number', 'ILIKE', "%{$search}%")
+                    ->orWhereHas('fieldStaff', function ($query) use ($search) {
+                        $query->where('name', 'ILIKE', "%{$search}%");
+                    })
+                    ->orWhereHas('lead', function ($query) use ($search) {
+                        $query->where('name', 'ILIKE', "%{$search}%");
+                    })
+                    ->orWhereHas('event', function ($query) use ($search) {
+                        $query->where('name', 'ILIKE', "%{$search}%");
+                    });
+            });
+        }
+
+        if ($startDate) {
+            $offlineSalesQuery->whereDate('sold_at', '>=', $startDate);
+        }
+
+        if ($endDate) {
+            $offlineSalesQuery->whereDate('sold_at', '<=', $endDate);
+        }
+
         return Inertia::render('Admin/OfflineSales/Index', [
             'metrics' => [
                 'total' => (clone $metricsQuery)->count(),
@@ -144,32 +222,17 @@ class OfflineSaleController extends Controller
                 'revenue_per_source' => $revenuePerSource,
                 'staff_ranking' => $staffRanking,
             ],
-            'offlineSales' => $user->applyBranchScope(
-                OfflineSale::query()
-                    ->with(['customerProfile', 'lead', 'fieldStaff', 'event', 'paymentMethod', 'voucherRedemption.voucher', 'branch'])
-            )
-                ->when(request('search'), function ($query, $search) {
-                    $query->where(function ($query) use ($search) {
-                        $query->where('customer_name', 'ILIKE', "%{$search}%")
-                            ->orWhere('sale_number', 'ILIKE', "%{$search}%")
-                            ->orWhereHas('fieldStaff', function ($query) use ($search) {
-                                $query->where('name', 'ILIKE', "%{$search}%");
-                            })
-                            ->orWhereHas('lead', function ($query) use ($search) {
-                                $query->where('name', 'ILIKE', "%{$search}%");
-                            })
-                            ->orWhereHas('event', function ($query) use ($search) {
-                                $query->where('name', 'ILIKE', "%{$search}%");
-                            });
-                    });
-                })
-                ->when($startDate && $endDate, function ($query) use ($startDate, $endDate) {
-                    $query->whereBetween('sold_at', [$startDate, $endDate]);
-                })
+            'offlineSales' => $offlineSalesQuery
                 ->latest()
-                ->paginate(request('per_page', 10))
+                ->paginate($perPage)
                 ->withQueryString(),
-            'filters' => request()->only(['search', 'start_date', 'end_date', 'per_page']),
+            'filters' => [
+                'search' => $search,
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'branch_id' => $branchId,
+                'per_page' => $perPage,
+            ],
             'products' => Product::query()->with('branchStocks')->where('is_active', true)->orderBy('name')->get(),
             'branches' => $this->branchesForActor($user),
             'services' => Service::query()->where('is_active', true)->orderBy('name')->get(),

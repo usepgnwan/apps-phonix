@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateCustomerProfileRequest;
 use App\Models\CustomerProfile;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -35,28 +36,49 @@ class CustomerController extends Controller
         $user = $this->authorizeAdmin();
 
         $search = $request->input('search');
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+        $memberStatus = $request->input('member_status');
         $perPage = $request->input('per_page', 10);
 
-        $baseQuery = CustomerProfile::query()->visibleToAdmin($user);
+        $metricsQuery = CustomerProfile::query()->visibleToAdmin($user);
 
         $metrics = [
-            'total' => (clone $baseQuery)->count(),
-            'members' => (clone $baseQuery)->where('member_status', 'member')->count(),
-            'nonMembers' => (clone $baseQuery)->where('member_status', 'non_member')->count(),
-            'orders' => (clone $baseQuery)->withCount('orders')->get()->sum('orders_count'),
-            'bookings' => (clone $baseQuery)->withCount('bookings')->get()->sum('bookings_count'),
+            'total' => (clone $metricsQuery)->count(),
+            'members' => (clone $metricsQuery)->where('member_status', 'member')->count(),
+            'nonMembers' => (clone $metricsQuery)->where('member_status', 'non_member')->count(),
         ];
 
-        $customerProfiles = CustomerProfile::query()
+        $query = CustomerProfile::query()
             ->visibleToAdmin($user)
             ->with(['user:id,name,email'])
-            ->withCount(['orders', 'bookings', 'voucherRedemptions'])
-            ->when($search, function ($query, $search) {
-                $query->where(function ($inner) use ($search) {
-                    $inner->where('name', 'like', "%{$search}%")
-                        ->orWhere('whatsapp_number', 'like', "%{$search}%");
-                });
-            })
+            ->withCount(['orders', 'bookings', 'voucherRedemptions']);
+
+        if ($search) {
+            $query->where(function (Builder $inner) use ($search): void {
+                $inner->where('name', 'like', "%{$search}%")
+                    ->orWhere('whatsapp_number', 'like', "%{$search}%")
+                    ->orWhere('primary_address', 'like', "%{$search}%")
+                    ->orWhereHas('user', function (Builder $q) use ($search): void {
+                        $q->where('name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        if ($startDate) {
+            $query->whereDate('created_at', '>=', $startDate);
+        }
+
+        if ($endDate) {
+            $query->whereDate('created_at', '<=', $endDate);
+        }
+
+        if ($memberStatus === 'member' || $memberStatus === 'non_member') {
+            $query->where('member_status', $memberStatus);
+        }
+
+        $customerProfiles = $query
             ->latest()
             ->paginate($perPage)
             ->withQueryString();
@@ -65,7 +87,13 @@ class CustomerController extends Controller
             'page' => 'admin.customers.index',
             'customerProfiles' => $customerProfiles,
             'metrics' => $metrics,
-            'filters' => $request->only(['search', 'per_page']),
+            'filters' => [
+                'search' => $search,
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'member_status' => $memberStatus,
+                'per_page' => $perPage,
+            ],
         ]);
     }
 

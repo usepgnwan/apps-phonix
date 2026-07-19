@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateOrderPaymentRequest;
 use App\Http\Requests\Admin\UpdateOrderShippingRequest;
 use App\Http\Requests\Admin\UpdateOrderStatusRequest;
+use App\Models\Branch;
 use App\Models\Order;
+use App\Models\User;
 use App\Services\OrderFulfillmentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,28 +24,86 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class OrderController extends Controller
 {
-    private function authorizeAdmin(): void
+    private function authorizeAdmin(): User
     {
         $user = request()->user();
 
         abort_unless($user !== null && $user->isAdmin(), 403);
+
+        return $user;
+    }
+
+    /**
+     * Admin pusat: semua cabang aktif. Admin cabang: hanya cabangnya.
+     */
+    private function branchesForActor(User $actor): Collection
+    {
+        $forcedBranchId = $actor->forcedBranchId();
+
+        if ($forcedBranchId !== null) {
+            return Branch::query()
+                ->where('id', $forcedBranchId)
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name']);
+        }
+
+        return Branch::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+    }
+
+    /**
+     * Resolve branch filter: admin cabang dikunci ke cabangnya;
+     * admin pusat boleh pilih branch_id dari request.
+     */
+    private function resolveBranchId(User $user, ?string $requestedBranchId): ?int
+    {
+        $forcedBranchId = $user->forcedBranchId();
+
+        if ($forcedBranchId !== null) {
+            return $forcedBranchId;
+        }
+
+        if ($user->isAdminPusat() && $requestedBranchId !== null && $requestedBranchId !== '') {
+            return (int) $requestedBranchId;
+        }
+
+        return null;
+    }
+
+    private function applyOptionalBranchFilter($query, ?int $branchId): void
+    {
+        if ($branchId !== null) {
+            $query->where('branch_id', $branchId);
+        }
     }
 
     public function index(): Response
     {
-        $this->authorizeAdmin();
+        $user = $this->authorizeAdmin();
 
-        $user = request()->user();
         $search = request('search');
         $startDate = request('start_date');
         $endDate = request('end_date');
-
         $status = request('status');
+        $branchId = $this->resolveBranchId($user, request('branch_id'));
+        $perPage = request('per_page', 10);
 
         $query = $user->applyBranchScope(
             Order::query()
-                ->with(['branch:id,name', 'user:id,name,email', 'customerProfile:id,user_id,name,whatsapp_number,primary_address', 'voucher:id,code,name', 'paymentMethod:id,type,bank_name,account_number,account_holder_name,qris_image_path,instructions,is_active'])
+                ->with([
+                    'branch:id,name',
+                    'user:id,name,email',
+                    'customerProfile:id,user_id,name,whatsapp_number,primary_address',
+                    'voucher:id,code,name',
+                    'paymentMethod:id,type,bank_name,account_number,account_holder_name,qris_image_path,instructions,is_active',
+                    'orderItems:id,order_id,product_name,quantity',
+                ])
         );
+
+        $this->applyOptionalBranchFilter($query, $branchId);
 
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -67,13 +127,15 @@ class OrderController extends Controller
         }
 
         if ($status && $status !== 'all') {
-            if ($status === 'received') {
-                $query->where(function($q) {
+            if ($status === 'waiting_shipping_confirmation') {
+                $query->whereIn('status', ['pending', 'waiting_shipping_confirmation']);
+            } elseif ($status === 'received') {
+                $query->where(function ($q) {
                     $q->where('status', 'payment_received')
                       ->orWhere('payment_status', 'paid');
                 });
             } elseif ($status === 'shipped') {
-                $query->where(function($q) {
+                $query->where(function ($q) {
                     $q->where('status', 'shipped')
                       ->orWhere('shipping_status', 'shipped');
                 });
@@ -82,23 +144,31 @@ class OrderController extends Controller
             }
         }
 
-        $perPage = request('per_page', 10);
-        
         $orders = $query->latest()->paginate($perPage)->withQueryString();
 
         $metricsQuery = $user->applyBranchScope(
             Order::query()->select('status', 'payment_status', 'shipping_status')
         );
+        $this->applyOptionalBranchFilter($metricsQuery, $branchId);
         $allOrders = $metricsQuery->get();
         $metrics = [
             'totalOrder' => $allOrders->count(),
-            'waitingConfirmation' => $allOrders->where('status', 'pending')->count(),
-            'received' => $allOrders->filter(fn($o) => $o->status === 'payment_received' || $o->payment_status === 'paid')->count(),
+            'waitingShippingConfirmation' => $allOrders->whereIn('status', ['pending', 'waiting_shipping_confirmation'])->count(),
+            'waitingPayment' => $allOrders->where('status', 'waiting_payment')->count(),
+            'received' => $allOrders->filter(fn ($o) => $o->status === 'payment_received' || $o->payment_status === 'paid')->count(),
             'processing' => $allOrders->where('status', 'processing')->count(),
-            'shipped' => $allOrders->filter(fn($o) => $o->status === 'shipped' || $o->shipping_status === 'shipped')->count(),
+            'shipped' => $allOrders->filter(fn ($o) => $o->status === 'shipped' || $o->shipping_status === 'shipped')->count(),
             'completed' => $allOrders->where('status', 'completed')->count(),
             'cancelled' => $allOrders->where('status', 'cancelled')->count(),
         ];
+
+        $showBranchFilter = $user->isAdminPusat();
+        $lockedBranchName = null;
+
+        if (! $showBranchFilter && $user->isAdminCabang()) {
+            $lockedBranchName = $user->branch?->name
+                ?? Branch::query()->where('id', $user->branch_id)->value('name');
+        }
 
         return Inertia::render('Admin/Orders/Index', [
             'page' => 'admin.orders.index',
@@ -109,16 +179,19 @@ class OrderController extends Controller
                 'start_date' => $startDate,
                 'end_date' => $endDate,
                 'status' => $status,
+                'branch_id' => $branchId,
                 'per_page' => $perPage,
             ],
+            'branches' => $showBranchFilter ? $this->branchesForActor($user) : [],
+            'showBranchFilter' => $showBranchFilter,
+            'lockedBranchName' => $lockedBranchName,
         ]);
     }
 
     public function show(Order $order): Response
     {
-        $this->authorizeAdmin();
-        
-        $user = request()->user();
+        $user = $this->authorizeAdmin();
+
         $user->ensureCanAccessBranch(
             $order->branch_id !== null ? (int) $order->branch_id : null,
             'Akses ditolak: Order ini bukan milik cabang Anda.'
@@ -142,9 +215,8 @@ class OrderController extends Controller
 
     public function updateShipping(UpdateOrderShippingRequest $request, Order $order, OrderFulfillmentService $fulfillmentService): RedirectResponse
     {
-        $this->authorizeAdmin();
+        $user = $this->authorizeAdmin();
 
-        $user = request()->user();
         $user->ensureCanAccessBranch(
             $order->branch_id !== null ? (int) $order->branch_id : null,
             'Akses ditolak: Order ini bukan milik cabang Anda.'
@@ -152,6 +224,9 @@ class OrderController extends Controller
 
         $validated = $request->validated();
         $shippingStatus = $validated['shipping_status'];
+
+        $fulfillmentService->assertShippingStatusTransition($order, $shippingStatus);
+
         $status = $order->status;
         $paymentStatus = $order->payment_status;
 
@@ -159,16 +234,12 @@ class OrderController extends Controller
             $status = 'waiting_payment';
             $paymentStatus = 'waiting_payment';
         } elseif ($shippingStatus === 'ready_to_ship') {
-            if ($order->payment_status !== 'paid') {
-                throw ValidationException::withMessages([
-                    'shipping_status' => 'Payment harus berstatus paid sebelum shipping siap dikirim.',
-                ]);
-            }
-
+            // ready_to_ship hanya diizinkan setelah paid (dicek di service).
+            // Tetap set processing agar fulfillment lanjut tanpa form status terpisah.
             $status = 'processing';
         }
 
-        DB::transaction(function () use ($fulfillmentService, $order, $paymentStatus, $shippingStatus, $status, $validated): void {
+        DB::transaction(function () use ($order, $paymentStatus, $shippingStatus, $status, $validated): void {
             $order->update([
                 'courier_name' => $validated['courier_name'] ?? null,
                 'tracking_number' => $validated['tracking_number'] ?? null,
@@ -179,13 +250,6 @@ class OrderController extends Controller
                 'payment_status' => $paymentStatus,
                 'status' => $status,
             ]);
-
-            if ($status === 'processing') {
-                $fulfillmentService->updateStatus($order->fresh(), [
-                    'status' => 'processing',
-                    'admin_notes' => $order->admin_notes,
-                ]);
-            }
         });
 
         $redirect = redirect()->route('admin.orders.show', $order)->with('success', 'Status pengiriman berhasil diperbarui.');
@@ -200,9 +264,8 @@ class OrderController extends Controller
 
     public function updatePayment(UpdateOrderPaymentRequest $request, Order $order, OrderFulfillmentService $fulfillmentService): RedirectResponse
     {
-        $this->authorizeAdmin();
+        $user = $this->authorizeAdmin();
 
-        $user = request()->user();
         $user->ensureCanAccessBranch(
             $order->branch_id !== null ? (int) $order->branch_id : null,
             'Akses ditolak: Order ini bukan milik cabang Anda.'
@@ -227,9 +290,8 @@ class OrderController extends Controller
 
     public function updateStatus(UpdateOrderStatusRequest $request, Order $order, OrderFulfillmentService $fulfillmentService): RedirectResponse
     {
-        $this->authorizeAdmin();
+        $user = $this->authorizeAdmin();
 
-        $user = request()->user();
         $user->ensureCanAccessBranch(
             $order->branch_id !== null ? (int) $order->branch_id : null,
             'Akses ditolak: Order ini bukan milik cabang Anda.'
@@ -259,6 +321,7 @@ class OrderController extends Controller
             'start_date' => ['nullable', 'date'],
             'end_date' => ['nullable', 'date'],
             'status' => ['nullable', 'string'],
+            'branch_id' => ['nullable', 'integer', 'exists:branches,id'],
         ]);
 
         $orders = $this->filteredOrders($validated)
@@ -282,6 +345,11 @@ class OrderController extends Controller
     {
         $user = request()->user();
         $query = $user->applyBranchScope(Order::query());
+        $branchId = $this->resolveBranchId(
+            $user,
+            isset($filters['branch_id']) ? (string) $filters['branch_id'] : null
+        );
+        $this->applyOptionalBranchFilter($query, $branchId);
 
         if (! empty($filters['order_ids'])) {
             return $query->whereIn('id', $filters['order_ids']);
@@ -310,7 +378,9 @@ class OrderController extends Controller
         }
 
         if (! empty($filters['status']) && $filters['status'] !== 'all') {
-            if ($filters['status'] === 'received') {
+            if ($filters['status'] === 'waiting_shipping_confirmation') {
+                $query->whereIn('status', ['pending', 'waiting_shipping_confirmation']);
+            } elseif ($filters['status'] === 'received') {
                 $query->where(function ($q): void {
                     $q->where('status', 'payment_received')
                         ->orWhere('payment_status', 'paid');
@@ -627,7 +697,11 @@ class OrderController extends Controller
 
     public function invoice(Order $order)
     {
-        $this->authorizeAdmin();
+        $user = $this->authorizeAdmin();
+        $user->ensureCanAccessBranch(
+            $order->branch_id !== null ? (int) $order->branch_id : null,
+            'Akses ditolak: Order ini bukan milik cabang Anda.'
+        );
 
         $order->load([
             'user',

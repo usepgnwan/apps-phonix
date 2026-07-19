@@ -78,6 +78,8 @@ class UserFactory extends Factory
                 'admin_scope' => null,
                 'is_active' => true,
                 'branch_id' => $branchId ?? Branch::query()->value('id'),
+                'staff_code' => 'STF-'.strtoupper(Str::random(4)),
+                'staff_referral_enabled' => true,
             ];
         });
     }

@@ -65,14 +65,41 @@ class LeadController extends Controller
         return $actor->applyBranchScope(Event::query()->latest());
     }
 
+    private function resolveBranchId(User $user, ?string $requestedBranchId): ?int
+    {
+        $forcedBranchId = $user->forcedBranchId();
+
+        if ($forcedBranchId !== null) {
+            return $forcedBranchId;
+        }
+
+        if ($user->isAdminPusat() && $requestedBranchId !== null && $requestedBranchId !== '') {
+            return (int) $requestedBranchId;
+        }
+
+        return null;
+    }
+
+    private function applyOptionalBranchFilter($query, ?int $branchId): void
+    {
+        if ($branchId !== null) {
+            $query->where('branch_id', $branchId);
+        }
+    }
+
     public function index(Request $request): Response
     {
         $user = $this->authorizeAdmin();
 
         $search = $request->input('search');
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+        $status = $request->input('status');
+        $branchId = $this->resolveBranchId($user, $request->input('branch_id'));
         $perPage = $request->input('per_page', 10);
 
         $metricsQuery = $user->applyBranchScope(Lead::query());
+        $this->applyOptionalBranchFilter($metricsQuery, $branchId);
 
         $metrics = [
             'total' => (clone $metricsQuery)->count(),
@@ -92,24 +119,64 @@ class LeadController extends Controller
             ])
         );
 
-        $leads = $query->when($search, function ($q, $search) {
-            $q->where(function ($inner) use ($search) {
+        $this->applyOptionalBranchFilter($query, $branchId);
+
+        if ($search) {
+            $query->where(function ($inner) use ($search) {
                 $inner->where('name', 'like', "%{$search}%")
                     ->orWhere('whatsapp_number', 'like', "%{$search}%")
                     ->orWhereHas('assignedStaff', function ($q2) use ($search) {
                         $q2->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('leadSource', function ($q2) use ($search) {
+                        $q2->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('customerProfile', function ($q2) use ($search) {
+                        $q2->where('name', 'like', "%{$search}%");
                     });
             });
-        })
+        }
+
+        if ($startDate) {
+            $query->whereDate('created_at', '>=', $startDate);
+        }
+
+        if ($endDate) {
+            $query->whereDate('created_at', '<=', $endDate);
+        }
+
+        if ($status && $status !== 'all' && in_array($status, self::LEAD_STATUSES, true)) {
+            $query->where('follow_up_status', $status);
+        }
+
+        $leads = $query
             ->latest()
             ->paginate($perPage)
             ->withQueryString();
+
+        $showBranchFilter = $user->isAdminPusat();
+        $lockedBranchName = null;
+
+        if (! $showBranchFilter && $user->isAdminCabang()) {
+            $lockedBranchName = $user->branch?->name
+                ?? Branch::query()->where('id', $user->branch_id)->value('name');
+        }
 
         return Inertia::render('Admin/Leads/Index', [
             'page' => 'admin.leads.index',
             'leads' => $leads,
             'metrics' => $metrics,
-            'filters' => $request->only(['search', 'per_page']),
+            'filters' => [
+                'search' => $search,
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'status' => $status,
+                'branch_id' => $branchId,
+                'per_page' => $perPage,
+            ],
+            'branches' => $showBranchFilter ? $this->branchesForActor($user) : [],
+            'showBranchFilter' => $showBranchFilter,
+            'lockedBranchName' => $lockedBranchName,
         ]);
     }
 

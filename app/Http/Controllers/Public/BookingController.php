@@ -9,6 +9,7 @@ use App\Models\CustomerProfile;
 use App\Models\Service;
 use App\Models\Setting;
 use App\Services\Affiliate\AffiliateAttributionService;
+use App\Services\StaffReferral\StaffReferralAttributionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -59,6 +60,9 @@ class BookingController extends Controller
         $attribution = app(AffiliateAttributionService::class);
         $affiliate = $attribution->resolveForCheckout(null, $user?->id, $request);
 
+        $staffAttribution = app(StaffReferralAttributionService::class);
+        $referredByStaff = $staffAttribution->resolveForTransaction($user?->id, $request);
+
         $booking = Booking::query()->create([
             'booking_number' => $this->generateBookingNumber($validated['branch_id'] ?? null),
             'user_id' => $user?->id,
@@ -66,6 +70,7 @@ class BookingController extends Controller
             'branch_id' => $validated['branch_id'],
             'service_id' => $validated['service_id'],
             'affiliate_id' => $affiliate?->id,
+            'referred_by_staff_id' => $referredByStaff?->id,
             'name' => $customerProfile?->name ?? $validated['name'],
             'whatsapp_number' => $customerProfile?->whatsapp_number ?? $validated['whatsapp_number'],
             'visit_type' => $validated['visit_type'],

@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\Voucher;
 use App\Models\VoucherRedemption;
 use App\Services\Affiliate\AffiliateAttributionService;
+use App\Services\StaffReferral\StaffReferralAttributionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -27,6 +28,7 @@ class CheckoutService
             }
 
             $affiliateId = null;
+            $referredByStaffId = null;
             if ($request !== null) {
                 $attribution = app(AffiliateAttributionService::class);
                 $affiliate = $attribution->resolveForCheckout(
@@ -35,6 +37,11 @@ class CheckoutService
                     $request
                 );
                 $affiliateId = $affiliate?->id;
+
+                $staffAttribution = app(StaffReferralAttributionService::class);
+                $referredByStaffId = $staffAttribution
+                    ->resolveForTransaction($cart->user_id, $request)
+                    ?->id;
             }
 
             $items = $cart->cartItems->map(function ($cartItem) use ($cart): array {
@@ -89,6 +96,7 @@ class CheckoutService
                 'branch_id' => $cart->branch_id,
                 'voucher_id' => $voucher?->id,
                 'affiliate_id' => $affiliateId,
+                'referred_by_staff_id' => $referredByStaffId,
                 'payment_method_id' => $data['payment_method_id'],
                 'customer_name' => $data['customer_name'],
                 'customer_whatsapp_number' => $data['customer_whatsapp_number'],

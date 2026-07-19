@@ -1,5 +1,5 @@
 import { usePage } from '@inertiajs/react';
-import { LayoutDashboard, UsersRound } from 'lucide-react';
+import { LayoutDashboard, Share2, UsersRound } from 'lucide-react';
 
 import PanelShell from '@/Components/Admin/PanelShell';
 
@@ -18,6 +18,12 @@ const navigationGroups = [
                 routeName: 'field.leads.index',
                 pattern: 'field.leads.*',
                 icon: UsersRound,
+            },
+            {
+                label: 'Referral',
+                routeName: 'field.referral.show',
+                pattern: 'field.referral.*',
+                icon: Share2,
             },
         ],
     },

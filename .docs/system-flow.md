@@ -38,6 +38,7 @@ Backend MVP utama sudah mencakup:
 - admin video dan sitemap SEO,
 - PWA dasar,
 - admin staff, position, dan team,
+- staff referral (atribusi pendaftaran, tanpa komisi staff),
 - print/invoice offline sale,
 - customer payment instruction.
 
@@ -105,7 +106,8 @@ Field staff adalah user dengan `role = field_staff` dan `is_active = true`. Fiel
 - melihat lead yang ditugaskan kepadanya,
 - melihat detail lead miliknya,
 - mengubah follow-up status lead miliknya,
-- mencatat field activity pada lead miliknya.
+- mencatat field activity pada lead miliknya,
+- membuka halaman referral field (`GET /field/referral`) untuk salin `staff_code` / link tracking.
 
 Lead milik staff lain tidak dapat diakses lewat route field dan dikembalikan sebagai 404 untuk detail.
 
@@ -533,12 +535,55 @@ Flow staff:
 3. Admin dapat membuat, memperbarui, dan menghapus staff sesuai aturan controller.
 4. Admin dapat mengisi nomor telepon, memilih team, memilih position, dan mengunggah foto staff.
 5. Foto staff diproses untuk ukuran lebih ringan sebelum disimpan.
-6. Staff yang dibuat dipakai oleh flow lead assignment, field staff CRM, dan offline sales.
+6. Saat staff baru dibuat, sistem generate `staff_code` format `STF-XXXX` (jika belum ada).
+7. Staff yang dibuat dipakai oleh flow lead assignment, field staff CRM, offline sales, dan staff referral.
 
 Catatan:
 
 - Staff adalah user aplikasi dengan role `field_staff`, bukan entitas terpisah.
 - Position dan team adalah master data referensi untuk pengelompokan staff.
+- Kolom referral di staff index: `staff_code` + total customer terdaftar lewat referral.
+
+### Staff Referral (atribusi pendaftaran)
+
+Modul terpisah dari **Affiliate** (mitra customer + komisi). Staff referral **tidak** menghasilkan komisi/payout staff di fase ini.
+
+Route utama:
+
+- `GET /s/{staffCode}` → `staff-referral.track` (publik)
+- `GET /field/referral` → `field.referral.show` (field staff)
+- `GET /admin/staff-referrals` → `admin.staff-referrals.index`
+- `GET /admin/staff-referrals/{staff}` → `admin.staff-referrals.show`
+
+Cookie/atribusi:
+
+- Cookie name: `staff_ref` (terpisah dari `affiliate_ref`)
+- TTL default: 30 hari
+- Kode: `STF-XXXX` di `users.staff_code`
+- Binding customer: `users.referred_by_staff_id` + `users.referred_at` (sekali saat register, immutable di fase ini)
+- Soft-fill transaksi: `orders.referred_by_staff_id` / `bookings.referred_by_staff_id` (nullable, tanpa engine komisi)
+
+Flow tracking + registrasi:
+
+1. Visitor membuka `/s/{staffCode}`.
+2. `StaffReferralTrackController` validasi staff aktif + referral enabled.
+3. Sistem catat baris di `staff_referral_clicks` dan set cookie `staff_ref`.
+4. Redirect ke halaman register (default).
+5. Saat customer register, `RegisteredUserController` + `StaffReferralAttributionService` mengikat `referred_by_staff_id` jika cookie valid.
+6. Registrasi tidak gagal jika kode/cookie invalid — atribusi diabaikan.
+
+Flow monitoring admin:
+
+1. Admin pusat membuka daftar semua field staff + metrik (klik, daftar, order, booking teratribusi); filter cabang opsional.
+2. Admin cabang hanya melihat staff cabang sendiri (`applyBranchScope` / `forcedBranchId`).
+3. Detail staff menampilkan tracking URL, metrik, daftar customer referred, dan klik terbaru.
+4. Admin cabang yang membuka staff cabang lain mendapat 403.
+
+Command terkait:
+
+- `php artisan staff-referral:backfill-codes` — isi `staff_code` untuk field staff lama yang belum punya kode.
+
+Dokumen detail: `.docs/staff-referral-module-plan.md`.
 
 ### Admin Lead/CRM
 
@@ -575,6 +620,7 @@ Route utama:
 - `GET /field/leads/{lead}`
 - `PATCH /field/leads/{lead}/status`
 - `POST /field/leads/{lead}/activities`
+- `GET /field/referral`
 
 Flow:
 
@@ -588,10 +634,12 @@ Flow:
    - `follow_up`,
    - `note`.
 7. Payload `field_staff_id` dan `lead_id` pada activity dilarang; sistem mengambil dari current user dan route lead.
+8. Staff membuka `/field/referral` untuk melihat `staff_code`, URL `/s/{staffCode}`, tombol salin, dan metrik klik/daftar.
 
 Catatan:
 
 - Activity creation tidak otomatis mengubah parent lead status kecuali lewat endpoint status update terpisah.
+- Halaman referral field **bukan** portal komisi; hanya atribusi pendaftaran.
 
 ## Flow Offline Sales
 
@@ -881,7 +929,7 @@ Karena UI utama sudah tersedia untuk mayoritas flow, prioritas berikutnya bukan 
 3. Audit admin commerce dan inventory
    - Pastikan order shipping/payment/status, fulfillment stok, offline sale, invoice, dan print struk berjalan sesuai aturan stok.
 4. Audit CRM dan field staff
-   - Pastikan assignment lead, status follow-up, activity field staff, team, position, dan staff CRUD konsisten.
+   - Pastikan assignment lead, status follow-up, activity field staff, team, position, staff CRUD, dan staff referral (track/register/monitoring scope cabang) konsisten.
 5. Audit settings, template, email, SEO, dan PWA
    - Pastikan settings aktif terdokumentasi, tag template valid, email receipt tidak mengganggu checkout, sitemap/robots/PWA sesuai kebutuhan production.
 6. Rapikan dokumentasi batch historis
