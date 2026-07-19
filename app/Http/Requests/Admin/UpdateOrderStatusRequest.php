@@ -17,8 +17,17 @@ class UpdateOrderStatusRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => ['required', Rule::in(['waiting_shipping_confirmation', 'waiting_payment', 'payment_received', 'processing', 'shipped', 'completed', 'cancelled'])],
+            // Aksi fulfillment lanjutan (setelah siap dikirim).
+            'status' => ['required', Rule::in(['processing', 'shipped', 'completed', 'cancelled'])],
             'admin_notes' => ['nullable', 'string'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'status.required' => 'Status order wajib dipilih.',
+            'status.in' => 'Status order tidak valid untuk aksi admin.',
         ];
     }
 }

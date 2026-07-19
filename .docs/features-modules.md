@@ -33,6 +33,7 @@ Modul utama yang masuk scope:
 - Rekomendasi produk internal
 - Akun karyawan door-to-door
 - Field Staff Mini CRM
+- Staff referral (link/kode pendaftaran, tanpa komisi staff)
 - Event dan lead source sederhana
 - Penjualan offline sederhana
 - Dashboard admin
@@ -387,6 +388,7 @@ Modul:
 - Role dan user management dasar
 - Akun karyawan door-to-door
 - Field Staff Mini CRM
+- Staff referral (atribusi pendaftaran)
 - Event management sederhana
 - Penjualan offline sederhana
 
@@ -431,6 +433,18 @@ Fitur Field Staff Mini CRM:
 - Input penjualan offline sederhana
 - Sumber otomatis bisa ditandai door-to-door
 - Admin melihat aktivitas dasar karyawan
+
+Fitur staff referral (fase 1 — **tanpa komisi staff**):
+
+- Setiap field staff aktif punya `staff_code` format `STF-XXXX`
+- Link tracking publik `/s/{staffCode}` + cookie `staff_ref` (30 hari)
+- Customer yang daftar lewat link diikat ke staff (`referred_by_staff_id`) sekali saat register
+- Field staff salin kode/URL di halaman `/field/referral`
+- Admin monitoring: daftar performa staff (klik, daftar, order/booking teratribusi)
+  - Admin pusat: semua cabang + filter cabang
+  - Admin cabang: hanya staff cabang sendiri
+- Soft-fill `referred_by_staff_id` di order/booking (hook data, bukan engine komisi)
+- **Bukan** modul Affiliate (mitra customer + komisi); detail di `.docs/staff-referral-module-plan.md`
 
 Fitur event management sederhana:
 
@@ -494,7 +508,7 @@ Fitur berikut tidak dibuat pada tahap ini dan dianggap sebagai pengembangan lanj
 - Multi-cabang penuh
 - Stok per cabang
 - Stok per petugas
-- Komisi otomatis
+- Komisi otomatis (termasuk komisi/payout staff referral)
 - GPS tracking
 - Route planning
 - Absensi petugas

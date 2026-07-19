@@ -24,13 +24,32 @@ class LeadSourceController extends Controller
         $this->authorizeAdmin();
 
         $search = $request->input('search');
+        $status = $request->input('status');
         $perPage = $request->input('per_page', 10);
 
-        $leadSources = LeadSource::query()
-            ->withCount('leads')
-            ->when($search, function ($query, $search) {
-                $query->where('name', 'like', "%{$search}%");
-            })
+        $metricsQuery = LeadSource::query();
+        $metrics = [
+            'total' => (clone $metricsQuery)->count(),
+            'active' => (clone $metricsQuery)->where('is_active', true)->count(),
+            'inactive' => (clone $metricsQuery)->where('is_active', false)->count(),
+        ];
+
+        $query = LeadSource::query()->withCount('leads');
+
+        if ($search) {
+            $query->where(function ($inner) use ($search) {
+                $inner->where('name', 'like', "%{$search}%")
+                    ->orWhere('slug', 'like', "%{$search}%");
+            });
+        }
+
+        if ($status === 'active') {
+            $query->where('is_active', true);
+        } elseif ($status === 'inactive') {
+            $query->where('is_active', false);
+        }
+
+        $leadSources = $query
             ->latest()
             ->paginate($perPage)
             ->withQueryString();
@@ -38,7 +57,12 @@ class LeadSourceController extends Controller
         return Inertia::render('Admin/LeadSources/Index', [
             'page' => 'admin.lead-sources.index',
             'leadSources' => $leadSources,
-            'filters' => $request->only(['search', 'per_page']),
+            'metrics' => $metrics,
+            'filters' => [
+                'search' => $search,
+                'status' => $status,
+                'per_page' => $perPage,
+            ],
         ]);
     }
 

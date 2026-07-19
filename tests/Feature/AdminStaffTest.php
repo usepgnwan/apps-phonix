@@ -66,6 +66,10 @@ class AdminStaffTest extends TestCase
             'branch_id' => $branch->id,
             'position_id' => $position->id,
         ]);
+
+        $staff = User::query()->where('email', 'staff@example.test')->first();
+        $this->assertNotNull($staff?->staff_code);
+        $this->assertTrue(str_starts_with((string) $staff->staff_code, 'STF-'));
     }
 
     public function test_active_admin_cannot_create_staff_with_non_hierarchy_position(): void
@@ -111,17 +115,82 @@ class AdminStaffTest extends TestCase
         ]);
     }
 
+    public function test_admin_pusat_sees_branch_filter_and_all_staff(): void
+    {
+        $admin = $this->createAdmin();
+        $branchA = $this->createBranch('Cabang A', 'A');
+        $branchB = $this->createBranch('Cabang B', 'B');
+
+        User::factory()->fieldStaff($branchA->id)->create(['name' => 'Staff A']);
+        User::factory()->fieldStaff($branchB->id)->create(['name' => 'Staff B']);
+
+        $response = $this->inertiaGet($admin, route('admin.staff.index'));
+
+        $response->assertOk()
+            ->assertJsonPath('component', 'Admin/Staff/Index')
+            ->assertJsonPath('props.showBranchFilter', true);
+
+        $names = collect($response->json('props.staff.data'))->pluck('name')->all();
+        $this->assertContains('Staff A', $names);
+        $this->assertContains('Staff B', $names);
+    }
+
+    public function test_admin_pusat_can_filter_staff_by_branch(): void
+    {
+        $admin = $this->createAdmin();
+        $branchA = $this->createBranch('Filter A', 'FA');
+        $branchB = $this->createBranch('Filter B', 'FB');
+
+        User::factory()->fieldStaff($branchA->id)->create(['name' => 'Only Branch A']);
+        User::factory()->fieldStaff($branchB->id)->create(['name' => 'Only Branch B']);
+
+        $response = $this->inertiaGet(
+            $admin,
+            route('admin.staff.index', ['branch_id' => $branchA->id])
+        );
+
+        $response->assertOk()
+            ->assertJsonPath('props.filters.branch_id', $branchA->id)
+            ->assertJsonPath('props.showBranchFilter', true);
+
+        $names = collect($response->json('props.staff.data'))->pluck('name')->all();
+        $this->assertContains('Only Branch A', $names);
+        $this->assertNotContains('Only Branch B', $names);
+    }
+
+    public function test_admin_cabang_only_sees_own_branch_staff_without_filter(): void
+    {
+        $branchA = $this->createBranch('Own Branch', 'OWN');
+        $branchB = $this->createBranch('Other Branch', 'OTH');
+        $adminCabang = User::factory()->adminBranch($branchA->id)->create();
+
+        User::factory()->fieldStaff($branchA->id)->create(['name' => 'Staff Own']);
+        User::factory()->fieldStaff($branchB->id)->create(['name' => 'Staff Other']);
+
+        $response = $this->inertiaGet($adminCabang, route('admin.staff.index'));
+
+        $response->assertOk()
+            ->assertJsonPath('props.showBranchFilter', false)
+            ->assertJsonPath('props.lockedBranchName', 'Own Branch');
+
+        $names = collect($response->json('props.staff.data'))->pluck('name')->all();
+        $this->assertContains('Staff Own', $names);
+        $this->assertNotContains('Staff Other', $names);
+    }
+
     private function createAdmin(): User
     {
         return User::factory()->adminCentral()->create();
     }
 
-    private function createBranch(): Branch
+    private function createBranch(string $name = 'Pusat', string $codePrefix = 'P'): Branch
     {
+        $suffix = (string) Branch::query()->count();
+
         return Branch::query()->create([
-            'name' => 'Pusat',
-            'slug' => 'pusat-'.Branch::query()->count(),
-            'code' => 'P'.Branch::query()->count(),
+            'name' => $name,
+            'slug' => strtolower(str_replace(' ', '-', $name)).'-'.$suffix,
+            'code' => $codePrefix.$suffix,
             'is_active' => true,
         ]);
     }

@@ -14,7 +14,23 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'role', 'is_active', 'phone_number', 'team_id', 'position_id', 'photo', 'branch_id', 'admin_scope'])]
+#[Fillable([
+    'name',
+    'email',
+    'password',
+    'role',
+    'is_active',
+    'phone_number',
+    'team_id',
+    'position_id',
+    'photo',
+    'branch_id',
+    'admin_scope',
+    'staff_code',
+    'staff_referral_enabled',
+    'referred_by_staff_id',
+    'referred_at',
+])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -32,6 +48,8 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'staff_referral_enabled' => 'boolean',
+            'referred_at' => 'datetime',
         ];
     }
 
@@ -196,5 +214,25 @@ class User extends Authenticatable
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    public function isFieldStaff(): bool
+    {
+        return $this->role === 'field_staff' && $this->is_active === true;
+    }
+
+    public function referredByStaff(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'referred_by_staff_id');
+    }
+
+    public function referredCustomers(): HasMany
+    {
+        return $this->hasMany(User::class, 'referred_by_staff_id');
+    }
+
+    public function staffReferralClicks(): HasMany
+    {
+        return $this->hasMany(StaffReferralClick::class, 'staff_user_id');
     }
 }

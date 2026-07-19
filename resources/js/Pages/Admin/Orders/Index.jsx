@@ -1,24 +1,37 @@
 import { useMemo, useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
-import { CheckCircle2, Clock3, CreditCard, Download, Eye, PackageCheck, ReceiptText, Truck, XCircle, FileText, Search } from 'lucide-react';
+import {
+    Banknote,
+    CheckCircle2,
+    ChevronDown,
+    Clock3,
+    CreditCard,
+    Download,
+    Eye,
+    FileText,
+    MapPin,
+    PackageCheck,
+    ReceiptText,
+    RotateCcw,
+    Search,
+    Truck,
+    XCircle,
+} from 'lucide-react';
 
 import AdminCard from '@/Components/Admin/AdminCard';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
+import DateRangePicker from '@/Components/Admin/DateRangePicker';
 import EmptyState from '@/Components/Admin/EmptyState';
-import MetricCard from '@/Components/Admin/MetricCard';
 import StatusBadge from '@/Components/Admin/StatusBadge';
 import AdminLayout from '@/Layouts/AdminLayout';
 import Pagination from '@/Components/Admin/Pagination';
-import { formatNumber, formatCurrency } from '@/utils/format';
+import { formatCurrency } from '@/utils/format';
 
-const shippingStatusMap = {
-    pending_shipping_confirmation: ['Menunggu Konfirmasi Ongkir', 'orange'],
-    shipping_cost_confirmed: ['Ongkir Dikonfirmasi', 'blue'],
-    ready_to_ship: ['Siap Dikirim', 'sage'],
-    shipped: ['Dikirim', 'blue'],
-    delivered: ['Terkirim', 'forest'],
-    cancelled: ['Batal', 'red'],
-};
+const inputClassName =
+    'w-full rounded-xl border border-[#E5E7EB] bg-white py-2.5 text-sm font-body-sm text-[#333333] shadow-sm focus:border-[#1E4D3A] focus:outline-none focus:ring-1 focus:ring-[#1E4D3A]';
+
+const filterLabelClassName =
+    'mb-2 block font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-gray-400';
 
 function formatDate(value) {
     if (!value) {
@@ -46,92 +59,186 @@ function paymentMethodNama(order) {
     return [method.type, method.bank_name, method.account_holder_name].filter(Boolean).join(' / ') || '-';
 }
 
-function ShippingBadge({ status }) {
-    const mapped = shippingStatusMap[status];
-
-    if (!mapped) {
-        return <StatusBadge status={status} />;
-    }
-
-    return <StatusBadge label={mapped[0]} tone={mapped[1]} />;
+function orderItemsList(order) {
+    return order.order_items ?? order.orderItems ?? [];
 }
 
-function LifecycleCard({ label, count, tone, icon: IconComponent, isActive, onClick }) {
-    const toneStyles = {
-        white: 'bg-white border-[#E5E7EB]',
-        yellow: 'bg-[#FDF6E3] border-[#F08A2B]/20',
-        sage: 'bg-[#EAF2ED] border-[#A8C5B3]/40',
-        brown: 'bg-[#F5EFE6] border-[#B57A2E]/20',
-        blue: 'bg-[#E8F0FE] border-[#1F3B63]/20',
-        green: 'bg-[#E6F4EA] border-[#1E4D3A]/20',
-        red: 'bg-[#FCE8E8] border-[#DC2626]/20 bg-[url("data:image/svg+xml,%3Csvg width=\'20\' height=\'20\' viewBox=\'0 0 20 20\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'%23dc2626\' fill-opacity=\'0.05\' fill-rule=\'evenodd\'%3E%3Ccircle cx=\'3\' cy=\'3\' r=\'3\'/%3E%3Ccircle cx=\'13\' cy=\'13\' r=\'3\'/%3E%3C/g%3E%3C/svg%3E")]',
-    };
+function OrderItemsCell({ order }) {
+    const items = orderItemsList(order);
 
-    const iconBgStyles = {
-        white: 'bg-[#F6F7F7] text-[#333333]',
-        yellow: 'bg-[#F08A2B]/10 text-[#F08A2B]',
-        sage: 'bg-[#A8C5B3]/20 text-[#1E4D3A]',
-        brown: 'bg-[#B57A2E]/10 text-[#B57A2E]',
-        blue: 'bg-[#1F3B63]/10 text-[#1F3B63]',
-        green: 'bg-[#1E4D3A]/10 text-[#1E4D3A]',
-        red: 'bg-[#DC2626]/10 text-[#DC2626]',
-    };
+    if (items.length === 0) {
+        return <span className="text-xs text-gray-400">-</span>;
+    }
 
-    const baseBorder = isActive ? 'border-[#1E4D3A] ring-2 ring-[#1E4D3A]/20' : 'border-transparent';
-    const cursorClass = 'cursor-pointer hover:-translate-y-1 hover:shadow-md transition-all duration-200';
+    const visibleItems = items.slice(0, 3);
+    const remainingCount = items.length - visibleItems.length;
 
     return (
-        <div
-            onClick={onClick}
-            className={`relative overflow-hidden rounded-2xl border ${baseBorder} ${cursorClass} ${toneStyles[tone]} p-4 shadow-sm flex flex-col justify-between h-full min-h-[120px]`}
-        >
-            <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${iconBgStyles[tone]} mb-4`}>
-                <IconComponent aria-hidden="true" className="h-4 w-4" />
-            </div>
-            <div>
-                <span className="block font-body-lg text-2xl font-extrabold text-[#333333]">
-                    {count}
-                </span>
-                <span className="block mt-1 font-body-sm text-xs font-bold text-gray-600">
-                    {label}
-                </span>
-            </div>
+        <div className="min-w-[180px] max-w-[260px] space-y-1">
+            {visibleItems.map((item) => (
+                <div
+                    key={item.id}
+                    className="flex items-start justify-between gap-2 font-body-sm text-xs text-gray-700"
+                >
+                    <span className="line-clamp-2 font-medium text-[#333333]">
+                        {item.product_name || 'Produk'}
+                    </span>
+                    <span className="shrink-0 rounded-full bg-[#F6F7F7] px-1.5 py-0.5 font-bold text-gray-500">
+                        ×{item.quantity}
+                    </span>
+                </div>
+            ))}
+            {remainingCount > 0 && (
+                <p className="font-body-sm text-[11px] font-bold text-[#1E4D3A]">
+                    +{remainingCount} item lain
+                </p>
+            )}
         </div>
     );
 }
 
-function AdminOrderIndex({ orders = {}, filters = {}, metrics = {} }) {
+function OrderActionButtons({ order }) {
+    return (
+        <div className="flex items-center gap-1.5">
+            <Link
+                aria-label="Lihat detail order"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#1E4D3A]/20 bg-[#1E4D3A]/5 text-[#1E4D3A] transition hover:bg-[#1E4D3A] hover:text-white"
+                href={route('admin.orders.show', order.id)}
+                title="Detail"
+            >
+                <Eye aria-hidden="true" className="h-3.5 w-3.5" />
+            </Link>
+            <a
+                aria-label="Download invoice PDF"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-600 transition hover:bg-gray-100 hover:text-[#333333]"
+                href={route('admin.orders.invoice', order.id)}
+                rel="noopener noreferrer"
+                target="_blank"
+                title="Invoice PDF"
+            >
+                <FileText aria-hidden="true" className="h-3.5 w-3.5" />
+            </a>
+        </div>
+    );
+}
+
+function StatusFilterChip({ label, count, icon: IconComponent, isActive, onClick }) {
+    const numericCount = Number(String(count).replace(/[^\d.-]/g, '')) || 0;
+    const showBadge = numericCount > 0;
+
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={`relative inline-flex items-center gap-2 rounded-full border px-3.5 py-2 font-body-sm text-xs font-bold transition ${
+                isActive
+                    ? 'border-[#1E4D3A] bg-[#1E4D3A] text-white shadow-sm shadow-[#1E4D3A]/20'
+                    : 'border-[#E5E7EB] bg-white text-gray-600 hover:border-[#A8C5B3] hover:text-[#1E4D3A]'
+            }`}
+        >
+            <IconComponent aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+            <span className="whitespace-nowrap">{label}</span>
+            {showBadge && (
+                <span
+                    className={`absolute -right-1.5 -top-1.5 inline-flex min-w-[18px] items-center justify-center rounded-full px-1 py-0.5 text-[10px] font-extrabold leading-none text-white shadow-sm ring-2 ring-white ${
+                        isActive ? 'bg-red-500' : 'bg-red-500'
+                    }`}
+                >
+                    {numericCount > 99 ? '99+' : numericCount}
+                </span>
+            )}
+        </button>
+    );
+}
+
+function buildFilterParams(filters, overrides = {}) {
+    const next = {
+        search: filters.search || undefined,
+        start_date: filters.start_date || undefined,
+        end_date: filters.end_date || undefined,
+        status: filters.status && filters.status !== 'all' ? filters.status : undefined,
+        branch_id: filters.branch_id || undefined,
+        per_page: filters.per_page || undefined,
+        ...overrides,
+    };
+
+    Object.keys(next).forEach((key) => {
+        if (next[key] === null || next[key] === '' || next[key] === undefined) {
+            delete next[key];
+        }
+    });
+
+    return next;
+}
+
+function AdminOrderIndex({
+    orders = {},
+    filters = {},
+    metrics = {},
+    branches = [],
+    showBranchFilter = false,
+    lockedBranchName = null,
+}) {
     const [selectedOrderIds, setSelectedOrderIds] = useState([]);
+    const [searchValue, setSearchValue] = useState(filters.search || '');
     const currentPageOrderIds = useMemo(() => (orders.data ?? []).map((order) => order.id), [orders.data]);
     const selectedCount = selectedOrderIds.length;
     const isAllCurrentPageSelected = currentPageOrderIds.length > 0 && currentPageOrderIds.every((orderId) => selectedOrderIds.includes(orderId));
-    const exportParams = selectedCount > 0 ? { order_ids: selectedOrderIds } : filters;
+    const exportParams = selectedCount > 0 ? { order_ids: selectedOrderIds } : buildFilterParams(filters);
 
     const lifecycleCards = [
-        { id: 'all', label: 'Total Order', count: metrics.totalOrder, tone: 'white', icon: ReceiptText },
-        { id: 'pending', label: 'Waiting Confirmation', count: metrics.waitingConfirmation, tone: 'yellow', icon: Clock3 },
-        { id: 'received', label: 'Received', count: metrics.received, tone: 'sage', icon: CreditCard },
-        { id: 'processing', label: 'Processing', count: metrics.processing, tone: 'brown', icon: PackageCheck },
-        { id: 'shipped', label: 'Shipped', count: metrics.shipped, tone: 'blue', icon: Truck },
-        { id: 'completed', label: 'Selesai', count: metrics.completed, tone: 'green', icon: CheckCircle2 },
-        { id: 'cancelled', label: 'Cancelled', count: metrics.cancelled, tone: 'red', icon: XCircle },
+        { id: 'all', label: 'Semua Order', count: metrics.totalOrder, icon: ReceiptText },
+        { id: 'waiting_shipping_confirmation', label: 'Menunggu Ongkir', count: metrics.waitingShippingConfirmation, icon: Clock3 },
+        { id: 'waiting_payment', label: 'Menunggu Bayar', count: metrics.waitingPayment, icon: Banknote },
+        { id: 'received', label: 'Pembayaran Diterima', count: metrics.received, icon: CreditCard },
+        { id: 'processing', label: 'Diproses', count: metrics.processing, icon: PackageCheck },
+        { id: 'shipped', label: 'Dikirim', count: metrics.shipped, icon: Truck },
+        { id: 'completed', label: 'Selesai', count: metrics.completed, icon: CheckCircle2 },
+        { id: 'cancelled', label: 'Dibatalkan', count: metrics.cancelled, icon: XCircle },
     ];
 
     const currentStatus = filters.status || 'all';
+    const hasBranchesOption = showBranchFilter && branches && branches.length > 0;
+    const selectedBranchName = filters.branch_id
+        ? (branches.find((branch) => String(branch.id) === String(filters.branch_id))?.name ?? null)
+        : null;
+    const selectedStatusLabel = lifecycleCards.find((card) => card.id === currentStatus)?.label;
+    const hasActiveFilters = Boolean(
+        filters.search ||
+        filters.start_date ||
+        filters.end_date ||
+        (filters.status && filters.status !== 'all') ||
+        (showBranchFilter && filters.branch_id) ||
+        (filters.per_page && Number(filters.per_page) !== 10),
+    );
 
-    const handleStatusClick = (status) => {
+    const applyFilters = (overrides = {}) => {
         router.get(
             route('admin.orders.index'),
-            { ...filters, status: status === 'all' ? null : status, page: 1 },
-            { preserveState: true, preserveScroll: true }
+            buildFilterParams(filters, {
+                page: 1,
+                search: searchValue || null,
+                ...overrides,
+            }),
+            { preserveState: true, preserveScroll: true, replace: true },
         );
     };
 
-    const handleLimitChange = (e) => {
+    const handleStatusClick = (status) => {
+        applyFilters({ status: status === 'all' ? null : status });
+    };
+
+    const handleSearchSubmit = () => {
+        applyFilters({ search: searchValue || null });
+    };
+
+    const handleResetFilters = () => {
+        setSearchValue('');
+        setSelectedOrderIds([]);
         router.get(
             route('admin.orders.index'),
-            { ...filters, per_page: e.target.value, page: 1 },
-            { preserveState: true, preserveScroll: true }
+            {},
+            { preserveState: true, preserveScroll: true, replace: true },
         );
     };
 
@@ -159,92 +266,182 @@ function AdminOrderIndex({ orders = {}, filters = {}, metrics = {} }) {
 
             <div className="space-y-8">
                 <AdminPageHeader
-                    // description="Konfirmasi biaya pengiriman, verifikasi pembayaran, dan pantau fulfillment order website Phoenix dari satu halaman."
                     eyebrow="Commerce / Order"
                     title="Order"
+                    description="Konfirmasi ongkir, verifikasi pembayaran, dan pantau fulfillment order."
                 />
-
-                <div className="grid grid-cols-2 gap-4 md:grid-cols-4 xl:grid-cols-7">
-                    {lifecycleCards.map((card, idx) => (
-                        <LifecycleCard
-                            key={idx}
-                            label={card.label}
-                            count={formatNumber(card.count)}
-                            tone={card.tone}
-                            icon={card.icon}
-                            isActive={currentStatus === card.id}
-                            onClick={() => handleStatusClick(card.id)}
-                        />
-                    ))}
-                </div>
 
                 <AdminCard className="overflow-hidden">
                     <div className="border-b border-[#E5E7EB] px-5 py-4">
-                        <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
-                            Commerce
-                        </p>
-                        <h2 className="mt-1 font-body-lg text-lg font-extrabold text-[#333333]">
-                            Daftar Order
-                        </h2>
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                                <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
+                                    Commerce
+                                </p>
+                                <h2 className="mt-1 font-body-lg text-lg font-extrabold text-[#333333]">
+                                    Daftar Order
+                                </h2>
+                                {(filters.status && filters.status !== 'all') || filters.start_date || filters.end_date ? (
+                                    <p className="mt-1 flex flex-wrap items-center gap-2 font-body-sm text-xs text-gray-500">
+                                        {filters.status && filters.status !== 'all' ? (
+                                            <span className="inline-flex items-center rounded-full bg-[#1E4D3A]/10 px-2.5 py-1 font-bold text-[#1E4D3A]">
+                                                {selectedStatusLabel || filters.status}
+                                            </span>
+                                        ) : null}
+                                        {filters.start_date || filters.end_date ? (
+                                            <span className="inline-flex items-center rounded-full bg-[#A8C5B3]/25 px-2.5 py-1 font-bold text-[#1E4D3A]">
+                                                {filters.start_date || '…'} — {filters.end_date || '…'}
+                                            </span>
+                                        ) : null}
+                                    </p>
+                                ) : null}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 self-start sm:justify-end">
+                                <span className="inline-flex items-center gap-1 rounded-full border border-[#E5E7EB] bg-white px-2.5 py-1 font-body-sm text-xs font-bold text-[#1E4D3A]">
+                                    <MapPin aria-hidden="true" className="h-3 w-3" />
+                                    {lockedBranchName || selectedBranchName || 'Semua Cabang'}
+                                </span>
+                                {hasActiveFilters && (
+                                    <button
+                                        type="button"
+                                        onClick={handleResetFilters}
+                                        className="inline-flex items-center gap-1.5 rounded-xl border border-[#E5E7EB] bg-white px-3 py-2 font-body-sm text-xs font-bold text-gray-600 transition hover:border-[#A8C5B3] hover:text-[#1E4D3A]"
+                                    >
+                                        <RotateCcw aria-hidden="true" className="h-3.5 w-3.5" />
+                                        Reset Filter
+                                    </button>
+                                )}
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="flex flex-col gap-4 p-5 md:flex-row md:items-center">
-                        <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                            <input
-                                type="text"
-                                placeholder="Cari no. order atau nama customer..."
-                                className="w-full rounded-lg border border-gray-300 py-2 pl-10 pr-4 focus:border-[#1E4D3A] focus:outline-none focus:ring-1 focus:ring-[#1E4D3A]"
-                                defaultValue={filters.search}
-                                onBlur={(e) => {
-                                    router.get(route('admin.orders.index'), { ...filters, search: e.target.value }, { preserveState: true, preserveScroll: true });
-                                }}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        router.get(route('admin.orders.index'), { ...filters, search: e.target.value }, { preserveState: true, preserveScroll: true });
+                    <div className="space-y-5 bg-[#F9FAFB]/70 p-5 sm:p-6">
+                        <div>
+                            <p className={filterLabelClassName}>Status Order</p>
+                            <div className="flex flex-wrap gap-2.5">
+                                {lifecycleCards.map((card) => (
+                                    <StatusFilterChip
+                                        key={card.id}
+                                        label={card.label}
+                                        count={card.count}
+                                        icon={card.icon}
+                                        isActive={currentStatus === card.id}
+                                        onClick={() => handleStatusClick(card.id)}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1.2fr)_auto]">
+                            <div className="min-w-0">
+                                <label className={filterLabelClassName} htmlFor="orders-filter-search">
+                                    Pencarian
+                                </label>
+                                <div className="relative">
+                                    <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                                    <input
+                                        id="orders-filter-search"
+                                        type="text"
+                                        placeholder="Cari no. order atau nama customer..."
+                                        className={`${inputClassName} pl-11 pr-4`}
+                                        value={searchValue}
+                                        onChange={(e) => setSearchValue(e.target.value)}
+                                        onBlur={handleSearchSubmit}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                                handleSearchSubmit();
+                                            }
+                                        }}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="min-w-0">
+                                <label className={filterLabelClassName} htmlFor="orders-filter-branch">
+                                    Cabang
+                                </label>
+                                {hasBranchesOption ? (
+                                    <div className="relative">
+                                        <MapPin
+                                            aria-hidden="true"
+                                            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#1E4D3A]"
+                                        />
+                                        <select
+                                            id="orders-filter-branch"
+                                            className={`${inputClassName} appearance-none pl-10 pr-10`}
+                                            value={filters.branch_id || ''}
+                                            onChange={(e) => applyFilters({ branch_id: e.target.value || null })}
+                                        >
+                                            <option value="">Semua Cabang</option>
+                                            {branches.map((branch) => (
+                                                <option key={branch.id} value={branch.id}>
+                                                    {branch.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <ChevronDown
+                                            aria-hidden="true"
+                                            className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+                                        />
+                                    </div>
+                                ) : lockedBranchName ? (
+                                    <div className="inline-flex h-[42px] w-full items-center gap-2 rounded-xl border border-[#E5E7EB] bg-[#F6F7F7] px-3.5 font-body-sm text-sm font-bold text-[#1E4D3A]">
+                                        <MapPin aria-hidden="true" className="h-4 w-4 shrink-0" />
+                                        <span className="truncate">{lockedBranchName}</span>
+                                    </div>
+                                ) : (
+                                    <div className="inline-flex h-[42px] w-full items-center rounded-xl border border-dashed border-[#E5E7EB] bg-white px-3.5 font-body-sm text-sm text-gray-400">
+                                        Semua Cabang
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="min-w-0">
+                                <p className={filterLabelClassName}>Periode</p>
+                                <DateRangePicker
+                                    startDate={filters.start_date || null}
+                                    endDate={filters.end_date || null}
+                                    onChange={({ start_date, end_date }) =>
+                                        applyFilters({
+                                            start_date: start_date || null,
+                                            end_date: end_date || null,
+                                        })
                                     }
-                                }}
-                            />
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <input
-                                type="date"
-                                className="rounded-lg border border-gray-300 px-3 py-2 focus:border-[#1E4D3A] focus:outline-none focus:ring-1 focus:ring-[#1E4D3A]"
-                                defaultValue={filters.start_date}
-                                onChange={(e) => {
-                                    router.get(route('admin.orders.index'), { ...filters, start_date: e.target.value }, { preserveState: true, preserveScroll: true });
-                                }}
-                            />
-                            <span className="text-gray-500">-</span>
-                            <input
-                                type="date"
-                                className="rounded-lg border border-gray-300 px-3 py-2 focus:border-[#1E4D3A] focus:outline-none focus:ring-1 focus:ring-[#1E4D3A]"
-                                defaultValue={filters.end_date}
-                                onChange={(e) => {
-                                    router.get(route('admin.orders.index'), { ...filters, end_date: e.target.value }, { preserveState: true, preserveScroll: true });
-                                }}
-                            />
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-500 ml-auto">
-                            <span>Tampilkan</span>
-                            <select
-                                value={filters.per_page || 10}
-                                onChange={handleLimitChange}
-                                className="rounded-xl border border-gray-300 py-2 pl-3 pr-8 text-sm focus:border-[#1E4D3A] focus:outline-none focus:ring-1 focus:ring-[#1E4D3A] font-body-sm"
-                            >
-                                <option value={10}>10</option>
-                                <option value={15}>15</option>
-                                <option value={25}>25</option>
-                                <option value={50}>50</option>
-                                <option value={100}>100</option>
-                            </select>
-                            <span>data</span>
+                                />
+                            </div>
+
+                            <div className="w-full sm:w-auto sm:justify-self-start xl:w-[7.5rem]">
+                                <label className={filterLabelClassName} htmlFor="orders-filter-per-page">
+                                    Tampilkan
+                                </label>
+                                <div className="relative w-[7.5rem]">
+                                    <select
+                                        id="orders-filter-per-page"
+                                        value={filters.per_page || 10}
+                                        onChange={(e) => applyFilters({ per_page: e.target.value })}
+                                        className={`${inputClassName} appearance-none px-3 pr-8`}
+                                    >
+                                        <option value={10}>10 data</option>
+                                        <option value={15}>15 data</option>
+                                        <option value={25}>25 data</option>
+                                        <option value={50}>50 data</option>
+                                        <option value={100}>100 data</option>
+                                    </select>
+                                    <ChevronDown
+                                        aria-hidden="true"
+                                        className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                     <div className="flex flex-col gap-3 border-t border-[#E5E7EB] bg-[#F6F7F7]/70 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
                         <p className="font-body-sm text-sm font-bold text-[#333333]">
-                            {selectedCount} order dipilih untuk export data pengiriman
+                            {selectedCount > 0
+                                ? `${selectedCount} order dipilih untuk export data pengiriman`
+                                : 'Pilih order untuk export data pengiriman, atau export sesuai filter aktif.'}
                         </p>
                         <a
                             className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#1E4D3A] px-4 py-2 font-body-sm text-xs font-bold text-[#1E4D3A] transition hover:bg-[#1E4D3A] hover:text-white"
@@ -252,7 +449,7 @@ function AdminOrderIndex({ orders = {}, filters = {}, metrics = {} }) {
                             href={route('admin.orders.export.shipping', exportParams)}
                         >
                             <Download aria-hidden="true" className="h-4 w-4" />
-                            Export Shipping XLSX
+                            Export Excel
                         </a>
                     </div>
 
@@ -277,18 +474,22 @@ function AdminOrderIndex({ orders = {}, filters = {}, metrics = {} }) {
                                                 type="checkbox"
                                             />
                                         </th>
+                                        <th
+                                            className="px-4 py-3 text-left font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-gray-500"
+                                            scope="col"
+                                        >
+                                            Aksi
+                                        </th>
                                         {[
                                             'Nomor Order',
                                             'Cabang',
                                             'Customer',
+                                            'Barang',
+                                            'Total',
                                             'Status Order',
-                                            'Status Pengiriman',
-                                            'Status Pembayaran',
                                             'Metode Pembayaran',
                                             'Voucher',
-                                            'Total',
                                             'Tanggal Dibuat',
-                                            'Aksi',
                                         ].map((heading) => (
                                             <th
                                                 className="px-4 py-3 text-left font-label-sm text-[10px] font-bold uppercase tracking-[0.16em] text-gray-500"
@@ -315,6 +516,9 @@ function AdminOrderIndex({ orders = {}, filters = {}, metrics = {} }) {
                                                     type="checkbox"
                                                 />
                                             </td>
+                                            <td className="whitespace-nowrap px-4 py-4">
+                                                <OrderActionButtons order={order} />
+                                            </td>
                                             <td className="whitespace-nowrap px-4 py-4 font-body-sm text-sm font-bold text-[#333333]">
                                                 {order.order_number ?? `Order #${order.id}`}
                                             </td>
@@ -324,20 +528,20 @@ function AdminOrderIndex({ orders = {}, filters = {}, metrics = {} }) {
                                                         {order.branch.name}
                                                     </span>
                                                 ) : (
-                                                    <span className="text-gray-400 text-xs">-</span>
+                                                    <span className="text-xs text-gray-400">-</span>
                                                 )}
                                             </td>
-                                            <td className="whitespace-nowrap px-4 py-4 font-body-sm text-sm text-gray-600">
+                                            <td className="whitespace-nowrap px-4 py-4 font-body-sm text-xs font-medium text-[#333333]">
                                                 {customerName(order)}
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <OrderItemsCell order={order} />
+                                            </td>
+                                            <td className="whitespace-nowrap px-4 py-4 font-body-sm text-sm font-extrabold text-[#1E4D3A]">
+                                                {formatCurrency(order.total)}
                                             </td>
                                             <td className="whitespace-nowrap px-4 py-4">
                                                 <StatusBadge status={order.status} />
-                                            </td>
-                                            <td className="whitespace-nowrap px-4 py-4">
-                                                <ShippingBadge status={order.shipping_status} />
-                                            </td>
-                                            <td className="whitespace-nowrap px-4 py-4">
-                                                <StatusBadge status={order.payment_status} />
                                             </td>
                                             <td className="whitespace-nowrap px-4 py-4 font-body-sm text-sm text-gray-600">
                                                 {paymentMethodNama(order)}
@@ -345,39 +549,13 @@ function AdminOrderIndex({ orders = {}, filters = {}, metrics = {} }) {
                                             <td className="whitespace-nowrap px-4 py-4 font-body-sm text-sm text-gray-600">
                                                 {order.voucher ? (
                                                     <div className="flex flex-col">
-                                                        <span className="font-bold text-[#1E4D3A] uppercase">{order.voucher.code}</span>
+                                                        <span className="font-bold uppercase text-[#1E4D3A]">{order.voucher.code}</span>
                                                         <span className="text-xs text-red-600">-{formatCurrency(order.voucher_discount_amount)}</span>
                                                     </div>
                                                 ) : '-'}
                                             </td>
-                                            <td className="whitespace-nowrap px-4 py-4 font-body-sm text-sm font-extrabold text-[#1E4D3A]">
-                                                {formatCurrency(order.total)}
-                                            </td>
                                             <td className="whitespace-nowrap px-4 py-4 font-body-sm text-sm text-gray-600">
                                                 {formatDate(order.created_at)}
-                                            </td>
-                                            <td className="whitespace-nowrap px-4 py-4 flex gap-2">
-                                                <Link
-                                                    className="group inline-flex items-center gap-2 rounded-full border border-[#1E4D3A] px-3 py-1.5 font-body-sm text-xs font-bold text-[#1E4D3A] transition hover:bg-[#1E4D3A] hover:text-white"
-                                                    href={route('admin.orders.show', order.id)}
-                                                >
-                                                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#A8C5B3]/25 transition group-hover:bg-white/15">
-                                                        <Eye aria-hidden="true" className="h-3.5 w-3.5" />
-                                                    </span>
-                                                    Detail
-                                                </Link>
-                                                <a
-                                                    className="group inline-flex items-center gap-2 rounded-full border border-gray-300 px-3 py-1.5 font-body-sm text-xs font-bold text-gray-700 transition hover:bg-gray-100"
-                                                    href={route('admin.orders.invoice', order.id)}
-                                                    rel="noopener noreferrer"
-                                                    target="_blank"
-                                                    title="Download Invoice PDF"
-                                                >
-                                                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-200 transition group-hover:bg-gray-300">
-                                                        <FileText aria-hidden="true" className="h-3.5 w-3.5" />
-                                                    </span>
-                                                    PDF
-                                                </a>
                                             </td>
                                         </tr>
                                     ))}

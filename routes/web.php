@@ -28,6 +28,7 @@ use App\Http\Controllers\Admin\TestimonialController as AdminTestimonialControll
 use App\Http\Controllers\Admin\PositionController as AdminPositionController;
 use App\Http\Controllers\Admin\TeamController as AdminTeamController;
 use App\Http\Controllers\Admin\StaffController as AdminStaffController;
+use App\Http\Controllers\Admin\StaffReferralController as AdminStaffReferralController;
 use App\Http\Controllers\Admin\AdminUserController as AdminAdminUserController;
 use App\Http\Controllers\BranchController;
 use App\Http\Controllers\Public\AffiliateLandingController;
@@ -35,8 +36,10 @@ use App\Http\Controllers\Public\AffiliateTrackController;
 use App\Http\Controllers\Public\BookingController;
 use App\Http\Controllers\Public\CartController;
 use App\Http\Controllers\Public\CheckoutController;
+use App\Http\Controllers\Public\StaffReferralTrackController;
 use App\Http\Controllers\Field\FieldDashboardController;
 use App\Http\Controllers\Field\FieldLeadController;
+use App\Http\Controllers\Field\FieldStaffReferralController;
 use App\Http\Controllers\Public\HomeController;
 use App\Http\Controllers\Public\OrderLookupController;
 use App\Http\Controllers\Public\ProductController;
@@ -51,6 +54,7 @@ Route::get('/', HomeController::class)->name('home');
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
 Route::get('/affiliate', AffiliateLandingController::class)->name('affiliate.landing');
 Route::get('/r/{partnerCode}', AffiliateTrackController::class)->name('affiliate.track');
+Route::get('/s/{staffCode}', StaffReferralTrackController::class)->name('staff-referral.track');
 Route::get('/products', [ProductController::class, 'index'])->name('products.index');
 Route::get('/products/{product:slug}', [ProductController::class, 'show'])->name('products.show');
 Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
@@ -109,6 +113,8 @@ Route::middleware('auth')->group(function () {
         Route::resource('branches', BranchController::class)->except(['show']);
         Route::resource('admins', AdminAdminUserController::class)->except(['create', 'show', 'edit']);
         Route::resource('staff', AdminStaffController::class)->except(['show']);
+        Route::get('/staff-referrals', [AdminStaffReferralController::class, 'index'])->name('staff-referrals.index');
+        Route::get('/staff-referrals/{staff}', [AdminStaffReferralController::class, 'show'])->name('staff-referrals.show')->whereNumber('staff');
         Route::get('/leads', [AdminLeadController::class, 'index'])->name('leads.index');
         Route::get('/leads/create', [AdminLeadController::class, 'create'])->name('leads.create');
         Route::post('/leads', [AdminLeadController::class, 'store'])->name('leads.store');
@@ -187,6 +193,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/leads/{lead}', [FieldLeadController::class, 'show'])->name('leads.show')->whereNumber('lead');
         Route::patch('/leads/{lead}/status', [FieldLeadController::class, 'updateStatus'])->name('leads.status.update')->whereNumber('lead');
         Route::post('/leads/{lead}/activities', [FieldLeadController::class, 'storeActivity'])->name('leads.activities.store')->whereNumber('lead');
+        Route::get('/referral', [FieldStaffReferralController::class, 'show'])->name('referral.show');
     });
 
     Route::get('/bookings', [BookingController::class, 'index'])->name('bookings.index');

@@ -43,14 +43,41 @@ class EventController extends Controller
         return Branch::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']);
     }
 
+    private function resolveBranchId(User $user, ?string $requestedBranchId): ?int
+    {
+        $forcedBranchId = $user->forcedBranchId();
+
+        if ($forcedBranchId !== null) {
+            return $forcedBranchId;
+        }
+
+        if ($user->isAdminPusat() && $requestedBranchId !== null && $requestedBranchId !== '') {
+            return (int) $requestedBranchId;
+        }
+
+        return null;
+    }
+
+    private function applyOptionalBranchFilter($query, ?int $branchId): void
+    {
+        if ($branchId !== null) {
+            $query->where('branch_id', $branchId);
+        }
+    }
+
     public function index(Request $request): Response
     {
         $user = $this->authorizeAdmin();
 
         $search = $request->input('search');
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+        $filter = $request->input('filter');
+        $branchId = $this->resolveBranchId($user, $request->input('branch_id'));
         $perPage = $request->input('per_page', 10);
 
         $metricsQuery = $user->applyBranchScope(Event::query());
+        $this->applyOptionalBranchFilter($metricsQuery, $branchId);
 
         $metrics = [
             'total' => (clone $metricsQuery)->count(),
@@ -65,20 +92,61 @@ class EventController extends Controller
                 ->with('branch:id,name')
         );
 
-        $events = $query->when($search, function ($q, $search) {
-            $q->where(function ($q2) use ($search) {
+        $this->applyOptionalBranchFilter($query, $branchId);
+
+        if ($search) {
+            $query->where(function ($q2) use ($search) {
                 $q2->where('name', 'like', "%{$search}%")
-                    ->orWhere('location', 'like', "%{$search}%");
+                    ->orWhere('location', 'like', "%{$search}%")
+                    ->orWhere('organizer', 'like', "%{$search}%");
             });
-        })
+        }
+
+        if ($startDate) {
+            $query->whereDate('start_date', '>=', $startDate);
+        }
+
+        if ($endDate) {
+            $query->whereDate('end_date', '<=', $endDate);
+        }
+
+        if ($filter === 'active') {
+            $query->where('is_active', true)
+                ->where('start_date', '<=', now())
+                ->where('end_date', '>=', now());
+        } elseif ($filter === 'upcoming') {
+            $query->where('start_date', '>', now());
+        } elseif ($filter === 'past') {
+            $query->where('end_date', '<', now());
+        }
+
+        $events = $query
             ->latest()
             ->paginate($perPage)
             ->withQueryString();
 
+        $showBranchFilter = $user->isAdminPusat();
+        $lockedBranchName = null;
+
+        if (! $showBranchFilter && $user->isAdminCabang()) {
+            $lockedBranchName = $user->branch?->name
+                ?? Branch::query()->where('id', $user->branch_id)->value('name');
+        }
+
         return Inertia::render('Admin/Events/Index', [
             'events' => $events,
             'metrics' => $metrics,
-            'filters' => $request->only(['search', 'per_page']),
+            'filters' => [
+                'search' => $search,
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'filter' => $filter,
+                'branch_id' => $branchId,
+                'per_page' => $perPage,
+            ],
+            'branches' => $showBranchFilter ? $this->branchesForActor($user) : [],
+            'showBranchFilter' => $showBranchFilter,
+            'lockedBranchName' => $lockedBranchName,
         ]);
     }
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\StaffReferral\StaffReferralAttributionService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,9 +20,18 @@ class RegisteredUserController extends Controller
     /**
      * Display the registration view.
      */
-    public function create(): Response
+    public function create(Request $request, StaffReferralAttributionService $attributionService): Response
     {
-        return Inertia::render('Auth/Register');
+        $referringStaff = $attributionService->resolveFromRequest($request);
+
+        return Inertia::render('Auth/Register', [
+            'referringStaff' => $referringStaff === null
+                ? null
+                : [
+                    'name' => $referringStaff->name,
+                    'staff_code' => $referringStaff->staff_code,
+                ],
+        ]);
     }
 
     /**
@@ -29,7 +39,7 @@ class RegisteredUserController extends Controller
      *
      * @throws ValidationException
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, StaffReferralAttributionService $attributionService): RedirectResponse
     {
         $request->validate([
             'name' => 'required|string|max:255',
@@ -37,6 +47,7 @@ class RegisteredUserController extends Controller
             'whatsapp_number' => ['required', 'string', 'max:30'],
             'primary_address' => ['required', 'string', 'max:1000'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'staff_ref' => ['nullable', 'string', 'max:32'],
         ]);
 
         $user = User::create([
@@ -47,12 +58,18 @@ class RegisteredUserController extends Controller
             'is_active' => true,
         ]);
 
+        $referringStaff = $attributionService->bindOnRegister($user, $request);
+
+        $internalNotes = $referringStaff === null
+            ? 'Customer mendaftar mandiri melalui halaman registrasi.'
+            : 'Customer mendaftar melalui referral staff '.$referringStaff->name.' ('.$referringStaff->staff_code.').';
+
         $user->customerProfile()->create([
             'name' => $request->name,
             'whatsapp_number' => $request->whatsapp_number,
             'primary_address' => $request->primary_address,
             'member_status' => 'non_member',
-            'internal_notes' => 'Customer mendaftar mandiri melalui halaman registrasi.',
+            'internal_notes' => $internalNotes,
         ]);
 
         event(new Registered($user));

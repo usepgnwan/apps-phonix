@@ -683,19 +683,25 @@ function OfflineSaleList({ offlineSales, filters, historyMetrics, branches, auth
         if (key === 'search') setSearch(value);
         if (key === 'per_page') setPerPage(value);
 
-        const newFilters = { 
-            search: key === 'search' ? value : search, 
-            start_date: filters?.start_date, 
-            end_date: filters?.end_date,
-            branch_id: filters?.branch_id,
+        const newFilters = {
+            search: key === 'search' ? value : (search || undefined),
+            start_date: key === 'start_date' ? (value || undefined) : (filters?.start_date || undefined),
+            end_date: key === 'end_date' ? (value || undefined) : (filters?.end_date || undefined),
+            branch_id: key === 'branch_id' ? (value || undefined) : (filters?.branch_id || undefined),
             per_page: key === 'per_page' ? value : perPage,
-            [key]: value
         };
-        
+
+        // Hapus key kosong agar "Semua Cabang" benar-benar clear filter.
+        Object.keys(newFilters).forEach((filterKey) => {
+            if (newFilters[filterKey] === null || newFilters[filterKey] === '' || newFilters[filterKey] === undefined) {
+                delete newFilters[filterKey];
+            }
+        });
+
         router.get(route('admin.offline-sales.index'), newFilters, {
             preserveState: true,
             replace: true,
-            preserveScroll: true
+            preserveScroll: true,
         });
     }
 
@@ -1025,7 +1031,11 @@ function OfflineSaleList({ offlineSales, filters, historyMetrics, branches, auth
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 function AdminOfflineSalesIndex({ offlineSales, filters, metrics, historyMetrics, products = [], services = [], customerProfiles = [], leads = [], fieldStaff = [], events = [], sources = [], paymentMethods = [], branches = [], auth }) {
-    const isHistoryActive = filters?.search || filters?.start_date || filters?.end_date || (typeof window !== 'undefined' && window.location.search.includes('page='));
+    const isHistoryActive = filters?.search
+        || filters?.start_date
+        || filters?.end_date
+        || filters?.branch_id
+        || (typeof window !== 'undefined' && window.location.search.includes('page='));
     const [activeTab, setActiveTab] = useState(isHistoryActive ? 'history' : 'pos');
 
     const tabs = [

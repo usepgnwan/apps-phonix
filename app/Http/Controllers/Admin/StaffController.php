@@ -7,7 +7,9 @@ use App\Models\User;
 use App\Models\Position;
 use App\Models\Team;
 use App\Models\Branch;
+use App\Services\StaffReferral\StaffCodeGenerator;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -18,10 +20,49 @@ use Intervention\Image\Format;
 
 class StaffController extends Controller
 {
-    private function authorizeAdmin(): void
+    private function authorizeAdmin(): User
     {
         $user = request()->user();
         abort_unless($user !== null && $user->isAdmin(), 403);
+
+        return $user;
+    }
+
+    private function branchesForActor(User $actor): Collection
+    {
+        $forcedBranchId = $actor->forcedBranchId();
+
+        if ($forcedBranchId !== null) {
+            return Branch::query()
+                ->where('id', $forcedBranchId)
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name']);
+        }
+
+        return Branch::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+    }
+
+    /**
+     * Resolve branch filter: admin cabang dikunci ke cabangnya;
+     * admin pusat boleh pilih branch_id dari request.
+     */
+    private function resolveBranchId(User $user, ?string $requestedBranchId): ?int
+    {
+        $forcedBranchId = $user->forcedBranchId();
+
+        if ($forcedBranchId !== null) {
+            return $forcedBranchId;
+        }
+
+        if ($user->isAdminPusat() && $requestedBranchId !== null && $requestedBranchId !== '') {
+            return (int) $requestedBranchId;
+        }
+
+        return null;
     }
 
     private function ensureStaffInScope(User $actor, User $staff): void
@@ -36,46 +77,66 @@ class StaffController extends Controller
 
     public function index(Request $request)
     {
-        $this->authorizeAdmin();
+        $user = $this->authorizeAdmin();
 
-        $user = $request->user();
         $search = $request->input('search');
+        $branchId = $this->resolveBranchId($user, $request->input('branch_id'));
         $perPage = $request->input('per_page', 10);
 
         $staffQuery = User::query()
             ->where('role', 'field_staff')
-            ->with(['position', 'team', 'branch']);
+            ->with(['position', 'team', 'branch'])
+            ->withCount('referredCustomers');
         $user->applyBranchScope($staffQuery);
+
+        if ($branchId !== null) {
+            $staffQuery->where('branch_id', $branchId);
+        }
 
         $staff = $staffQuery
             ->when($search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
-                        ->orWhere('phone_number', 'like', "%{$search}%");
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('phone_number', 'like', "%{$search}%")
+                        ->orWhere('staff_code', 'like', "%{$search}%");
                 });
             })
             ->latest()
             ->paginate($perPage)
             ->withQueryString();
 
+        $showBranchFilter = $user->isAdminPusat();
+        $lockedBranchName = null;
+
+        if (! $showBranchFilter && $user->isAdminCabang()) {
+            $lockedBranchName = $user->branch?->name
+                ?? Branch::query()->where('id', $user->branch_id)->value('name');
+        }
+
         return Inertia::render('Admin/Staff/Index', [
             'staff' => $staff,
-            'filters' => $request->only(['search', 'per_page']),
+            'filters' => [
+                'search' => $search,
+                'branch_id' => $branchId,
+                'per_page' => $perPage,
+            ],
+            'branches' => $showBranchFilter ? $this->branchesForActor($user) : [],
+            'showBranchFilter' => $showBranchFilter,
+            'lockedBranchName' => $lockedBranchName,
         ]);
     }
 
-    public function create(Request $request)
+    public function create()
     {
-        $this->authorizeAdmin();
+        $actor = $this->authorizeAdmin();
 
-        return Inertia::render('Admin/Staff/Create', $this->formOptions($request->user()));
+        return Inertia::render('Admin/Staff/Create', $this->formOptions($actor));
     }
 
-    public function store(Request $request)
+    public function store(Request $request, StaffCodeGenerator $codeGenerator)
     {
-        $this->authorizeAdmin();
-
-        $actor = $request->user();
+        $actor = $this->authorizeAdmin();
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -99,6 +160,8 @@ class StaffController extends Controller
         $validated['role'] = 'field_staff';
         $validated['admin_scope'] = null;
         $validated['is_active'] = true;
+        $validated['staff_code'] = $codeGenerator->generate();
+        $validated['staff_referral_enabled'] = true;
         $validated['password'] = Hash::make($validated['password'] ?? 'password123');
 
         if ($request->hasFile('photo')) {
@@ -110,11 +173,9 @@ class StaffController extends Controller
         return redirect()->route('admin.staff.index')->with('success', 'Staff berhasil ditambahkan.');
     }
 
-    public function edit(Request $request, User $staff)
+    public function edit(User $staff)
     {
-        $this->authorizeAdmin();
-
-        $actor = $request->user();
+        $actor = $this->authorizeAdmin();
         $this->ensureStaffInScope($actor, $staff);
 
         $staff->load('branch');
@@ -127,9 +188,7 @@ class StaffController extends Controller
 
     public function update(Request $request, User $staff)
     {
-        $this->authorizeAdmin();
-
-        $actor = $request->user();
+        $actor = $this->authorizeAdmin();
         $this->ensureStaffInScope($actor, $staff);
 
         $validated = $request->validate([
@@ -199,9 +258,7 @@ class StaffController extends Controller
 
     public function destroy(User $staff)
     {
-        $this->authorizeAdmin();
-
-        $actor = request()->user();
+        $actor = $this->authorizeAdmin();
         $this->ensureStaffInScope($actor, $staff);
 
         if ($staff->offlineSales()->count() > 0 || $staff->assignedLeads()->count() > 0) {

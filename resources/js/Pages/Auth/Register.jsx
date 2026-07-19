@@ -111,7 +111,7 @@ function composePrimaryAddress(detail, village, district, city, province) {
     return [detail, village, district, city, province].filter(Boolean).join(', ');
 }
 
-export default function Register() {
+export default function Register({ referringStaff = null }) {
     const [provinceId, setProvinceId] = useState('');
     const [regencyId, setRegencyId] = useState('');
     const [districtId, setDistrictId] = useState('');
@@ -135,6 +135,7 @@ export default function Register() {
         primary_address: '',
         password: '',
         password_confirmation: '',
+        staff_ref: referringStaff?.staff_code || '',
     });
 
     useEffect(() => {
@@ -390,7 +391,23 @@ export default function Register() {
                         </p>
                     </div>
 
+                    {referringStaff?.name ? (
+                        <div className="mb-5 rounded-xl border border-primary-container/20 bg-primary-fixed/25 px-4 py-3 text-left">
+                            <p className="font-label-sm text-[11px] font-semibold uppercase tracking-wide text-primary-container">
+                                Undangan Referral
+                            </p>
+                            <p className="mt-1 font-body-sm text-sm text-on-surface">
+                                Anda diundang oleh <span className="font-bold">{referringStaff.name}</span>
+                                {referringStaff.staff_code ? (
+                                    <span className="text-on-surface-variant"> ({referringStaff.staff_code})</span>
+                                ) : null}
+                                .
+                            </p>
+                        </div>
+                    ) : null}
+
                     <form onSubmit={submit} className="space-y-5">
+                        <input type="hidden" name="staff_ref" value={data.staff_ref || ''} readOnly />
                         <div>
                             <label htmlFor="name" className="block font-label-sm text-xs font-semibold uppercase tracking-wide text-on-surface">
                                 Nama Lengkap
