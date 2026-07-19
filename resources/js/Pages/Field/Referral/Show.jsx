@@ -5,6 +5,7 @@ import AdminCard from '@/Components/Admin/AdminCard';
 import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
 import EmptyState from '@/Components/Admin/EmptyState';
 import MetricCard from '@/Components/Admin/MetricCard';
+import ReferralQrCode from '@/Components/ReferralQrCode';
 import FieldLayout from '@/Layouts/FieldLayout';
 import { formatDateTime, formatNumber } from '@/utils/format';
 
@@ -95,6 +96,13 @@ export default function Show({
                             Link mengarah ke halaman daftar. Cookie referral berlaku 30 hari.
                         </p>
                     </div>
+
+                    <ReferralQrCode
+                        fileName={`referral-${staffCode || 'staff'}`}
+                        helper="Scan QR ini untuk membuka link referral Anda. Cocok untuk event, brosur, atau dibagikan ke customer."
+                        label="QR Code Referral"
+                        value={trackingUrl}
+                    />
                 </AdminCard>
 
                 <AdminCard className="p-0">

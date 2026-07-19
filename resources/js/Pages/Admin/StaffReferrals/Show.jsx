@@ -6,6 +6,7 @@ import AdminPageHeader from '@/Components/Admin/AdminPageHeader';
 import EmptyState from '@/Components/Admin/EmptyState';
 import MetricCard from '@/Components/Admin/MetricCard';
 import Pagination from '@/Components/Admin/Pagination';
+import ReferralQrCode from '@/Components/ReferralQrCode';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { formatDateTime, formatNumber } from '@/utils/format';
 
@@ -111,6 +112,13 @@ export default function Show({ staff, trackingUrl, metrics, registrations, recen
                             Salin Link
                         </button>
                     </div>
+
+                    <ReferralQrCode
+                        fileName={`referral-${staff.staff_code || staff.id}`}
+                        helper="QR per staff untuk cetak materi cabang atau dibagikan ke field staff."
+                        label="QR Code Referral"
+                        value={trackingUrl}
+                    />
                 </AdminCard>
 
                 <AdminCard className="p-0">
