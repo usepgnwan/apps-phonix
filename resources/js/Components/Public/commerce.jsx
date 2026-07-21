@@ -137,6 +137,11 @@ export function PublicShell({ children, fullWidth = false }) {
                         <Link className="font-body-md text-body-md font-medium text-[#333333] transition-colors hover:text-[#1E4D3A]" href={route('orders.lookup.create')}>
                             Cek Pesanan
                         </Link>
+                        {isAuthenticated && (
+                            <Link className="font-body-md text-body-md font-medium text-[#333333] transition-colors hover:text-[#1E4D3A]" href={`${route('affiliate.landing')}#skema-komisi`}>
+                                Affiliate
+                            </Link>
+                        )}
                     </nav>
 
                     <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">

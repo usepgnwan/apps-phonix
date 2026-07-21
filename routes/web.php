@@ -7,6 +7,7 @@ use App\Http\Controllers\Customer\CustomerProfileController;
 use App\Http\Controllers\Admin\AffiliateCommissionRuleController as AdminAffiliateCommissionRuleController;
 use App\Http\Controllers\Admin\AffiliateController as AdminAffiliateController;
 use App\Http\Controllers\Admin\AffiliatePayoutController as AdminAffiliatePayoutController;
+use App\Http\Controllers\Admin\MarketingKitController as AdminMarketingKitController;
 use App\Http\Controllers\Admin\ProductCategoryController as AdminProductCategoryController;
 use App\Http\Controllers\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Admin\BranchStockController as AdminBranchStockController;
@@ -168,6 +169,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/affiliate-commission-rules', [AdminAffiliateCommissionRuleController::class, 'index'])->name('affiliate-commission-rules.index');
         Route::post('/affiliate-commission-rules', [AdminAffiliateCommissionRuleController::class, 'store'])->name('affiliate-commission-rules.store');
         Route::put('/affiliate-commission-rules/{affiliateCommissionRule}', [AdminAffiliateCommissionRuleController::class, 'update'])->name('affiliate-commission-rules.update');
+
+        Route::get('/marketing-kits', [AdminMarketingKitController::class, 'index'])->name('marketing-kits.index');
+        Route::post('/marketing-kits', [AdminMarketingKitController::class, 'store'])->name('marketing-kits.store');
+        Route::post('/marketing-kits/{marketingKit}', [AdminMarketingKitController::class, 'update'])->name('marketing-kits.update');
+        Route::delete('/marketing-kits/{marketingKit}', [AdminMarketingKitController::class, 'destroy'])->name('marketing-kits.destroy');
     });
 
     Route::get('/customer/dashboard', [CustomerDashboardController::class, 'index'])->name('customer.dashboard.index');
@@ -184,6 +190,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/customer/affiliate/apply', [AffiliateApplicationController::class, 'store'])->name('customer.affiliate.apply.store');
     Route::get('/customer/affiliate', [AffiliateDashboardController::class, 'dashboard'])->name('customer.affiliate.dashboard');
     Route::get('/customer/affiliate/commissions', [AffiliateDashboardController::class, 'commissions'])->name('customer.affiliate.commissions');
+    Route::get('/customer/affiliate/commission-scheme', [AffiliateDashboardController::class, 'commissionScheme'])->name('customer.affiliate.commission-scheme');
+    Route::get('/customer/affiliate/marketing-kits', [AffiliateDashboardController::class, 'marketingKits'])->name('customer.affiliate.marketing-kits');
     Route::get('/customer/affiliate/settings', [AffiliateDashboardController::class, 'settings'])->name('customer.affiliate.settings');
     Route::patch('/customer/affiliate/settings', [AffiliateDashboardController::class, 'updateSettings'])->name('customer.affiliate.settings.update');
 

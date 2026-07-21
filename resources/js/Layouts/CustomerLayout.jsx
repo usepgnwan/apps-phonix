@@ -1,9 +1,11 @@
 import { usePage } from '@inertiajs/react';
 import {
     Handshake,
+    Images,
     LayoutDashboard,
     Percent,
     Settings,
+    Table2,
     UserRound,
 } from 'lucide-react';
 
@@ -64,6 +66,24 @@ function buildNavigationGroups(affiliate) {
                 routeName: 'customer.affiliate.commissions',
                 pattern: 'customer.affiliate.commissions',
                 icon: Percent,
+            });
+        }
+
+        if (routeExists('customer.affiliate.commission-scheme')) {
+            affiliateItems.push({
+                label: 'Skema Komisi',
+                routeName: 'customer.affiliate.commission-scheme',
+                pattern: 'customer.affiliate.commission-scheme',
+                icon: Table2,
+            });
+        }
+
+        if (routeExists('customer.affiliate.marketing-kits')) {
+            affiliateItems.push({
+                label: 'Bahan Promosi',
+                routeName: 'customer.affiliate.marketing-kits',
+                pattern: 'customer.affiliate.marketing-kits',
+                icon: Images,
             });
         }
 
