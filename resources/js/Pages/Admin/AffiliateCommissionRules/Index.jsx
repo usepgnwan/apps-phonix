@@ -76,7 +76,8 @@ function AdminAffiliateCommissionRulesIndex({ rules, products, services }) {
             service_id: data.service_id === '' ? null : data.service_id,
             is_active: Boolean(data.is_active),
             sort_order: Number(data.sort_order || 0),
-        })).post(route('admin.affiliate-commission-rules.store'), {
+        }));
+        createForm.post(route('admin.affiliate-commission-rules.store'), {
             preserveScroll: true,
             onSuccess: () => {
                 setIsCreateModalOpen(false);
@@ -96,7 +97,8 @@ function AdminAffiliateCommissionRulesIndex({ rules, products, services }) {
             commission_type: data.commission_type,
             commission_value: data.commission_value,
             is_active: Boolean(data.is_active),
-        })).put(route('admin.affiliate-commission-rules.update', selectedRule.id), {
+        }));
+        editForm.put(route('admin.affiliate-commission-rules.update', selectedRule.id), {
             preserveScroll: true,
             onSuccess: () => {
                 setIsEditModalOpen(false);
