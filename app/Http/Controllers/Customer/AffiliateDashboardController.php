@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Customer\UpdateAffiliateSettingsRequest;
 use App\Models\Affiliate;
 use App\Models\AffiliateCommission;
+use App\Models\AffiliateCommissionRule;
 use App\Models\AffiliateReferral;
+use App\Models\MarketingKit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -134,5 +136,86 @@ class AffiliateDashboardController extends Controller
         return redirect()
             ->route('customer.affiliate.settings')
             ->with('success', 'Pengaturan affiliate berhasil diperbarui.');
+    }
+
+    public function commissionScheme(Request $request): Response|RedirectResponse
+    {
+        $affiliate = $this->activeAffiliate($request);
+
+        if ($affiliate instanceof RedirectResponse) {
+            return $affiliate;
+        }
+
+        $rules = AffiliateCommissionRule::query()
+            ->with(['product:id,name,price', 'service:id,name,price'])
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get()
+            ->map(function (AffiliateCommissionRule $rule) {
+                $price = (float) ($rule->product?->price ?? $rule->service?->price ?? 0);
+                $commissionAmount = $rule->calculate($price);
+
+                return [
+                    'id' => $rule->id,
+                    'category' => $rule->product_id ? 'Produk' : 'Layanan',
+                    'item_name' => $rule->product?->name ?? $rule->service?->name ?? $rule->name,
+                    'price' => $price,
+                    'commission_type' => $rule->commission_type,
+                    'commission_value' => (float) $rule->commission_value,
+                    'commission_amount' => $commissionAmount,
+                ];
+            });
+
+        return Inertia::render('Customer/Affiliate/CommissionScheme', [
+            'affiliate' => [
+                'partner_code' => $affiliate->partner_code,
+                'full_name' => $affiliate->full_name,
+            ],
+            'rules' => $rules,
+        ]);
+    }
+
+    public function marketingKits(Request $request): Response|RedirectResponse
+    {
+        $affiliate = $this->activeAffiliate($request);
+
+        if ($affiliate instanceof RedirectResponse) {
+            return $affiliate;
+        }
+
+        $category = $request->string('category')->toString();
+        $allowed = MarketingKit::CATEGORIES;
+
+        $kits = MarketingKit::query()
+            ->where('is_active', true)
+            ->when(
+                $category !== '' && in_array($category, $allowed, true),
+                fn ($query) => $query->where('category', $category)
+            )
+            ->orderBy('sort_order')
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn (MarketingKit $kit) => [
+                'id' => $kit->id,
+                'title' => $kit->title,
+                'category' => $kit->category,
+                'category_label' => $kit->categoryLabel(),
+                'description' => $kit->description,
+                'body_text' => $kit->body_text,
+                'file_url' => $kit->publicFileUrl(),
+                'original_filename' => $kit->original_filename,
+            ]);
+
+        return Inertia::render('Customer/Affiliate/MarketingKits', [
+            'affiliate' => [
+                'partner_code' => $affiliate->partner_code,
+                'full_name' => $affiliate->full_name,
+            ],
+            'kits' => $kits,
+            'filters' => [
+                'category' => in_array($category, $allowed, true) ? $category : '',
+            ],
+        ]);
     }
 }

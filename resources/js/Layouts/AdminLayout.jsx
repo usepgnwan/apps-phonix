@@ -22,6 +22,7 @@ import {
     UsersRound,
     Video,
     WalletCards,
+    Images,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -60,6 +61,7 @@ const navigationGroups = [
             { label: 'Daftar Affiliate', routeName: 'admin.affiliates.index', pattern: 'admin.affiliates.*', icon: Handshake },
             { label: 'Pencairan Komisi', routeName: 'admin.affiliate-payouts.index', pattern: 'admin.affiliate-payouts.*', icon: WalletCards },
             { label: 'Atur Komisi', routeName: 'admin.affiliate-commission-rules.index', pattern: 'admin.affiliate-commission-rules.*', icon: Percent },
+            { label: 'Marketing Kit', routeName: 'admin.marketing-kits.index', pattern: 'admin.marketing-kits.*', icon: Images },
         ],
     },
     {

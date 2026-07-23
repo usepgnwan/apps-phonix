@@ -567,6 +567,9 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                         <SmoothAnchor className="font-body-md text-body-md font-medium text-[#333333] transition-colors hover:text-[#1E4D3A]" href="#layanan" onClick={handleAnchorClick}>Layanan</SmoothAnchor>
                         <SmoothAnchor className="font-body-md text-body-md font-medium text-[#333333] transition-colors hover:text-[#1E4D3A]" href="#tentang-kami" onClick={handleAnchorClick}>Tentang Kami</SmoothAnchor>
                         <Link className="font-body-md text-body-md font-medium text-[#333333] transition-colors hover:text-[#1E4D3A]" href={route('orders.lookup.create')}>Cek Pesanan</Link>
+                        {isAuthenticated && (
+                            <Link className="font-body-md text-body-md font-medium text-[#333333] transition-colors hover:text-[#1E4D3A]" href={`${route('affiliate.landing')}#skema-komisi`}>Affiliate</Link>
+                        )}
                     </div>
                     <div className="flex items-center gap-2 sm:gap-3">
                         <Link href={route('cart.index')} className="relative flex h-11 w-11 items-center justify-center rounded-full border border-[#1E4D3A]/30 bg-white text-[#1E4D3A] transition-all duration-150 hover:border-[#1E4D3A] hover:bg-[#A8C5B3]/20 active:scale-95" aria-label="Keranjang belanja" data-cart-link>
@@ -604,6 +607,9 @@ export default function Welcome({ auth, featuredProducts = [], featuredServices 
                         <SmoothAnchor className="font-body-md text-body-md font-medium text-[#333333]" href="#layanan" onClick={(e) => { setIsMobileMenuOpen(false); handleAnchorClick(e); }}>Layanan</SmoothAnchor>
                         <SmoothAnchor className="font-body-md text-body-md font-medium text-[#333333]" href="#tentang-kami" onClick={(e) => { setIsMobileMenuOpen(false); handleAnchorClick(e); }}>Tentang Kami</SmoothAnchor>
                         <Link className="font-body-md text-body-md font-medium text-[#333333]" href={route('orders.lookup.create')}>Cek Pesanan</Link>
+                        {isAuthenticated && (
+                            <Link className="font-body-md text-body-md font-medium text-[#333333]" href={`${route('affiliate.landing')}#skema-komisi`} onClick={() => setIsMobileMenuOpen(false)}>Affiliate</Link>
+                        )}
                         {!isAuthenticated && (
                             <Link href={route('register')} className="w-full text-center rounded-full border border-[#1E4D3A] py-2.5 font-label-md font-semibold text-[#1E4D3A] mt-2 transition-all hover:bg-[#1E4D3A]/5">Daftar Akun</Link>
                         )}

@@ -46,9 +46,11 @@ function AdminAffiliateCommissionRulesIndex({ rules, products, services }) {
 
     const createForm = useForm({ ...emptyCreateForm });
     const editForm = useForm({
+        name: '',
         commission_type: 'percent',
         commission_value: '',
         is_active: true,
+        sort_order: 0,
     });
 
     const openCreateModal = () => {
@@ -61,9 +63,11 @@ function AdminAffiliateCommissionRulesIndex({ rules, products, services }) {
         setSelectedRule(rule);
         editForm.clearErrors();
         editForm.setData({
+            name: rule.name || '',
             commission_type: rule.commission_type || 'percent',
             commission_value: rule.commission_value ?? '',
             is_active: Boolean(rule.is_active),
+            sort_order: rule.sort_order ?? 0,
         });
         setIsEditModalOpen(true);
     };
@@ -94,9 +98,11 @@ function AdminAffiliateCommissionRulesIndex({ rules, products, services }) {
         }
 
         editForm.transform((data) => ({
+            name: data.name,
             commission_type: data.commission_type,
             commission_value: data.commission_value,
             is_active: Boolean(data.is_active),
+            sort_order: Number(data.sort_order || 0),
         }));
         editForm.put(route('admin.affiliate-commission-rules.update', selectedRule.id), {
             preserveScroll: true,
@@ -315,9 +321,16 @@ function AdminAffiliateCommissionRulesIndex({ rules, products, services }) {
                         Edit Aturan Komisi
                     </h2>
                     <p className="mb-4 font-body-sm text-sm text-gray-600">
-                        {selectedRule?.name} · {selectedRule ? targetLabel(selectedRule) : ''}
+                        {selectedRule ? targetLabel(selectedRule) : ''}
                     </p>
                     <div className="space-y-4">
+                        <TextField
+                            error={editForm.errors.name}
+                            label="Nama Aturan"
+                            name="name"
+                            onChange={(event) => editForm.setData('name', event.target.value)}
+                            value={editForm.data.name}
+                        />
                         <SelectField
                             error={editForm.errors.commission_type}
                             label="Tipe Komisi"
@@ -335,6 +348,14 @@ function AdminAffiliateCommissionRulesIndex({ rules, products, services }) {
                             onChange={(event) => editForm.setData('commission_value', event.target.value)}
                             type="number"
                             value={editForm.data.commission_value}
+                        />
+                        <TextField
+                            error={editForm.errors.sort_order}
+                            label="Urutan"
+                            name="sort_order"
+                            onChange={(event) => editForm.setData('sort_order', event.target.value)}
+                            type="number"
+                            value={editForm.data.sort_order}
                         />
                         <label className="flex items-start gap-3 rounded-2xl border border-[#E5E7EB] bg-[#F6F7F7] px-4 py-3">
                             <input
