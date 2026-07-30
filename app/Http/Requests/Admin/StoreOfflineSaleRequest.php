@@ -40,6 +40,7 @@ class StoreOfflineSaleRequest extends FormRequest
             'source' => ['required', Rule::in(['offline', 'door_to_door', 'event'])],
             'payment_method_id' => ['required', 'exists:payment_methods,id'],
             'voucher_code' => ['nullable', 'string', 'max:255'],
+            'staff_ref' => ['nullable', 'string', 'max:32'],
             'customer_name' => ['nullable', 'string', 'max:255'],
             'customer_whatsapp_number' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],

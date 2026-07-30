@@ -199,8 +199,10 @@ class OrderController extends Controller
 
         $order->load([
             'branch:id,name',
-            'user:id,name,email',
+            'user:id,name,email,referred_by_staff_id',
+            'user.referredByStaff:id,name,staff_code',
             'customerProfile:id,user_id,name,whatsapp_number,primary_address,member_status',
+            'referredByStaff:id,name,staff_code',
             'voucher:id,code,name',
             'paymentMethod:id,type,bank_name,account_number,account_holder_name,qris_image_path,instructions,is_active',
             'orderItems.product:id,name,slug,price',

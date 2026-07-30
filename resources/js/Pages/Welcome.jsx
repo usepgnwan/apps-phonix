@@ -114,6 +114,7 @@ function Reveal({ children, className = '', delay = 0, as: Component = 'div' }) 
 }
 
 function ProductCard({ onAddedToCart, product }) {
+    const { selectedBranchId } = usePage().props;
     const imageSrc = storageImage(product.image_path);
     const detailHref = productHref(product);
     const imageRef = useRef(null);
@@ -124,17 +125,31 @@ function ProductCard({ onAddedToCart, product }) {
             return;
         }
 
+        if (!selectedBranchId) {
+            window.alert('Pilih cabang terlebih dahulu sebelum menambahkan produk ke keranjang.');
+            return;
+        }
+
         setIsAddingToCart(true);
 
         router.post(route('cart.items.store'), {
             product_id: product.id,
             quantity: 1,
+            branch_id: selectedBranchId,
         }, {
             onSuccess: () => onAddedToCart?.({
                 imagePath: product.image_path,
                 name: product.name,
                 sourceRect: imageRef.current?.getBoundingClientRect(),
             }),
+            onError: (errors) => {
+                const message = errors?.branch_id
+                    || errors?.quantity
+                    || errors?.product_id
+                    || errors?.cart
+                    || 'Produk gagal ditambahkan ke keranjang.';
+                window.alert(typeof message === 'string' ? message : 'Produk gagal ditambahkan ke keranjang.');
+            },
             onFinish: () => setIsAddingToCart(false),
             preserveScroll: true,
         });

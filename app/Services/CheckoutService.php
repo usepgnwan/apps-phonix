@@ -39,8 +39,11 @@ class CheckoutService
                 $affiliateId = $affiliate?->id;
 
                 $staffAttribution = app(StaffReferralAttributionService::class);
+                $explicitStaffCode = isset($data['staff_ref']) && is_string($data['staff_ref'])
+                    ? $data['staff_ref']
+                    : null;
                 $referredByStaffId = $staffAttribution
-                    ->resolveForTransaction($cart->user_id, $request)
+                    ->resolveForTransaction($cart->user_id, $request, $explicitStaffCode)
                     ?->id;
             }
 

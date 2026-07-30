@@ -62,7 +62,7 @@ function ServiceSummaryCard({ service, compact = false }) {
     );
 }
 
-export default function BookingCreate({ customerProfile, services = [], branches = [] }) {
+export default function BookingCreate({ customerProfile, services = [], branches = [], staffReferralPrefill = null }) {
     const { selectedBranchId } = usePage().props;
     const searchParams = new URLSearchParams(window.location.search);
     const initialService = selectedInitialService(services, searchParams.get('service_id'));
@@ -81,6 +81,7 @@ export default function BookingCreate({ customerProfile, services = [], branches
         service_id: initialService?.id ?? '',
         visit_type: initialVisitOptions[0]?.value ?? '',
         whatsapp_number: '',
+        staff_ref: staffReferralPrefill?.staff_code ?? '',
     });
 
     const selectedService = selectedInitialService(services, data.service_id);
@@ -277,6 +278,21 @@ export default function BookingCreate({ customerProfile, services = [], branches
                                             value={data.complaint_notes}
                                         />
                                         <FieldError message={errors.complaint_notes} />
+                                    </label>
+
+                                    <label className="block">
+                                        <span className="font-label-sm text-xs font-bold uppercase tracking-[0.14em] text-on-surface-variant">
+                                            Kode Referal Staf
+                                        </span>
+                                        <input
+                                            className="mt-2 block w-full rounded-2xl border-outline-variant bg-white font-body-sm text-sm uppercase text-on-surface shadow-sm focus:border-primary-container focus:ring-primary-container"
+                                            name="staff_ref"
+                                            onChange={(event) => setData('staff_ref', event.target.value.toUpperCase())}
+                                            placeholder="Contoh: STF-A9K2"
+                                            type="text"
+                                            value={data.staff_ref ?? ''}
+                                        />
+                                        <FieldError message={errors.staff_ref} />
                                     </label>
 
                                     <FieldError message={errors.customer_profile} />

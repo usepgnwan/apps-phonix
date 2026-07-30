@@ -114,7 +114,7 @@ function paymentMethodLabel(paymentMethod) {
     return 'QRIS';
 }
 
-export default function CheckoutShow({ authUser, cart, customerProfile, paymentMethods = [], savedShippingAddresses = [], availableVouchers = [] }) {
+export default function CheckoutShow({ authUser, cart, customerProfile, paymentMethods = [], savedShippingAddresses = [], availableVouchers = [], staffReferralPrefill = null }) {
     const items = cartItems(cart);
     const subtotal = cartSubtotal(cart);
     const [provinceId, setProvinceId] = useState('');
@@ -145,6 +145,7 @@ export default function CheckoutShow({ authUser, cart, customerProfile, paymentM
         shipping_address_detail: customerProfile?.primary_address ?? '',
         payment_method_id: '',
         voucher_code: '',
+        staff_ref: staffReferralPrefill?.staff_code ?? '',
     });
     const voucherCodeRef = useRef(data.voucher_code);
     const voucherDiscount = voucherCheck.status === 'valid' ? Number(voucherCheck.data?.discount_amount ?? 0) : 0;
@@ -608,6 +609,22 @@ export default function CheckoutShow({ authUser, cart, customerProfile, paymentM
                                         <FieldError message={errors.voucher_code} />
                                         {voucherCheck.message ? <p className={`mt-2 font-body-sm text-xs ${voucherCheck.status === 'valid' ? 'text-primary-container' : 'text-error'}`}>{voucherCheck.message}</p> : null}
                                         {(!customerProfile && !data.customer_whatsapp_number) && <p className="mt-2 font-body-sm text-xs text-error">Isi Nomor WhatsApp terlebih dahulu untuk mengecek voucher.</p>}
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 rounded-3xl border border-outline-variant/80 bg-white p-4">
+                                    <p className="font-label-sm text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant">Referal Staf</p>
+                                    <div className="mt-3">
+                                        <span className="font-label-sm text-xs font-bold uppercase tracking-[0.14em] text-on-surface-variant">Kode Referal Staf</span>
+                                        <input
+                                            className="mt-2 block w-full rounded-2xl border-outline-variant bg-white font-body-sm text-sm uppercase text-on-surface shadow-sm focus:border-primary-container focus:ring-primary-container"
+                                            name="staff_ref"
+                                            onChange={(event) => setData('staff_ref', event.target.value.toUpperCase())}
+                                            placeholder="Contoh: STF-A9K2"
+                                            type="text"
+                                            value={data.staff_ref ?? ''}
+                                        />
+                                        <FieldError message={errors.staff_ref} />
                                     </div>
                                 </div>
                             </div>

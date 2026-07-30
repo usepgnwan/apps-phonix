@@ -2,12 +2,15 @@
 
 namespace App\Services;
 
+use App\Models\CustomerProfile;
 use App\Models\OfflineSale;
 use App\Models\Product;
 use App\Models\BranchProductStock;
 use App\Models\Service;
 use App\Models\Voucher;
 use App\Models\VoucherRedemption;
+use App\Services\StaffReferral\StaffReferralAttributionService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -17,7 +20,7 @@ class OfflineSaleService
     public function create(array $data): OfflineSale
     {
         return DB::transaction(function () use ($data): OfflineSale {
-            $items = collect($data['items'])->map(function (array $item): array {
+            $items = collect($data['items'])->map(function (array $item) use ($data): array {
                 $type = ! empty($item['product_id']) ? 'product' : 'service';
                 $model = null;
                 $unitPrice = 0;
@@ -96,6 +99,23 @@ class OfflineSaleService
 
             $customerName = trim((string) ($data['customer_name'] ?? ''));
 
+            $buyerUserId = null;
+            if (! empty($data['customer_profile_id'])) {
+                $buyerUserId = CustomerProfile::query()
+                    ->whereKey($data['customer_profile_id'])
+                    ->value('user_id');
+                $buyerUserId = $buyerUserId !== null ? (int) $buyerUserId : null;
+            }
+
+            $staffAttribution = app(StaffReferralAttributionService::class);
+            $explicitStaffCode = isset($data['staff_ref']) && is_string($data['staff_ref'])
+                ? $data['staff_ref']
+                : null;
+            $request = request();
+            $referredByStaff = $request instanceof Request
+                ? $staffAttribution->resolveForTransaction($buyerUserId, $request, $explicitStaffCode)
+                : null;
+
             $offlineSale = OfflineSale::query()->create([
                 'sale_number' => $this->generateSaleNumber($data['branch_id'] ?? null),
                 'branch_id' => $data['branch_id'] ?? null,
@@ -103,6 +123,7 @@ class OfflineSaleService
                 'voucher_id' => $voucher?->id,
                 'lead_id' => $data['lead_id'] ?? null,
                 'field_staff_id' => $data['field_staff_id'] ?? null,
+                'referred_by_staff_id' => $referredByStaff?->id,
                 'event_id' => $data['event_id'] ?? null,
                 'source' => $data['source'],
                 'customer_name' => $customerName !== '' ? $customerName : 'Walk-in Guest',

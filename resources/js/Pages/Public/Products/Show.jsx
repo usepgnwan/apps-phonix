@@ -1,4 +1,4 @@
-import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { ArrowRight, ChevronRight, MapPin, Minus, Plus, ShoppingBag, Star } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
@@ -8,7 +8,6 @@ import {
     ProductImage,
     productCategory,
     PublicShell,
-    SecondaryLink,
 } from '@/Components/Public/commerce.jsx';
 
 function formatPackageAmount(value) {
@@ -262,6 +261,8 @@ function QuantityStepper({ availableStock, disabled, quantity, setData }) {
 
 function BuyPanel({
     availableStock,
+    buyNow,
+    buyNowProcessing = false,
     cartCount,
     data,
     errors,
@@ -275,7 +276,8 @@ function BuyPanel({
     const hasBranch = Boolean(data.branch_id);
     const isOutOfStock = hasBranch && availableStock === 0;
     const isQuantityInvalid = hasBranch && availableStock > 0 && Number(data.quantity) > availableStock;
-    const canSubmit = hasBranch && availableStock > 0 && !isQuantityInvalid && !processing;
+    const isBusy = processing || buyNowProcessing;
+    const canSubmit = hasBranch && availableStock > 0 && !isQuantityInvalid && !isBusy;
 
     let ctaLabel = 'Tambah ke Keranjang';
     if (!hasBranch) {
@@ -284,6 +286,15 @@ function BuyPanel({
         ctaLabel = 'Stok habis di cabang ini';
     } else if (processing) {
         ctaLabel = 'Menambahkan...';
+    }
+
+    let buyNowLabel = 'Beli sekarang';
+    if (!hasBranch) {
+        buyNowLabel = 'Pilih cabang dulu';
+    } else if (isOutOfStock) {
+        buyNowLabel = 'Stok habis di cabang ini';
+    } else if (buyNowProcessing) {
+        buyNowLabel = 'Mengalihkan...';
     }
 
     let stockMessage = 'Pilih cabang untuk melihat stok';
@@ -370,9 +381,14 @@ function BuyPanel({
                 {ctaLabel}
             </button>
 
-            <SecondaryLink className="w-full" href={route('products.index')}>
-                Lanjut belanja
-            </SecondaryLink>
+            <button
+                className="inline-flex min-h-[52px] w-full items-center justify-center rounded-2xl border border-primary-fixed-dim bg-white px-6 font-label-md text-sm font-bold tracking-wide text-primary-container transition hover:bg-primary-fixed/30 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={!canSubmit}
+                onClick={buyNow}
+                type="button"
+            >
+                {buyNowLabel}
+            </button>
 
             {errors.branch_id && <p className="font-body-sm text-xs text-error">{errors.branch_id}</p>}
             {errors.quantity && <p className="font-body-sm text-xs text-error">{errors.quantity}</p>}
@@ -483,6 +499,20 @@ export default function ProductShow({ product, relatedProducts = [], branches = 
         post(route('cart.items.store'), {
             onSuccess: animateToCart,
             preserveScroll: true,
+        });
+    }
+
+    function buyNow(event) {
+        event.preventDefault();
+
+        if (!data.branch_id || processing) {
+            return;
+        }
+
+        router.post(route('checkout.buy-now'), {
+            product_id: data.product_id,
+            quantity: data.quantity,
+            branch_id: data.branch_id,
         });
     }
 
@@ -615,6 +645,8 @@ export default function ProductShow({ product, relatedProducts = [], branches = 
                         <BuyPanel
                             availableStock={availableStock}
                             branches={branches}
+                            buyNow={buyNow}
+                            buyNowProcessing={processing}
                             cartCount={cartCount}
                             data={data}
                             errors={errors}

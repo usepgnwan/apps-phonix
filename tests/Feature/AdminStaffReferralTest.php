@@ -147,7 +147,48 @@ class AdminStaffReferralTest extends TestCase
             ->assertJsonPath('component', 'Admin/StaffReferrals/Show')
             ->assertJsonPath('props.staff.id', $staff->id)
             ->assertJsonPath('props.staff.staff_code', 'STF-DETL')
-            ->assertJsonPath('props.metrics.registration_count', 1);
+            ->assertJsonPath('props.metrics.registration_count', 1)
+            ->assertJsonPath('props.metrics.order_count', 0)
+            ->assertJsonPath('props.metrics.booking_count', 0)
+            ->assertJsonPath('props.metrics.offline_sale_count', 0)
+            ->assertJsonPath('props.filters.registrations_per_page', 10)
+            ->assertJsonPath('props.filters.orders_per_page', 10)
+            ->assertJsonPath('props.registrations.data.0.name', 'Customer Referred');
+    }
+
+    public function test_admin_staff_referral_detail_supports_per_table_search(): void
+    {
+        $admin = User::factory()->adminCentral()->create();
+        $branch = $this->createBranch('Cabang Search', 'SRC');
+        $staff = User::factory()->fieldStaff($branch->id)->create([
+            'name' => 'Staff Search',
+            'staff_code' => 'STF-SRCH',
+        ]);
+
+        User::factory()->customer()->create([
+            'name' => 'Alpha Referred',
+            'referred_by_staff_id' => $staff->id,
+            'referred_at' => now(),
+        ]);
+        User::factory()->customer()->create([
+            'name' => 'Beta Referred',
+            'referred_by_staff_id' => $staff->id,
+            'referred_at' => now(),
+        ]);
+
+        $this->inertiaGet($admin, route('admin.staff-referrals.show', [
+            'staff' => $staff->id,
+            'registrations_search' => 'Alpha',
+            'registrations_per_page' => 25,
+            'orders_search' => 'NoMatch',
+        ]))
+            ->assertOk()
+            ->assertJsonPath('props.filters.registrations_search', 'Alpha')
+            ->assertJsonPath('props.filters.registrations_per_page', 25)
+            ->assertJsonPath('props.filters.orders_search', 'NoMatch')
+            ->assertJsonPath('props.registrations.data.0.name', 'Alpha Referred')
+            ->assertJsonCount(1, 'props.registrations.data')
+            ->assertJsonCount(0, 'props.orders.data');
     }
 
     public function test_admin_cabang_cannot_view_other_branch_staff_detail(): void

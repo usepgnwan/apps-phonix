@@ -35,6 +35,7 @@ function OfflineSalePosForm({ products, services, customerProfiles, leads, field
         source: 'offline',
         payment_method_id: '',
         voucher_code: '',
+        staff_ref: '',
         customer_name: '',
         customer_whatsapp_number: '',
         notes: '',
@@ -72,9 +73,21 @@ function OfflineSalePosForm({ products, services, customerProfiles, leads, field
     }
 
     function updateField(name, value) {
+        if (name === 'customer_profile_id') {
+            const profile = customerProfiles.find((p) => String(p.id) === String(value));
+            const code = profile?.user?.referred_by_staff?.staff_code ?? '';
+            form.setData((current) => ({
+                ...current,
+                customer_profile_id: value,
+                staff_ref: code || current.staff_ref,
+            }));
+            resetVoucherCheck();
+            return;
+        }
+
         form.setData(name, value);
 
-        if (['voucher_code', 'customer_profile_id'].includes(name)) {
+        if (name === 'voucher_code') {
             resetVoucherCheck();
         }
     }
@@ -197,6 +210,7 @@ function OfflineSalePosForm({ products, services, customerProfiles, leads, field
                         source: 'offline',
                         payment_method_id: '',
                         voucher_code: '',
+                        staff_ref: '',
                         customer_name: '',
                         customer_whatsapp_number: '',
                         notes: '',
@@ -520,10 +534,18 @@ function OfflineSalePosForm({ products, services, customerProfiles, leads, field
                             <option value="">Tidak terhubung</option>
                             {leads.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                         </SelectField>
-                        <SelectField error={form.errors.field_staff_id} label="Staff Lapangan" name="field_staff_id" onChange={(e) => form.setData('field_staff_id', e.target.value)} value={form.data.field_staff_id}>
+                        <SelectField error={form.errors.field_staff_id} label="Staff Lapangan (Operasional)" name="field_staff_id" onChange={(e) => form.setData('field_staff_id', e.target.value)} value={form.data.field_staff_id}>
                             <option value="">Belum ditugaskan</option>
                             {fieldStaff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </SelectField>
+                        <TextField
+                            error={form.errors.staff_ref}
+                            label="Kode Referal Staf (Akuisisi)"
+                            name="staff_ref"
+                            onChange={(e) => form.setData('staff_ref', e.target.value.toUpperCase())}
+                            placeholder="STF-XXXX"
+                            value={form.data.staff_ref ?? ''}
+                        />
                         <SelectField error={form.errors.event_id} label="Event" name="event_id" onChange={(e) => form.setData('event_id', e.target.value)} value={form.data.event_id}>
                             <option value="">Tidak dari event</option>
                             {events.map((ev) => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
