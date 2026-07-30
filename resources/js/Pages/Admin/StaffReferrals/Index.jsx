@@ -46,14 +46,14 @@ export default function Index({
                 <AdminPageHeader
                     description={
                         lockedBranchName
-                            ? `Monitoring referral staff cabang ${lockedBranchName}. Tanpa komisi — fokus klik, daftar, dan atribusi transaksi.`
-                            : 'Pantau performa referral staff per cabang: klik link, pendaftaran customer, order, dan booking teratribusi.'
+                            ? `Monitoring referral staff cabang ${lockedBranchName}. Tanpa komisi. Daftar = staf di profil customer; Order/Booking = staf di transaksi (bisa beda jika diisi ulang di checkout).`
+                            : 'Pantau performa referral staff. Daftar = staf akuisisi profil; Order/Booking = staf referal transaksi (boleh beda dari profil). Tanpa komisi.'
                     }
                     eyebrow="Organisasi / Referral Staff"
                     title="Monitoring Referral Staff"
                 />
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
                     <MetricCard
                         helper="Field staff yang punya kode"
                         icon="S"
@@ -76,18 +76,25 @@ export default function Index({
                         value={formatNumber(metrics.total_registrations)}
                     />
                     <MetricCard
-                        helper="Order dengan atribusi staff"
+                        helper="Order dengan staf referal transaksi"
                         icon="O"
                         label="Order"
                         tone="orange"
                         value={formatNumber(metrics.total_orders)}
                     />
                     <MetricCard
-                        helper="Booking dengan atribusi staff"
+                        helper="Booking dengan staf referal transaksi"
                         icon="B"
                         label="Booking"
                         tone="brown"
                         value={formatNumber(metrics.total_bookings)}
+                    />
+                    <MetricCard
+                        helper="Offline sale dengan staf referal transaksi"
+                        icon="F"
+                        label="Offline"
+                        tone="sage"
+                        value={formatNumber(metrics.total_offline_sales)}
                     />
                 </div>
 
@@ -168,6 +175,7 @@ export default function Index({
                                             'Daftar',
                                             'Order',
                                             'Booking',
+                                            'Offline',
                                             'Aksi',
                                         ].map((heading) => (
                                             <th
@@ -210,6 +218,9 @@ export default function Index({
                                             </td>
                                             <td className="whitespace-nowrap px-4 py-4 text-sm text-gray-600">
                                                 {formatNumber(row.booking_count)}
+                                            </td>
+                                            <td className="whitespace-nowrap px-4 py-4 text-sm text-gray-600">
+                                                {formatNumber(row.offline_sale_count)}
                                             </td>
                                             <td className="whitespace-nowrap px-4 py-4">
                                                 <Link

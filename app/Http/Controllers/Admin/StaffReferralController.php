@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Branch;
+use App\Models\OfflineSale;
 use App\Models\Order;
 use App\Models\StaffReferralClick;
 use App\Models\User;
@@ -112,6 +113,9 @@ class StaffReferralController extends Controller
             'total_bookings' => Booking::query()
                 ->whereIn('referred_by_staff_id', $staffIds)
                 ->count(),
+            'total_offline_sales' => OfflineSale::query()
+                ->whereIn('referred_by_staff_id', $staffIds)
+                ->count(),
         ];
 
         $staff = $this->staffQuery($actor, $branchId)
@@ -132,7 +136,6 @@ class StaffReferralController extends Controller
             ->paginate($perPage)
             ->withQueryString();
 
-        // Enrich paginated rows with order/booking counts (scoped to referred_by_staff_id).
         $pageStaffIds = collect($staff->items())->pluck('id');
         $orderCounts = Order::query()
             ->whereIn('referred_by_staff_id', $pageStaffIds)
@@ -144,10 +147,16 @@ class StaffReferralController extends Controller
             ->selectRaw('referred_by_staff_id, COUNT(*) as aggregate')
             ->groupBy('referred_by_staff_id')
             ->pluck('aggregate', 'referred_by_staff_id');
+        $offlineSaleCounts = OfflineSale::query()
+            ->whereIn('referred_by_staff_id', $pageStaffIds)
+            ->selectRaw('referred_by_staff_id, COUNT(*) as aggregate')
+            ->groupBy('referred_by_staff_id')
+            ->pluck('aggregate', 'referred_by_staff_id');
 
-        $staff->getCollection()->transform(function (User $row) use ($orderCounts, $bookingCounts) {
+        $staff->getCollection()->transform(function (User $row) use ($orderCounts, $bookingCounts, $offlineSaleCounts) {
             $row->setAttribute('order_count', (int) ($orderCounts[$row->id] ?? 0));
             $row->setAttribute('booking_count', (int) ($bookingCounts[$row->id] ?? 0));
+            $row->setAttribute('offline_sale_count', (int) ($offlineSaleCounts[$row->id] ?? 0));
 
             return $row;
         });
@@ -185,6 +194,16 @@ class StaffReferralController extends Controller
 
         $staff->load(['branch:id,name', 'team:id,name', 'position:id,name']);
 
+        $registrationsSearch = $this->searchValue($request, 'registrations_search');
+        $ordersSearch = $this->searchValue($request, 'orders_search');
+        $bookingsSearch = $this->searchValue($request, 'bookings_search');
+        $offlineSearch = $this->searchValue($request, 'offline_search');
+
+        $registrationsPerPage = $this->perPageValue($request, 'registrations_per_page');
+        $ordersPerPage = $this->perPageValue($request, 'orders_per_page');
+        $bookingsPerPage = $this->perPageValue($request, 'bookings_per_page');
+        $offlinePerPage = $this->perPageValue($request, 'offline_per_page');
+
         $clickCount = StaffReferralClick::query()
             ->where('staff_user_id', $staff->id)
             ->count();
@@ -201,11 +220,94 @@ class StaffReferralController extends Controller
             ->where('referred_by_staff_id', $staff->id)
             ->count();
 
+        $offlineSaleCount = OfflineSale::query()
+            ->where('referred_by_staff_id', $staff->id)
+            ->count();
+
         $registrations = User::query()
             ->where('referred_by_staff_id', $staff->id)
             ->with(['customerProfile:id,user_id,name,whatsapp_number'])
+            ->when($registrationsSearch !== '', function (Builder $query) use ($registrationsSearch): void {
+                $query->where(function (Builder $inner) use ($registrationsSearch): void {
+                    $inner->where('name', 'like', "%{$registrationsSearch}%")
+                        ->orWhere('email', 'like', "%{$registrationsSearch}%")
+                        ->orWhereHas('customerProfile', function (Builder $profileQuery) use ($registrationsSearch): void {
+                            $profileQuery->where('name', 'like', "%{$registrationsSearch}%")
+                                ->orWhere('whatsapp_number', 'like', "%{$registrationsSearch}%");
+                        });
+                });
+            })
             ->latest('referred_at')
-            ->paginate(15, ['*'], 'registrations_page')
+            ->paginate($registrationsPerPage, ['*'], 'registrations_page')
+            ->withQueryString();
+
+        $orders = Order::query()
+            ->where('referred_by_staff_id', $staff->id)
+            ->when($ordersSearch !== '', function (Builder $query) use ($ordersSearch): void {
+                $query->where(function (Builder $inner) use ($ordersSearch): void {
+                    $inner->where('order_number', 'like', "%{$ordersSearch}%")
+                        ->orWhere('customer_name', 'like', "%{$ordersSearch}%")
+                        ->orWhere('customer_email', 'like', "%{$ordersSearch}%")
+                        ->orWhere('customer_whatsapp_number', 'like', "%{$ordersSearch}%");
+                });
+            })
+            ->latest('id')
+            ->paginate($ordersPerPage, [
+                'id',
+                'order_number',
+                'customer_name',
+                'total',
+                'status',
+                'payment_status',
+                'created_at',
+            ], 'orders_page')
+            ->withQueryString();
+
+        $bookings = Booking::query()
+            ->where('referred_by_staff_id', $staff->id)
+            ->with(['service:id,name'])
+            ->when($bookingsSearch !== '', function (Builder $query) use ($bookingsSearch): void {
+                $query->where(function (Builder $inner) use ($bookingsSearch): void {
+                    $inner->where('booking_number', 'like', "%{$bookingsSearch}%")
+                        ->orWhere('name', 'like', "%{$bookingsSearch}%")
+                        ->orWhere('whatsapp_number', 'like', "%{$bookingsSearch}%")
+                        ->orWhereHas('service', function (Builder $serviceQuery) use ($bookingsSearch): void {
+                            $serviceQuery->where('name', 'like', "%{$bookingsSearch}%");
+                        });
+                });
+            })
+            ->latest('id')
+            ->paginate($bookingsPerPage, [
+                'id',
+                'booking_number',
+                'service_id',
+                'name',
+                'status',
+                'desired_schedule_at',
+                'created_at',
+            ], 'bookings_page')
+            ->withQueryString();
+
+        $offlineSales = OfflineSale::query()
+            ->where('referred_by_staff_id', $staff->id)
+            ->when($offlineSearch !== '', function (Builder $query) use ($offlineSearch): void {
+                $query->where(function (Builder $inner) use ($offlineSearch): void {
+                    $inner->where('sale_number', 'like', "%{$offlineSearch}%")
+                        ->orWhere('customer_name', 'like', "%{$offlineSearch}%")
+                        ->orWhere('customer_whatsapp_number', 'like', "%{$offlineSearch}%")
+                        ->orWhere('source', 'like', "%{$offlineSearch}%");
+                });
+            })
+            ->latest('sold_at')
+            ->paginate($offlinePerPage, [
+                'id',
+                'sale_number',
+                'customer_name',
+                'total',
+                'source',
+                'sold_at',
+                'created_at',
+            ], 'offline_page')
             ->withQueryString();
 
         $recentClicks = StaffReferralClick::query()
@@ -229,9 +331,35 @@ class StaffReferralController extends Controller
                 'registration_count' => $registrationCount,
                 'order_count' => $orderCount,
                 'booking_count' => $bookingCount,
+                'offline_sale_count' => $offlineSaleCount,
             ],
             'registrations' => $registrations,
+            'orders' => $orders,
+            'bookings' => $bookings,
+            'offlineSales' => $offlineSales,
             'recentClicks' => $recentClicks,
+            'filters' => [
+                'registrations_search' => $registrationsSearch,
+                'orders_search' => $ordersSearch,
+                'bookings_search' => $bookingsSearch,
+                'offline_search' => $offlineSearch,
+                'registrations_per_page' => $registrationsPerPage,
+                'orders_per_page' => $ordersPerPage,
+                'bookings_per_page' => $bookingsPerPage,
+                'offline_per_page' => $offlinePerPage,
+            ],
         ]);
+    }
+
+    private function searchValue(Request $request, string $key): string
+    {
+        return trim((string) $request->input($key, ''));
+    }
+
+    private function perPageValue(Request $request, string $key): int
+    {
+        $perPage = (int) $request->input($key, 10);
+
+        return in_array($perPage, [10, 25, 50], true) ? $perPage : 10;
     }
 }

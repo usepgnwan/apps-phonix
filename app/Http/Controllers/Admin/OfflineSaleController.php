@@ -173,7 +173,7 @@ class OfflineSaleController extends Controller
 
         $offlineSalesQuery = $user->applyBranchScope(
             OfflineSale::query()
-                ->with(['customerProfile', 'lead', 'fieldStaff', 'event', 'paymentMethod', 'voucherRedemption.voucher', 'branch'])
+                ->with(['customerProfile', 'lead', 'fieldStaff', 'referredByStaff:id,name,staff_code', 'event', 'paymentMethod', 'voucherRedemption.voucher', 'branch'])
         );
         $this->applyOptionalBranchFilter($offlineSalesQuery, $branchId);
 
@@ -236,7 +236,11 @@ class OfflineSaleController extends Controller
             'products' => Product::query()->with('branchStocks')->where('is_active', true)->orderBy('name')->get(),
             'branches' => $this->branchesForActor($user),
             'services' => Service::query()->where('is_active', true)->orderBy('name')->get(),
-            'customerProfiles' => CustomerProfile::query()->visibleToAdmin($user)->orderBy('name')->get(),
+            'customerProfiles' => CustomerProfile::query()
+                ->visibleToAdmin($user)
+                ->with(['user:id,referred_by_staff_id', 'user.referredByStaff:id,name,staff_code'])
+                ->orderBy('name')
+                ->get(),
             'leads' => $leadsQuery->get(),
             'fieldStaff' => $fieldStaffQuery->get(['id', 'name', 'email', 'role', 'is_active', 'branch_id']),
             'events' => $eventsQuery->get(),
@@ -336,7 +340,7 @@ class OfflineSaleController extends Controller
         $user = $this->authorizeAdmin();
         $this->ensureOfflineSaleInScope($user, $offlineSale);
 
-        $offlineSale->load(['offlineSaleItems.product', 'offlineSaleItems.service', 'customerProfile', 'lead', 'fieldStaff', 'event', 'paymentMethod', 'voucherRedemption.voucher', 'branch']);
+        $offlineSale->load(['offlineSaleItems.product', 'offlineSaleItems.service', 'customerProfile.user.referredByStaff:id,name,staff_code', 'lead', 'fieldStaff', 'referredByStaff:id,name,staff_code', 'event', 'paymentMethod', 'voucherRedemption.voucher', 'branch']);
 
         return Inertia::render('Admin/OfflineSales/Show', [
             'offlineSale' => $offlineSale,

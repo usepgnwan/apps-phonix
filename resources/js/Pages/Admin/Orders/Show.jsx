@@ -441,6 +441,16 @@ function AdminOrderShow({ order }) {
                             <DetailRow label="WhatsApp">{customerWhatsappNumber(order) || '-'}</DetailRow>
                             <DetailRow label="Email">{order.user?.email ?? order.customer_email ?? '-'}</DetailRow>
                             <DetailRow label="Status Member">{order.customer_profile?.member_status ?? order.member_status ?? '-'}</DetailRow>
+                            <DetailRow label="Staf Referal Profil">
+                                {order.user?.referred_by_staff
+                                    ? `${order.user.referred_by_staff.name}${order.user.referred_by_staff.staff_code ? ` (${order.user.referred_by_staff.staff_code})` : ''}`
+                                    : '-'}
+                            </DetailRow>
+                            <DetailRow label="Staf Referal Transaksi">
+                                {order.referred_by_staff
+                                    ? `${order.referred_by_staff.name}${order.referred_by_staff.staff_code ? ` (${order.referred_by_staff.staff_code})` : ''}`
+                                    : '-'}
+                            </DetailRow>
                             <div className="col-span-1">
                                 <DetailRow label="Alamat Pengiriman">{order.shipping_address ?? order.customer_profile?.primary_address ?? '-'}</DetailRow>
                             </div>

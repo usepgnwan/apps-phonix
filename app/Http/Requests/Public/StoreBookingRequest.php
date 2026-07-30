@@ -25,6 +25,7 @@ class StoreBookingRequest extends FormRequest
             'visit_type' => ['required', Rule::in(['home_visit', 'office_visit'])],
             'desired_schedule_at' => ['required', 'date', 'after:now'],
             'complaint_notes' => ['required', 'string', 'max:2000'],
+            'staff_ref' => ['nullable', 'string', 'max:32'],
         ];
     }
 

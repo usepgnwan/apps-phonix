@@ -21,6 +21,7 @@ class StoreCheckoutRequest extends FormRequest
             'payment_method_id' => ['required', Rule::exists('payment_methods', 'id')->where('is_active', true)],
             'shipping_address' => ['required', 'string', 'max:5000'],
             'voucher_code' => ['nullable', 'string', 'max:255'],
+            'staff_ref' => ['nullable', 'string', 'max:32'],
         ];
     }
 }

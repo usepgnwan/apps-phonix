@@ -34,6 +34,9 @@ class BookingController extends Controller
 
     public function create(Request $request): Response
     {
+        $staffAttribution = app(StaffReferralAttributionService::class);
+        $staffReferralPrefill = $staffAttribution->prefillForBuyer($request->user()?->id);
+
         return Inertia::render('Public/Bookings/Create', [
             'customerProfile' => $request->user()?->customerProfile,
             'branches' => \App\Models\Branch::query()
@@ -44,6 +47,7 @@ class BookingController extends Controller
                 ->where('is_active', true)
                 ->orderBy('name')
                 ->get(['id', 'name', 'slug', 'description', 'price', 'visit_type', 'image_path']),
+            'staffReferralPrefill' => $staffReferralPrefill,
         ]);
     }
 
@@ -61,7 +65,10 @@ class BookingController extends Controller
         $affiliate = $attribution->resolveForCheckout(null, $user?->id, $request);
 
         $staffAttribution = app(StaffReferralAttributionService::class);
-        $referredByStaff = $staffAttribution->resolveForTransaction($user?->id, $request);
+        $explicitStaffCode = isset($validated['staff_ref']) && is_string($validated['staff_ref'])
+            ? $validated['staff_ref']
+            : null;
+        $referredByStaff = $staffAttribution->resolveForTransaction($user?->id, $request, $explicitStaffCode);
 
         $booking = Booking::query()->create([
             'booking_number' => $this->generateBookingNumber($validated['branch_id'] ?? null),

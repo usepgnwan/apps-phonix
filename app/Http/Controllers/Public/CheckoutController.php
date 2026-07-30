@@ -9,6 +9,7 @@ use App\Models\PaymentMethod;
 use App\Models\Setting;
 use App\Services\CartResolver;
 use App\Services\CheckoutService;
+use App\Services\StaffReferral\StaffReferralAttributionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,9 +25,27 @@ class CheckoutController extends Controller
     ) {
     }
 
+    public function buyNow(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'product_id' => ['required', 'integer', 'exists:products,id'],
+            'quantity' => ['required', 'integer', 'min:1'],
+            'branch_id' => ['required', 'integer', 'exists:branches,id'],
+        ]);
+
+        $this->cartResolver->startBuyNow(
+            $request,
+            (int) $validated['product_id'],
+            (int) $validated['quantity'],
+            (int) $validated['branch_id'],
+        );
+
+        return redirect()->route('checkout.show');
+    }
+
     public function show(Request $request): Response
     {
-        $cart = $this->cartResolver->resolve($request)->load('cartItems.product.productCategory');
+        $cart = $this->cartResolver->resolveForCheckout($request)->load('cartItems.product.productCategory');
         $authUser = $request->user();
         $customerProfile = $cart->customerProfile?->load('user');
         $savedShippingAddresses = collect();
@@ -63,8 +82,12 @@ class CheckoutController extends Controller
             })
             ->get(['id', 'code', 'name', 'description', 'discount_type', 'discount_value', 'minimum_purchase']);
 
+        $staffAttribution = app(StaffReferralAttributionService::class);
+        $staffReferralPrefill = $staffAttribution->prefillForBuyer($authUser?->id ?? $cart->user_id);
+
         return Inertia::render('Public/Checkout/Show', [
             'cart' => $cart,
+            'checkoutSource' => $this->cartResolver->isBuyNowCheckout($request) ? 'buy_now' : 'cart',
             'authUser' => $authUser?->only(['name', 'email']),
             'customerProfile' => $customerProfile,
             'paymentMethods' => PaymentMethod::query()
@@ -74,13 +97,20 @@ class CheckoutController extends Controller
                 ->get(['id', 'type', 'bank_name', 'account_number', 'account_holder_name', 'qris_image_path', 'instructions']),
             'savedShippingAddresses' => $savedShippingAddresses,
             'availableVouchers' => $availableVouchers,
+            'staffReferralPrefill' => $staffReferralPrefill,
         ]);
     }
 
     public function store(StoreCheckoutRequest $request): RedirectResponse
     {
-        $cart = $this->cartResolver->resolve($request);
+        $isBuyNow = $this->cartResolver->isBuyNowCheckout($request);
+        $cart = $this->cartResolver->resolveForCheckout($request);
         $order = $this->checkoutService->checkout($cart, $request->validated(), $request);
+
+        if ($isBuyNow) {
+            $this->cartResolver->clearBuyNow($request);
+        }
+
         OrderLookupController::authorizeOrderForSession($request, $order);
 
         return redirect()
@@ -97,7 +127,7 @@ class CheckoutController extends Controller
                 'voucher_code' => ['required', 'string', 'max:255'],
             ]);
 
-            $cart = $this->cartResolver->resolve($request)->load('cartItems.product', 'user', 'customerProfile');
+            $cart = $this->cartResolver->resolveForCheckout($request)->load('cartItems.product', 'user', 'customerProfile');
 
             if ($cart->cartItems->isEmpty()) {
                 throw ValidationException::withMessages([

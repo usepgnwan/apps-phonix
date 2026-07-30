@@ -66,6 +66,7 @@ Route::post('/cart/items', [CartController::class, 'store'])->name('cart.items.s
 Route::patch('/cart/items/{cartItem}', [CartController::class, 'update'])->name('cart.items.update');
 Route::delete('/cart/items/{cartItem}', [CartController::class, 'destroy'])->name('cart.items.destroy');
 Route::get('/checkout', [CheckoutController::class, 'show'])->name('checkout.show');
+Route::post('/checkout/buy-now', [CheckoutController::class, 'buyNow'])->name('checkout.buy-now');
 Route::post('/checkout/validate-voucher', [CheckoutController::class, 'validateVoucher'])->middleware('throttle:10,1')->name('checkout.validate-voucher');
 Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
 Route::get('/orders/lookup', [OrderLookupController::class, 'create'])->name('orders.lookup.create');
